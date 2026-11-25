@@ -36,13 +36,12 @@ pub fn generate_thumbnail(raw_bytes: &[u8], max_edge: u32) -> Result<ThumbnailRe
         }
     }
 
-    let dominant_hex = if count > 0 {
-        format!(
-            "#{:02X}{:02X}{:02X}",
-            (r_sum / count) as u8,
-            (g_sum / count) as u8,
-            (b_sum / count) as u8
-        )
+    let dominant_hex = if let (Some(r), Some(g), Some(b)) = (
+        r_sum.checked_div(count),
+        g_sum.checked_div(count),
+        b_sum.checked_div(count),
+    ) {
+        format!("#{r:02X}{g:02X}{b:02X}")
     } else {
         "#4A5568".to_string()
     };
