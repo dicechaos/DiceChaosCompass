@@ -161,7 +161,7 @@ pub fn write_tiled_print_pdf(
 
     for (idx, body) in objects.iter().enumerate() {
         offsets.push(pdf.len());
-        write!(&mut pdf, "{} 0 obj\n", idx + 1).unwrap();
+        writeln!(&mut pdf, "{} 0 obj", idx + 1).unwrap();
         pdf.extend_from_slice(body);
         pdf.extend_from_slice(b"\nendobj\n");
     }
@@ -193,8 +193,8 @@ mod tests {
 
     #[test]
     fn generates_valid_multi_page_1_inch_pdf() {
-        // 16 x 12 inch map at 10 PPI -> should split cleanly across 4 Letter pages (2x2)
-        let img = RgbaImage::from_pixel(160, 120, image::Rgba([40, 50, 65, 255]));
+        // 14 x 12 inch map at 10 PPI on Letter (7.5 x 10.0 in usable) -> 2x2 = 4 pages
+        let img = RgbaImage::from_pixel(140, 120, image::Rgba([40, 50, 65, 255]));
         let tmp = NamedTempFile::new().unwrap();
         let pages = write_tiled_print_pdf(tmp.path(), &img, 10.0, PaperSize::Letter, 0.5).unwrap();
         assert_eq!(pages, 4);
