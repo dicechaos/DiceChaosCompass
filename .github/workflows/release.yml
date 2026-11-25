@@ -58,10 +58,29 @@ jobs:
         run: npm run build:tauri
 
       - name: Run Rust unit tests
-        run: cargo test --manifest-path src-tauri/Cargo.toml -- --nocapture
+        shell: bash
+        run: |
+          set -o pipefail
+          cargo test --manifest-path src-tauri/Cargo.toml -- --nocapture 2>&1 | tee /tmp/rust_test.log || {
+            grep -E '(^error|FAILED|panicked at|assertion|failures:|note:)' /tmp/rust_test.log | head -n 40 | while IFS= read -r line; do
+              echo "::error::${line}"
+            done
+            tail -n 25 /tmp/rust_test.log | while IFS= read -r line; do
+              echo "::error::${line}"
+            done
+            exit 1
+          }
 
       - name: Run Rust Clippy check
-        run: cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings -A clippy::collapsible_if
+        shell: bash
+        run: |
+          set -o pipefail
+          cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings -A clippy::collapsible_if 2>&1 | tee /tmp/rust_clippy.log || {
+            grep -E '(^error|^warning|-->)' /tmp/rust_clippy.log | head -n 40 | while IFS= read -r line; do
+              echo "::error::${line}"
+            done
+            exit 1
+          }
 
   prepare-release:
     name: Create GitHub Release
