@@ -1,0 +1,3297 @@
+{
+  "id": "dicechaos-core-fantasy-cc0",
+  "name": "DiceChaos Core Fantasy Essentials (CC0)",
+  "license": "CC0-1.0",
+  "artStyle": "Crisp Hand-Inked Tabletop (Orthographic 256 PPI)",
+  "assets": [
+    {
+      "path": "terrain/meadow_grass.png",
+      "displayName": "Lush Meadow Grass",
+      "category": "terrain",
+      "tags": [
+        "cc0",
+        "core_fantasy",
+        "forest",
+        "grass",
+        "meadow",
+        "wilderness"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#537939",
+      "widthPx": 512,
+      "heightPx": 512
+    },
+    {
+      "path": "terrain/wildflower_meadow.png",
+      "displayName": "Wildflower Meadow",
+      "category": "terrain",
+      "tags": [
+        "cc0",
+        "core_fantasy",
+        "flowers",
+        "grass",
+        "meadow",
+        "wilderness"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#587E3C",
+      "widthPx": 512,
+      "heightPx": 512
+    },
+    {
+      "path": "terrain/forest_moss_floor.png",
+      "displayName": "Deep Forest Moss",
+      "category": "terrain",
+      "tags": [
+        "cc0",
+        "core_fantasy",
+        "forest",
+        "moss",
+        "wilderness",
+        "woods"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#39502D",
+      "widthPx": 512,
+      "heightPx": 512
+    },
+    {
+      "path": "terrain/dirt_trail_earth.png",
+      "displayName": "Packed Dirt & Earth",
+      "category": "terrain",
+      "tags": [
+        "camp",
+        "cc0",
+        "core_fantasy",
+        "dirt",
+        "road",
+        "wilderness"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#7E6144",
+      "widthPx": 512,
+      "heightPx": 512
+    },
+    {
+      "path": "terrain/muddy_mire.png",
+      "displayName": "Muddy Bog & Mire",
+      "category": "terrain",
+      "tags": [
+        "camp",
+        "cc0",
+        "core_fantasy",
+        "mud",
+        "swamp",
+        "wilderness"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#493E2F",
+      "widthPx": 512,
+      "heightPx": 512
+    },
+    {
+      "path": "terrain/autumn_leaf_litter.png",
+      "displayName": "Autumn Leaf Litter",
+      "category": "terrain",
+      "tags": [
+        "autumn",
+        "cc0",
+        "core_fantasy",
+        "forest",
+        "leaves",
+        "wilderness"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#63472B",
+      "widthPx": 512,
+      "heightPx": 512
+    },
+    {
+      "path": "terrain/rocky_cliff_slate.png",
+      "displayName": "Mountain Slate & Scree",
+      "category": "terrain",
+      "tags": [
+        "cave",
+        "cc0",
+        "core_fantasy",
+        "mountain",
+        "rock",
+        "wilderness"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#5D6166",
+      "widthPx": 512,
+      "heightPx": 512
+    },
+    {
+      "path": "terrain/sandy_riverbank.png",
+      "displayName": "Warm Riverbank Sand",
+      "category": "terrain",
+      "tags": [
+        "beach",
+        "cc0",
+        "coast",
+        "core_fantasy",
+        "sand",
+        "wilderness"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#BBA67E",
+      "widthPx": 512,
+      "heightPx": 512
+    },
+    {
+      "path": "terrain/winter_snowfield.png",
+      "displayName": "Crisp Winter Snow",
+      "category": "terrain",
+      "tags": [
+        "cc0",
+        "core_fantasy",
+        "ice",
+        "snow",
+        "wilderness",
+        "winter"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#D3DEEA",
+      "widthPx": 512,
+      "heightPx": 512
+    },
+    {
+      "path": "terrain/dungeon_flagstone.png",
+      "displayName": "Dungeon Hewn Flagstone",
+      "category": "terrain",
+      "tags": [
+        "cc0",
+        "core_fantasy",
+        "crypt",
+        "dungeon",
+        "floor",
+        "stone"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#59575C",
+      "widthPx": 512,
+      "heightPx": 512
+    },
+    {
+      "path": "terrain/crypt_mossy_cobble.png",
+      "displayName": "Mossy Crypt Cobbles",
+      "category": "terrain",
+      "tags": [
+        "cc0",
+        "core_fantasy",
+        "crypt",
+        "dungeon",
+        "moss",
+        "stone"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#4B504A",
+      "widthPx": 512,
+      "heightPx": 512
+    },
+    {
+      "path": "terrain/cavern_rough_stone.png",
+      "displayName": "Rough Cavern Floor",
+      "category": "terrain",
+      "tags": [
+        "cave",
+        "cc0",
+        "core_fantasy",
+        "dungeon",
+        "rock",
+        "underground"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#403D41",
+      "widthPx": 512,
+      "heightPx": 512
+    },
+    {
+      "path": "terrain/volcanic_basalt.png",
+      "displayName": "Volcanic Cracked Basalt",
+      "category": "terrain",
+      "tags": [
+        "basalt",
+        "cave",
+        "cc0",
+        "core_fantasy",
+        "dungeon",
+        "lava"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#483330",
+      "widthPx": 512,
+      "heightPx": 512
+    },
+    {
+      "path": "terrain/soot_ash_floor.png",
+      "displayName": "Scorched Ash & Cinders",
+      "category": "terrain",
+      "tags": [
+        "ash",
+        "cc0",
+        "core_fantasy",
+        "dark",
+        "dungeon",
+        "ruin"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#363334",
+      "widthPx": 512,
+      "heightPx": 512
+    },
+    {
+      "path": "terrain/sewer_wet_brick.png",
+      "displayName": "Damp Sewer Masonry",
+      "category": "terrain",
+      "tags": [
+        "brick",
+        "cc0",
+        "core_fantasy",
+        "dungeon",
+        "sewer",
+        "wet"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#444E46",
+      "widthPx": 512,
+      "heightPx": 512
+    },
+    {
+      "path": "terrain/tavern_oak_planks.png",
+      "displayName": "Warm Oak Tavern Planks",
+      "category": "terrain",
+      "tags": [
+        "cc0",
+        "core_fantasy",
+        "floor",
+        "inn",
+        "interior",
+        "tavern",
+        "wood"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#8B613B",
+      "widthPx": 512,
+      "heightPx": 512
+    },
+    {
+      "path": "terrain/aged_dark_floorboards.png",
+      "displayName": "Aged Dark Inn Floorboards",
+      "category": "terrain",
+      "tags": [
+        "cc0",
+        "core_fantasy",
+        "dark",
+        "interior",
+        "mansion",
+        "tavern",
+        "wood"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#5C402C",
+      "widthPx": 512,
+      "heightPx": 512
+    },
+    {
+      "path": "terrain/mansion_checkered_marble.png",
+      "displayName": "Mansion Checkered Marble",
+      "category": "terrain",
+      "tags": [
+        "castle",
+        "cc0",
+        "core_fantasy",
+        "interior",
+        "mansion",
+        "marble",
+        "noble"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#787671",
+      "widthPx": 512,
+      "heightPx": 512
+    },
+    {
+      "path": "terrain/terracotta_courtyard.png",
+      "displayName": "Terracotta Courtyard Tile",
+      "category": "terrain",
+      "tags": [
+        "cc0",
+        "core_fantasy",
+        "courtyard",
+        "mansion",
+        "tavern",
+        "tile"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#8E563D",
+      "widthPx": 512,
+      "heightPx": 512
+    },
+    {
+      "path": "terrain/royal_sandstone_paving.png",
+      "displayName": "Royal Sandstone Paving",
+      "category": "terrain",
+      "tags": [
+        "castle",
+        "cc0",
+        "core_fantasy",
+        "courtyard",
+        "mansion",
+        "sandstone"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#A79574",
+      "widthPx": 512,
+      "heightPx": 512
+    },
+    {
+      "path": "terrain/stable_straw_floor.png",
+      "displayName": "Woven Stable Straw",
+      "category": "terrain",
+      "tags": [
+        "barn",
+        "camp",
+        "cc0",
+        "core_fantasy",
+        "straw",
+        "tavern"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#9E8348",
+      "widthPx": 512,
+      "heightPx": 512
+    },
+    {
+      "path": "terrain/castle_keep_ashlar.png",
+      "displayName": "Castle Keep Cut Stone",
+      "category": "terrain",
+      "tags": [
+        "castle",
+        "cc0",
+        "core_fantasy",
+        "floor",
+        "keep",
+        "stone"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#75787D",
+      "widthPx": 512,
+      "heightPx": 512
+    },
+    {
+      "path": "terrain/shallow_creek_bed.png",
+      "displayName": "Clear Creek Pebbles",
+      "category": "terrain",
+      "tags": [
+        "cc0",
+        "core_fantasy",
+        "pebbles",
+        "stream",
+        "water",
+        "wilderness"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#427E88",
+      "widthPx": 512,
+      "heightPx": 512
+    },
+    {
+      "path": "terrain/deep_pond_water.png",
+      "displayName": "Deep Shimmering Water",
+      "category": "terrain",
+      "tags": [
+        "cc0",
+        "core_fantasy",
+        "moat",
+        "pond",
+        "water",
+        "wilderness"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#23516D",
+      "widthPx": 512,
+      "heightPx": 512
+    },
+    {
+      "path": "walls/castle_ashlar_wall.png",
+      "displayName": "Castle Hewn Ashlar Wall",
+      "category": "wall",
+      "tags": [
+        "castle",
+        "cc0",
+        "core_fantasy",
+        "stone",
+        "wall"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#68696F",
+      "widthPx": 512,
+      "heightPx": 128
+    },
+    {
+      "path": "walls/dungeon_stone_wall.png",
+      "displayName": "Dungeon Rough Stone Wall",
+      "category": "wall",
+      "tags": [
+        "cc0",
+        "core_fantasy",
+        "dungeon",
+        "stone",
+        "wall"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#4B494C",
+      "widthPx": 512,
+      "heightPx": 128
+    },
+    {
+      "path": "walls/crypt_mossy_wall.png",
+      "displayName": "Mossy Crypt Stone Wall",
+      "category": "wall",
+      "tags": [
+        "cc0",
+        "core_fantasy",
+        "crypt",
+        "dungeon",
+        "moss",
+        "wall"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#454B43",
+      "widthPx": 512,
+      "heightPx": 128
+    },
+    {
+      "path": "walls/cavern_rock_wall.png",
+      "displayName": "Natural Cavern Rock Wall",
+      "category": "wall",
+      "tags": [
+        "cave",
+        "cc0",
+        "core_fantasy",
+        "dungeon",
+        "rock",
+        "wall"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#4D494C",
+      "widthPx": 512,
+      "heightPx": 128
+    },
+    {
+      "path": "walls/tavern_halftimber_wall.png",
+      "displayName": "Tavern Half-Timber Wall",
+      "category": "wall",
+      "tags": [
+        "cc0",
+        "core_fantasy",
+        "inn",
+        "plaster",
+        "tavern",
+        "wall",
+        "wood"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#B1A189",
+      "widthPx": 512,
+      "heightPx": 128
+    },
+    {
+      "path": "walls/mansion_wainscot_wall.png",
+      "displayName": "Mansion Mahogany Wall",
+      "category": "wall",
+      "tags": [
+        "cc0",
+        "core_fantasy",
+        "mansion",
+        "noble",
+        "wall",
+        "wood"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#71452B",
+      "widthPx": 512,
+      "heightPx": 128
+    },
+    {
+      "path": "walls/palace_marble_wall.png",
+      "displayName": "Palace Cream Marble Wall",
+      "category": "wall",
+      "tags": [
+        "castle",
+        "cc0",
+        "core_fantasy",
+        "mansion",
+        "marble",
+        "wall"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#AEA597",
+      "widthPx": 512,
+      "heightPx": 128
+    },
+    {
+      "path": "walls/sandstone_keep_wall.png",
+      "displayName": "Sandstone Fortress Wall",
+      "category": "wall",
+      "tags": [
+        "castle",
+        "cc0",
+        "core_fantasy",
+        "sandstone",
+        "wall"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#988261",
+      "widthPx": 512,
+      "heightPx": 128
+    },
+    {
+      "path": "walls/ruined_brick_wall.png",
+      "displayName": "Weathered Red Brick Wall",
+      "category": "wall",
+      "tags": [
+        "brick",
+        "cc0",
+        "city",
+        "core_fantasy",
+        "tavern",
+        "wall"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#703C2F",
+      "widthPx": 512,
+      "heightPx": 128
+    },
+    {
+      "path": "walls/timber_palisade_wall.png",
+      "displayName": "Camp Timber Palisade",
+      "category": "wall",
+      "tags": [
+        "camp",
+        "cc0",
+        "core_fantasy",
+        "palisade",
+        "wall",
+        "wilderness",
+        "wood"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#604329",
+      "widthPx": 512,
+      "heightPx": 128
+    },
+    {
+      "path": "walls/log_cabin_wall.png",
+      "displayName": "Frontier Log Cabin Wall",
+      "category": "wall",
+      "tags": [
+        "cc0",
+        "core_fantasy",
+        "tavern",
+        "wall",
+        "wilderness",
+        "wood"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#7B5533",
+      "widthPx": 512,
+      "heightPx": 128
+    },
+    {
+      "path": "walls/estate_hedgerow_wall.png",
+      "displayName": "Trimmed Estate Hedgerow",
+      "category": "wall",
+      "tags": [
+        "cc0",
+        "core_fantasy",
+        "hedge",
+        "mansion",
+        "wall",
+        "wilderness"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#395529",
+      "widthPx": 512,
+      "heightPx": 128
+    },
+    {
+      "path": "walls/dungeon_iron_bars.png",
+      "displayName": "Dungeon Iron Cell Bars",
+      "category": "wall",
+      "tags": [
+        "cc0",
+        "core_fantasy",
+        "dungeon",
+        "iron",
+        "prison",
+        "wall"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#3E4148",
+      "widthPx": 512,
+      "heightPx": 128
+    },
+    {
+      "path": "walls/estate_wrought_fence.png",
+      "displayName": "Gilded Estate Iron Fence",
+      "category": "wall",
+      "tags": [
+        "castle",
+        "cc0",
+        "core_fantasy",
+        "fence",
+        "mansion",
+        "wall"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#846C38",
+      "widthPx": 512,
+      "heightPx": 128
+    },
+    {
+      "path": "walls/colorable_plaster_wall.png",
+      "displayName": "Colorable Plaster Wall (DD Red)",
+      "category": "wall",
+      "tags": [
+        "cc0",
+        "colorable",
+        "core_fantasy",
+        "mansion",
+        "tavern",
+        "wall"
+      ],
+      "drawMode": "dd_red",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#B4221D",
+      "widthPx": 512,
+      "heightPx": 128
+    },
+    {
+      "path": "walls/colorable_tapestry_wall.png",
+      "displayName": "Colorable Brick/Tapestry Wall (DD Red)",
+      "category": "wall",
+      "tags": [
+        "castle",
+        "cc0",
+        "colorable",
+        "core_fantasy",
+        "mansion",
+        "wall"
+      ],
+      "drawMode": "dd_red",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#94201F",
+      "widthPx": 512,
+      "heightPx": 128
+    },
+    {
+      "path": "paths/dirt_country_road.png",
+      "displayName": "Dirt Country Road",
+      "category": "path",
+      "tags": [
+        "camp",
+        "cc0",
+        "core_fantasy",
+        "path",
+        "road",
+        "wilderness"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#886D4B",
+      "widthPx": 512,
+      "heightPx": 128
+    },
+    {
+      "path": "paths/cobble_village_lane.png",
+      "displayName": "Cobblestone Village Lane",
+      "category": "path",
+      "tags": [
+        "castle",
+        "cc0",
+        "cobble",
+        "core_fantasy",
+        "road",
+        "tavern"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#6F7175",
+      "widthPx": 512,
+      "heightPx": 128
+    },
+    {
+      "path": "paths/forest_stepping_stones.png",
+      "displayName": "Forest Stepping Stones",
+      "category": "path",
+      "tags": [
+        "cc0",
+        "core_fantasy",
+        "forest",
+        "path",
+        "stone",
+        "wilderness"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#6D6A66",
+      "widthPx": 512,
+      "heightPx": 128
+    },
+    {
+      "path": "paths/babbling_brook.png",
+      "displayName": "Babbling Forest Stream",
+      "category": "path",
+      "tags": [
+        "cc0",
+        "core_fantasy",
+        "path",
+        "stream",
+        "water",
+        "wilderness"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#478B9F",
+      "widthPx": 512,
+      "heightPx": 128
+    },
+    {
+      "path": "paths/wagon_wheel_ruts.png",
+      "displayName": "Muddy Wagon Ruts",
+      "category": "path",
+      "tags": [
+        "camp",
+        "cc0",
+        "core_fantasy",
+        "mud",
+        "road",
+        "wilderness"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#55412F",
+      "widthPx": 512,
+      "heightPx": 128
+    },
+    {
+      "path": "paths/stone_dungeon_stairs.png",
+      "displayName": "Stone Dungeon Staircase",
+      "category": "path",
+      "tags": [
+        "castle",
+        "cc0",
+        "core_fantasy",
+        "dungeon",
+        "stairs",
+        "stone"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#65656B",
+      "widthPx": 512,
+      "heightPx": 128
+    },
+    {
+      "path": "paths/timber_tavern_stairs.png",
+      "displayName": "Oak Tavern Staircase",
+      "category": "path",
+      "tags": [
+        "cc0",
+        "core_fantasy",
+        "mansion",
+        "stairs",
+        "tavern",
+        "wood"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#7B5534",
+      "widthPx": 512,
+      "heightPx": 128
+    },
+    {
+      "path": "paths/marble_grand_stairs.png",
+      "displayName": "Marble Grand Staircase",
+      "category": "path",
+      "tags": [
+        "castle",
+        "cc0",
+        "core_fantasy",
+        "mansion",
+        "marble",
+        "stairs"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#B9B09D",
+      "widthPx": 512,
+      "heightPx": 128
+    },
+    {
+      "path": "paths/rope_suspension_bridge.png",
+      "displayName": "Timber & Rope Bridge",
+      "category": "path",
+      "tags": [
+        "bridge",
+        "cc0",
+        "core_fantasy",
+        "dungeon",
+        "wilderness",
+        "wood"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#7D5C3B",
+      "widthPx": 512,
+      "heightPx": 128
+    },
+    {
+      "path": "paths/wooden_dock_planks.png",
+      "displayName": "Weathered Wooden Walkway",
+      "category": "path",
+      "tags": [
+        "camp",
+        "cc0",
+        "core_fantasy",
+        "dock",
+        "tavern",
+        "wilderness"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#684D38",
+      "widthPx": 512,
+      "heightPx": 128
+    },
+    {
+      "path": "paths/dungeon_iron_chains.png",
+      "displayName": "Heavy Iron Dungeon Chains",
+      "category": "path",
+      "tags": [
+        "cc0",
+        "chain",
+        "core_fantasy",
+        "dungeon",
+        "iron",
+        "prison"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#4A4D52",
+      "widthPx": 512,
+      "heightPx": 128
+    },
+    {
+      "path": "paths/cliff_drop_ledge.png",
+      "displayName": "Rocky Cliff Drop-Off",
+      "category": "path",
+      "tags": [
+        "cc0",
+        "cliff",
+        "core_fantasy",
+        "dungeon",
+        "elevation",
+        "wilderness"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#49464A",
+      "widthPx": 512,
+      "heightPx": 128
+    },
+    {
+      "path": "paths/royal_crimson_runner.png",
+      "displayName": "Royal Crimson Carpet Runner",
+      "category": "path",
+      "tags": [
+        "carpet",
+        "castle",
+        "cc0",
+        "core_fantasy",
+        "mansion",
+        "rug"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#7F3124",
+      "widthPx": 512,
+      "heightPx": 128
+    },
+    {
+      "path": "paths/colorable_royal_runner.png",
+      "displayName": "Colorable Carpet Runner (DD Red)",
+      "category": "path",
+      "tags": [
+        "carpet",
+        "castle",
+        "cc0",
+        "colorable",
+        "core_fantasy",
+        "mansion",
+        "tavern"
+      ],
+      "drawMode": "dd_red",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#A02E1C",
+      "widthPx": 512,
+      "heightPx": 128
+    },
+    {
+      "path": "paths/colorable_arcane_conduit.png",
+      "displayName": "Colorable Rune Conduit (DD Red)",
+      "category": "path",
+      "tags": [
+        "arcane",
+        "cc0",
+        "colorable",
+        "core_fantasy",
+        "dungeon",
+        "mansion"
+      ],
+      "drawMode": "dd_red",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#7E3032",
+      "widthPx": 512,
+      "heightPx": 128
+    },
+    {
+      "path": "paths/ivy_vine_trail.png",
+      "displayName": "Creeping Ivy & Vines",
+      "category": "path",
+      "tags": [
+        "cc0",
+        "core_fantasy",
+        "dungeon",
+        "ruin",
+        "vines",
+        "wilderness"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#395127",
+      "widthPx": 512,
+      "heightPx": 128
+    },
+    {
+      "path": "portals/oak_tavern_door.png",
+      "displayName": "Heavy Oak Tavern Door",
+      "category": "portal",
+      "tags": [
+        "cc0",
+        "core_fantasy",
+        "door",
+        "inn",
+        "tavern",
+        "wood"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#624A36",
+      "widthPx": 256,
+      "heightPx": 128
+    },
+    {
+      "path": "portals/iron_dungeon_door.png",
+      "displayName": "Iron-Bound Dungeon Door",
+      "category": "portal",
+      "tags": [
+        "cc0",
+        "core_fantasy",
+        "door",
+        "dungeon",
+        "iron"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#483C35",
+      "widthPx": 256,
+      "heightPx": 128
+    },
+    {
+      "path": "portals/prison_cell_gate.png",
+      "displayName": "Barred Prison Cell Gate",
+      "category": "portal",
+      "tags": [
+        "cc0",
+        "core_fantasy",
+        "dungeon",
+        "gate",
+        "iron",
+        "prison"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#46464A",
+      "widthPx": 256,
+      "heightPx": 128
+    },
+    {
+      "path": "portals/castle_double_door.png",
+      "displayName": "Castle Keep Double Doors",
+      "category": "portal",
+      "tags": [
+        "castle",
+        "cc0",
+        "core_fantasy",
+        "door",
+        "double",
+        "wood"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#554031",
+      "widthPx": 256,
+      "heightPx": 128
+    },
+    {
+      "path": "portals/palace_gilded_door.png",
+      "displayName": "Gilded Palace Double Door",
+      "category": "portal",
+      "tags": [
+        "castle",
+        "cc0",
+        "core_fantasy",
+        "door",
+        "gold",
+        "mansion"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#6B3D32",
+      "widthPx": 256,
+      "heightPx": 128
+    },
+    {
+      "path": "portals/crypt_stone_door.png",
+      "displayName": "Carved Crypt Stone Door",
+      "category": "portal",
+      "tags": [
+        "cc0",
+        "core_fantasy",
+        "crypt",
+        "door",
+        "dungeon",
+        "stone"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#555456",
+      "widthPx": 256,
+      "heightPx": 128
+    },
+    {
+      "path": "portals/secret_bookcase_door.png",
+      "displayName": "Secret Bookcase Door",
+      "category": "portal",
+      "tags": [
+        "cc0",
+        "core_fantasy",
+        "door",
+        "dungeon",
+        "mansion",
+        "secret"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#5B3D2E",
+      "widthPx": 256,
+      "heightPx": 128
+    },
+    {
+      "path": "portals/portcullis_iron_gate.png",
+      "displayName": "Castle Iron Portcullis",
+      "category": "portal",
+      "tags": [
+        "castle",
+        "cc0",
+        "core_fantasy",
+        "dungeon",
+        "gate",
+        "iron"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#3C3C3F",
+      "widthPx": 256,
+      "heightPx": 128
+    },
+    {
+      "path": "portals/tavern_leaded_window.png",
+      "displayName": "Leaded Glass Tavern Window",
+      "category": "portal",
+      "tags": [
+        "cc0",
+        "core_fantasy",
+        "glass",
+        "inn",
+        "tavern",
+        "window"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#5B6664",
+      "widthPx": 256,
+      "heightPx": 128
+    },
+    {
+      "path": "portals/mansion_mullion_window.png",
+      "displayName": "Tall Mansion Mullion Window",
+      "category": "portal",
+      "tags": [
+        "cc0",
+        "core_fantasy",
+        "glass",
+        "mansion",
+        "window"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#819292",
+      "widthPx": 256,
+      "heightPx": 128
+    },
+    {
+      "path": "portals/shuttered_cottage_window.png",
+      "displayName": "Wooden Shuttered Window",
+      "category": "portal",
+      "tags": [
+        "camp",
+        "cc0",
+        "core_fantasy",
+        "tavern",
+        "window",
+        "wood"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#575952",
+      "widthPx": 256,
+      "heightPx": 128
+    },
+    {
+      "path": "portals/castle_arrow_slit.png",
+      "displayName": "Castle Arrow-Slit Embrasure",
+      "category": "portal",
+      "tags": [
+        "castle",
+        "cc0",
+        "core_fantasy",
+        "dungeon",
+        "stone",
+        "window"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#41444A",
+      "widthPx": 256,
+      "heightPx": 128
+    },
+    {
+      "path": "portals/wooden_trapdoor_hatch.png",
+      "displayName": "Wooden Cellar Trapdoor",
+      "category": "portal",
+      "tags": [
+        "cc0",
+        "core_fantasy",
+        "dungeon",
+        "hatch",
+        "tavern",
+        "trapdoor"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#734F31",
+      "widthPx": 256,
+      "heightPx": 256
+    },
+    {
+      "path": "portals/iron_sewer_grate.png",
+      "displayName": "Iron Dungeon Sewer Grate",
+      "category": "portal",
+      "tags": [
+        "cc0",
+        "core_fantasy",
+        "dungeon",
+        "grate",
+        "hatch",
+        "sewer"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#26282D",
+      "widthPx": 256,
+      "heightPx": 256
+    },
+    {
+      "path": "portals/colorable_wood_door.png",
+      "displayName": "Colorable Painted Door (DD Red)",
+      "category": "portal",
+      "tags": [
+        "cc0",
+        "colorable",
+        "core_fantasy",
+        "door",
+        "mansion",
+        "tavern"
+      ],
+      "drawMode": "dd_red",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#882C2C",
+      "widthPx": 256,
+      "heightPx": 128
+    },
+    {
+      "path": "portals/colorable_stained_window.png",
+      "displayName": "Colorable Stained-Glass Window (DD Red)",
+      "category": "portal",
+      "tags": [
+        "castle",
+        "cc0",
+        "colorable",
+        "core_fantasy",
+        "mansion",
+        "window"
+      ],
+      "drawMode": "dd_red",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#773637",
+      "widthPx": 256,
+      "heightPx": 128
+    },
+    {
+      "path": "colorable/pavilion_tent_colorable.png",
+      "displayName": "War Pavilion Tent (Colorable)",
+      "category": "object",
+      "tags": [
+        "camp",
+        "castle",
+        "cc0",
+        "colorable",
+        "core_fantasy",
+        "tent"
+      ],
+      "drawMode": "dd_red",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#C32928",
+      "widthPx": 512,
+      "heightPx": 512
+    },
+    {
+      "path": "colorable/aframe_tent_colorable.png",
+      "displayName": "A-Frame Camp Tent (Colorable)",
+      "category": "object",
+      "tags": [
+        "camp",
+        "cc0",
+        "colorable",
+        "core_fantasy",
+        "tent",
+        "wilderness"
+      ],
+      "drawMode": "dd_red",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#B11F1E",
+      "widthPx": 512,
+      "heightPx": 512
+    },
+    {
+      "path": "colorable/scout_tent_colorable.png",
+      "displayName": "Scout Dome Tent (Colorable)",
+      "category": "object",
+      "tags": [
+        "camp",
+        "cc0",
+        "colorable",
+        "core_fantasy",
+        "tent",
+        "wilderness"
+      ],
+      "drawMode": "dd_red",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#BA1C1C",
+      "widthPx": 384,
+      "heightPx": 384
+    },
+    {
+      "path": "colorable/bedroll_open_colorable.png",
+      "displayName": "Unrolled Bedroll (Colorable)",
+      "category": "object",
+      "tags": [
+        "bedroll",
+        "camp",
+        "cc0",
+        "colorable",
+        "core_fantasy",
+        "wilderness"
+      ],
+      "drawMode": "dd_red",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#CE3633",
+      "widthPx": 256,
+      "heightPx": 384
+    },
+    {
+      "path": "colorable/bedroll_packed_colorable.png",
+      "displayName": "Packed Bedroll Bundle (Colorable)",
+      "category": "object",
+      "tags": [
+        "bedroll",
+        "camp",
+        "cc0",
+        "colorable",
+        "core_fantasy",
+        "wilderness"
+      ],
+      "drawMode": "dd_red",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#B7201C",
+      "widthPx": 256,
+      "heightPx": 160
+    },
+    {
+      "path": "colorable/giant_mushroom_colorable.png",
+      "displayName": "Giant Toadstool Cap (Colorable)",
+      "category": "object",
+      "tags": [
+        "cc0",
+        "colorable",
+        "core_fantasy",
+        "dungeon",
+        "mushroom",
+        "wilderness"
+      ],
+      "drawMode": "dd_red",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#D93937",
+      "widthPx": 256,
+      "heightPx": 256
+    },
+    {
+      "path": "colorable/mushroom_cluster_colorable.png",
+      "displayName": "Woodland Mushroom Cluster (Colorable)",
+      "category": "object",
+      "tags": [
+        "cc0",
+        "colorable",
+        "core_fantasy",
+        "dungeon",
+        "mushroom",
+        "wilderness"
+      ],
+      "drawMode": "dd_red",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#CE3936",
+      "widthPx": 256,
+      "heightPx": 256
+    },
+    {
+      "path": "colorable/market_awning_colorable.png",
+      "displayName": "Striped Market Awning (Colorable)",
+      "category": "object",
+      "tags": [
+        "awning",
+        "camp",
+        "cc0",
+        "colorable",
+        "core_fantasy",
+        "tavern"
+      ],
+      "drawMode": "dd_red",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#D77C73",
+      "widthPx": 512,
+      "heightPx": 256
+    },
+    {
+      "path": "colorable/inn_single_bed_colorable.png",
+      "displayName": "Inn Single Bed (Colorable)",
+      "category": "object",
+      "tags": [
+        "bed",
+        "cc0",
+        "colorable",
+        "core_fantasy",
+        "furniture",
+        "inn",
+        "tavern"
+      ],
+      "drawMode": "dd_red",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#BE433D",
+      "widthPx": 256,
+      "heightPx": 448
+    },
+    {
+      "path": "colorable/inn_double_bed_colorable.png",
+      "displayName": "Inn Double Bed (Colorable)",
+      "category": "object",
+      "tags": [
+        "bed",
+        "cc0",
+        "colorable",
+        "core_fantasy",
+        "furniture",
+        "mansion",
+        "tavern"
+      ],
+      "drawMode": "dd_red",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#C33D38",
+      "widthPx": 384,
+      "heightPx": 512
+    },
+    {
+      "path": "colorable/royal_canopy_bed_colorable.png",
+      "displayName": "Royal Canopy Bed (Colorable)",
+      "category": "object",
+      "tags": [
+        "bed",
+        "castle",
+        "cc0",
+        "colorable",
+        "core_fantasy",
+        "furniture",
+        "mansion"
+      ],
+      "drawMode": "dd_red",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#C33E38",
+      "widthPx": 384,
+      "heightPx": 512
+    },
+    {
+      "path": "colorable/velvet_sofa_colorable.png",
+      "displayName": "Plush Velvet Sofa (Colorable)",
+      "category": "object",
+      "tags": [
+        "cc0",
+        "colorable",
+        "core_fantasy",
+        "furniture",
+        "mansion",
+        "sofa",
+        "tavern"
+      ],
+      "drawMode": "dd_red",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#B32927",
+      "widthPx": 384,
+      "heightPx": 192
+    },
+    {
+      "path": "colorable/padded_chair_colorable.png",
+      "displayName": "Upholstered Chair (Colorable)",
+      "category": "object",
+      "tags": [
+        "cc0",
+        "chair",
+        "colorable",
+        "core_fantasy",
+        "furniture",
+        "mansion",
+        "tavern"
+      ],
+      "drawMode": "dd_red",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#B72C25",
+      "widthPx": 192,
+      "heightPx": 192
+    },
+    {
+      "path": "colorable/royal_throne_colorable.png",
+      "displayName": "Gilded Royal Throne (Colorable)",
+      "category": "object",
+      "tags": [
+        "castle",
+        "cc0",
+        "colorable",
+        "core_fantasy",
+        "furniture",
+        "mansion",
+        "throne"
+      ],
+      "drawMode": "dd_red",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#C13827",
+      "widthPx": 192,
+      "heightPx": 192
+    },
+    {
+      "path": "colorable/parlor_rug_rect_colorable.png",
+      "displayName": "Ornate Parlor Rug (Colorable)",
+      "category": "object",
+      "tags": [
+        "carpet",
+        "cc0",
+        "colorable",
+        "core_fantasy",
+        "mansion",
+        "rug",
+        "tavern"
+      ],
+      "drawMode": "dd_red",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#971C16",
+      "widthPx": 512,
+      "heightPx": 320
+    },
+    {
+      "path": "colorable/woven_oval_rug_colorable.png",
+      "displayName": "Woven Oval Rug (Colorable)",
+      "category": "object",
+      "tags": [
+        "carpet",
+        "cc0",
+        "colorable",
+        "core_fantasy",
+        "mansion",
+        "rug",
+        "tavern"
+      ],
+      "drawMode": "dd_red",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#D42E27",
+      "widthPx": 512,
+      "heightPx": 320
+    },
+    {
+      "path": "colorable/medallion_round_rug_colorable.png",
+      "displayName": "Round Medallion Rug (Colorable)",
+      "category": "object",
+      "tags": [
+        "carpet",
+        "castle",
+        "cc0",
+        "colorable",
+        "core_fantasy",
+        "mansion",
+        "rug"
+      ],
+      "drawMode": "dd_red",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#BE221A",
+      "widthPx": 384,
+      "heightPx": 384
+    },
+    {
+      "path": "colorable/tablecloth_banquet_colorable.png",
+      "displayName": "Banquet Tablecloth (Colorable)",
+      "category": "object",
+      "tags": [
+        "cc0",
+        "colorable",
+        "core_fantasy",
+        "mansion",
+        "table",
+        "tavern"
+      ],
+      "drawMode": "dd_red",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#E9302C",
+      "widthPx": 256,
+      "heightPx": 384
+    },
+    {
+      "path": "colorable/heraldic_banner_colorable.png",
+      "displayName": "Heraldic Banner (Colorable)",
+      "category": "object",
+      "tags": [
+        "banner",
+        "castle",
+        "cc0",
+        "colorable",
+        "core_fantasy",
+        "mansion"
+      ],
+      "drawMode": "dd_red",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#D1261B",
+      "widthPx": 256,
+      "heightPx": 384
+    },
+    {
+      "path": "colorable/arcane_ritual_circle_colorable.png",
+      "displayName": "Arcane Ritual Circle (Colorable)",
+      "category": "object",
+      "tags": [
+        "arcane",
+        "cc0",
+        "colorable",
+        "core_fantasy",
+        "dungeon",
+        "magic",
+        "mansion"
+      ],
+      "drawMode": "dd_red",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#EB4040",
+      "widthPx": 512,
+      "heightPx": 512
+    },
+    {
+      "path": "colorable/crystal_cluster_colorable.png",
+      "displayName": "Glowing Crystal Cluster (Colorable)",
+      "category": "object",
+      "tags": [
+        "arcane",
+        "cave",
+        "cc0",
+        "colorable",
+        "core_fantasy",
+        "crystal",
+        "dungeon"
+      ],
+      "drawMode": "dd_red",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#E05F5E",
+      "widthPx": 256,
+      "heightPx": 256
+    },
+    {
+      "path": "colorable/crystal_orb_pedestal_colorable.png",
+      "displayName": "Crystal Orb Pedestal (Colorable)",
+      "category": "object",
+      "tags": [
+        "arcane",
+        "castle",
+        "cc0",
+        "colorable",
+        "core_fantasy",
+        "mansion",
+        "orb"
+      ],
+      "drawMode": "dd_red",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#985A4B",
+      "widthPx": 256,
+      "heightPx": 256
+    },
+    {
+      "path": "colorable/elixir_potions_colorable.png",
+      "displayName": "Potion Bottle Cluster (Colorable)",
+      "category": "object",
+      "tags": [
+        "cc0",
+        "colorable",
+        "core_fantasy",
+        "dungeon",
+        "mansion",
+        "potion",
+        "tavern"
+      ],
+      "drawMode": "dd_red",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#B52E2A",
+      "widthPx": 256,
+      "heightPx": 256
+    },
+    {
+      "path": "colorable/ichor_splatter_colorable.png",
+      "displayName": "Blood / Acid / Ichor Splatter (Colorable)",
+      "category": "object",
+      "tags": [
+        "cc0",
+        "colorable",
+        "combat",
+        "core_fantasy",
+        "dungeon",
+        "splatter"
+      ],
+      "drawMode": "dd_red",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#D41A1A",
+      "widthPx": 256,
+      "heightPx": 256
+    },
+    {
+      "path": "colorable/heraldic_shield_colorable.png",
+      "displayName": "Heraldic Heater Shield (Colorable)",
+      "category": "object",
+      "tags": [
+        "castle",
+        "cc0",
+        "colorable",
+        "core_fantasy",
+        "dungeon",
+        "shield"
+      ],
+      "drawMode": "dd_red",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#C13530",
+      "widthPx": 256,
+      "heightPx": 256
+    },
+    {
+      "path": "colorable/spellbook_open_colorable.png",
+      "displayName": "Open Grimoire Spellbook (Colorable)",
+      "category": "object",
+      "tags": [
+        "arcane",
+        "book",
+        "cc0",
+        "colorable",
+        "core_fantasy",
+        "dungeon",
+        "mansion"
+      ],
+      "drawMode": "dd_red",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#B79A88",
+      "widthPx": 256,
+      "heightPx": 256
+    },
+    {
+      "path": "colorable/traveler_cloak_colorable.png",
+      "displayName": "Folded Traveler Cloak (Colorable)",
+      "category": "object",
+      "tags": [
+        "camp",
+        "cc0",
+        "cloak",
+        "colorable",
+        "core_fantasy",
+        "tavern"
+      ],
+      "drawMode": "dd_red",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#C22920",
+      "widthPx": 256,
+      "heightPx": 256
+    },
+    {
+      "path": "colorable/roof_shingles_straight_colorable.png",
+      "displayName": "Modular Shingle Roof Eave (Colorable)",
+      "category": "object",
+      "tags": [
+        "castle",
+        "cc0",
+        "colorable",
+        "core_fantasy",
+        "mansion",
+        "roof",
+        "tavern"
+      ],
+      "drawMode": "dd_red",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#C73937",
+      "widthPx": 512,
+      "heightPx": 256
+    },
+    {
+      "path": "colorable/roof_shingles_pyramid_colorable.png",
+      "displayName": "Modular Pyramid Tower Roof (Colorable)",
+      "category": "object",
+      "tags": [
+        "castle",
+        "cc0",
+        "colorable",
+        "core_fantasy",
+        "mansion",
+        "roof"
+      ],
+      "drawMode": "dd_red",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#C93333",
+      "widthPx": 384,
+      "heightPx": 384
+    },
+    {
+      "path": "objects/oak_table_round.png",
+      "displayName": "Round Oak Tavern Table",
+      "category": "object",
+      "tags": [
+        "cc0",
+        "core_fantasy",
+        "furniture",
+        "inn",
+        "table",
+        "tavern"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#885D37",
+      "widthPx": 256,
+      "heightPx": 256
+    },
+    {
+      "path": "objects/oak_table_long.png",
+      "displayName": "Long Banquet Oak Table",
+      "category": "object",
+      "tags": [
+        "castle",
+        "cc0",
+        "core_fantasy",
+        "furniture",
+        "mansion",
+        "table",
+        "tavern"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#815633",
+      "widthPx": 512,
+      "heightPx": 224
+    },
+    {
+      "path": "objects/wooden_stool.png",
+      "displayName": "Rustic Wooden Stool",
+      "category": "object",
+      "tags": [
+        "cc0",
+        "core_fantasy",
+        "furniture",
+        "inn",
+        "stool",
+        "tavern"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#89613B",
+      "widthPx": 128,
+      "heightPx": 128
+    },
+    {
+      "path": "objects/ale_barrel.png",
+      "displayName": "Iron-Hooped Ale Barrel",
+      "category": "object",
+      "tags": [
+        "barrel",
+        "camp",
+        "cc0",
+        "core_fantasy",
+        "dungeon",
+        "tavern"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#735337",
+      "widthPx": 192,
+      "heightPx": 192
+    },
+    {
+      "path": "objects/wooden_crate.png",
+      "displayName": "Reinforced Supply Crate",
+      "category": "object",
+      "tags": [
+        "camp",
+        "cc0",
+        "core_fantasy",
+        "crate",
+        "dungeon",
+        "tavern"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#7F5A38",
+      "widthPx": 192,
+      "heightPx": 192
+    },
+    {
+      "path": "objects/stone_pillar.png",
+      "displayName": "Carved Stone Pillar",
+      "category": "object",
+      "tags": [
+        "castle",
+        "cc0",
+        "core_fantasy",
+        "dungeon",
+        "pillar",
+        "stone"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#84858A",
+      "widthPx": 256,
+      "heightPx": 256
+    },
+    {
+      "path": "objects/spike_trap.png",
+      "displayName": "Floor Iron Spike Trap",
+      "category": "object",
+      "tags": [
+        "cc0",
+        "core_fantasy",
+        "dungeon",
+        "hazard",
+        "trap"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#312F33",
+      "widthPx": 256,
+      "heightPx": 256
+    },
+    {
+      "path": "objects/pressure_plate.png",
+      "displayName": "Stone Pressure Plate Trap",
+      "category": "object",
+      "tags": [
+        "cc0",
+        "core_fantasy",
+        "dungeon",
+        "hazard",
+        "trap"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#6D6965",
+      "widthPx": 256,
+      "heightPx": 256
+    },
+    {
+      "path": "objects/chest_closed.png",
+      "displayName": "Iron-Bound Treasure Chest (Closed)",
+      "category": "object",
+      "tags": [
+        "castle",
+        "cc0",
+        "chest",
+        "core_fantasy",
+        "dungeon",
+        "treasure"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#714D31",
+      "widthPx": 256,
+      "heightPx": 192
+    },
+    {
+      "path": "objects/coin_hoard.png",
+      "displayName": "Glittering Gold & Gem Hoard",
+      "category": "object",
+      "tags": [
+        "castle",
+        "cc0",
+        "core_fantasy",
+        "dungeon",
+        "gold",
+        "treasure"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#B29640",
+      "widthPx": 256,
+      "heightPx": 256
+    },
+    {
+      "path": "objects/dungeon_lever.png",
+      "displayName": "Wall / Floor Iron Lever",
+      "category": "object",
+      "tags": [
+        "castle",
+        "cc0",
+        "core_fantasy",
+        "dungeon",
+        "lever",
+        "trap"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#48474C",
+      "widthPx": 160,
+      "heightPx": 160
+    },
+    {
+      "path": "objects/mossy_boulder.png",
+      "displayName": "Mossy Woodland Boulder",
+      "category": "object",
+      "tags": [
+        "boulder",
+        "camp",
+        "cc0",
+        "core_fantasy",
+        "rock",
+        "wilderness"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#6D726F",
+      "widthPx": 256,
+      "heightPx": 256
+    },
+    {
+      "path": "objects/bush_cluster.png",
+      "displayName": "Wild Forest Bush Cluster",
+      "category": "object",
+      "tags": [
+        "bush",
+        "cc0",
+        "core_fantasy",
+        "foliage",
+        "forest",
+        "wilderness"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#2E4F24",
+      "widthPx": 256,
+      "heightPx": 256
+    },
+    {
+      "path": "objects/stone_stair_landing.png",
+      "displayName": "Stone Staircase Flight",
+      "category": "object",
+      "tags": [
+        "castle",
+        "cc0",
+        "core_fantasy",
+        "dungeon",
+        "stairs"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#6F7075",
+      "widthPx": 256,
+      "heightPx": 384
+    },
+    {
+      "path": "objects/wood_stair_landing.png",
+      "displayName": "Oak Staircase Flight",
+      "category": "object",
+      "tags": [
+        "cc0",
+        "core_fantasy",
+        "mansion",
+        "stairs",
+        "tavern"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#825B37",
+      "widthPx": 256,
+      "heightPx": 384
+    },
+    {
+      "path": "hero/hero_tavern_bar.png",
+      "displayName": "Tavern Oak Bar Counter (Hero)",
+      "category": "object",
+      "tags": [
+        "bar",
+        "cc0",
+        "core_fantasy",
+        "furniture",
+        "hero",
+        "inn",
+        "tavern"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 165,
+      "castsShadow": true,
+      "dominantHex": "#A97144",
+      "widthPx": 396,
+      "heightPx": 181
+    },
+    {
+      "path": "hero/hero_tavern_dining_set.png",
+      "displayName": "Tavern Dining Table & Benches (Hero)",
+      "category": "object",
+      "tags": [
+        "cc0",
+        "core_fantasy",
+        "furniture",
+        "hero",
+        "inn",
+        "table",
+        "tavern"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 165,
+      "castsShadow": true,
+      "dominantHex": "#9B6742",
+      "widthPx": 396,
+      "heightPx": 377
+    },
+    {
+      "path": "hero/hero_tavern_hearth.png",
+      "displayName": "Stone Tavern Hearth Fireplace (Hero)",
+      "category": "object",
+      "tags": [
+        "cc0",
+        "core_fantasy",
+        "fireplace",
+        "hearth",
+        "hero",
+        "inn",
+        "tavern"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 165,
+      "castsShadow": true,
+      "dominantHex": "#7F6153",
+      "widthPx": 363,
+      "heightPx": 285
+    },
+    {
+      "path": "hero/hero_ale_keg_rack.png",
+      "displayName": "Stacked Ale Keg Rack (Hero)",
+      "category": "object",
+      "tags": [
+        "barrel",
+        "cc0",
+        "core_fantasy",
+        "hero",
+        "inn",
+        "keg",
+        "tavern"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 165,
+      "castsShadow": true,
+      "dominantHex": "#654434",
+      "widthPx": 330,
+      "heightPx": 287
+    },
+    {
+      "path": "hero/hero_tavern_round_set.png",
+      "displayName": "Round Tavern Table & Chairs (Hero)",
+      "category": "object",
+      "tags": [
+        "cc0",
+        "chairs",
+        "core_fantasy",
+        "hero",
+        "inn",
+        "table",
+        "tavern"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 165,
+      "castsShadow": true,
+      "dominantHex": "#996745",
+      "widthPx": 379,
+      "heightPx": 379
+    },
+    {
+      "path": "hero/hero_kitchen_prep.png",
+      "displayName": "Tavern Kitchen Prep Table (Hero)",
+      "category": "object",
+      "tags": [
+        "cc0",
+        "core_fantasy",
+        "hero",
+        "inn",
+        "kitchen",
+        "table",
+        "tavern"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 165,
+      "castsShadow": true,
+      "dominantHex": "#9B6A48",
+      "widthPx": 363,
+      "heightPx": 239
+    },
+    {
+      "path": "hero/hero_iron_chandelier.png",
+      "displayName": "Wrought-Iron Candle Chandelier (Hero)",
+      "category": "object",
+      "tags": [
+        "castle",
+        "cc0",
+        "chandelier",
+        "core_fantasy",
+        "hero",
+        "light",
+        "tavern"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 165,
+      "castsShadow": true,
+      "dominantHex": "#594C44",
+      "widthPx": 346,
+      "heightPx": 346
+    },
+    {
+      "path": "hero/hero_bard_stage.png",
+      "displayName": "Bard Stage & Lute Platform (Hero)",
+      "category": "object",
+      "tags": [
+        "bard",
+        "cc0",
+        "core_fantasy",
+        "hero",
+        "inn",
+        "stage",
+        "tavern"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 165,
+      "castsShadow": true,
+      "dominantHex": "#90573D",
+      "widthPx": 429,
+      "heightPx": 325
+    },
+    {
+      "path": "hero/hero_wine_rack.png",
+      "displayName": "Cellar Oak Wine Rack (Hero)",
+      "category": "object",
+      "tags": [
+        "barrel",
+        "cc0",
+        "core_fantasy",
+        "hero",
+        "mansion",
+        "tavern",
+        "wine"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 165,
+      "castsShadow": true,
+      "dominantHex": "#694B35",
+      "widthPx": 330,
+      "heightPx": 323
+    },
+    {
+      "path": "hero/hero_stone_sarcophagus.png",
+      "displayName": "Carved Stone Sarcophagus (Hero)",
+      "category": "object",
+      "tags": [
+        "cc0",
+        "core_fantasy",
+        "crypt",
+        "dungeon",
+        "hero",
+        "sarcophagus",
+        "tomb"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 165,
+      "castsShadow": true,
+      "dominantHex": "#69665A",
+      "widthPx": 227,
+      "heightPx": 363
+    },
+    {
+      "path": "hero/hero_open_treasure_chest.png",
+      "displayName": "Overflowing Treasure Chest (Hero)",
+      "category": "object",
+      "tags": [
+        "castle",
+        "cc0",
+        "chest",
+        "core_fantasy",
+        "dungeon",
+        "hero",
+        "treasure"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 165,
+      "castsShadow": true,
+      "dominantHex": "#624C33",
+      "widthPx": 264,
+      "heightPx": 249
+    },
+    {
+      "path": "hero/hero_iron_brazier.png",
+      "displayName": "Glowing Iron Dungeon Brazier (Hero)",
+      "category": "object",
+      "tags": [
+        "brazier",
+        "castle",
+        "cc0",
+        "core_fantasy",
+        "dungeon",
+        "fire",
+        "hero"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 165,
+      "castsShadow": true,
+      "dominantHex": "#66402A",
+      "widthPx": 229,
+      "heightPx": 231
+    },
+    {
+      "path": "hero/hero_ruined_column.png",
+      "displayName": "Crumbling Stone Column & Rubble (Hero)",
+      "category": "object",
+      "tags": [
+        "cc0",
+        "core_fantasy",
+        "dungeon",
+        "hero",
+        "pillar",
+        "ruin",
+        "stone"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 165,
+      "castsShadow": true,
+      "dominantHex": "#605F4A",
+      "widthPx": 346,
+      "heightPx": 333
+    },
+    {
+      "path": "hero/hero_crypt_altar.png",
+      "displayName": "Candlelit Crypt Stone Altar (Hero)",
+      "category": "object",
+      "tags": [
+        "altar",
+        "cc0",
+        "core_fantasy",
+        "crypt",
+        "dungeon",
+        "hero"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 165,
+      "castsShadow": true,
+      "dominantHex": "#5A5346",
+      "widthPx": 363,
+      "heightPx": 262
+    },
+    {
+      "path": "hero/hero_prison_cage.png",
+      "displayName": "Rusty Iron Prison Cage (Hero)",
+      "category": "object",
+      "tags": [
+        "cage",
+        "cc0",
+        "core_fantasy",
+        "dungeon",
+        "hero",
+        "prison"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 165,
+      "castsShadow": true,
+      "dominantHex": "#423731",
+      "widthPx": 344,
+      "heightPx": 346
+    },
+    {
+      "path": "hero/hero_bone_pile.png",
+      "displayName": "Skeleton Remains & Rusted Arms (Hero)",
+      "category": "object",
+      "tags": [
+        "bones",
+        "cc0",
+        "core_fantasy",
+        "crypt",
+        "dungeon",
+        "hero",
+        "skull"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 165,
+      "castsShadow": true,
+      "dominantHex": "#5D544A",
+      "widthPx": 264,
+      "heightPx": 243
+    },
+    {
+      "path": "hero/hero_weapon_rack.png",
+      "displayName": "Medieval Oak Weapon Rack (Hero)",
+      "category": "object",
+      "tags": [
+        "armory",
+        "castle",
+        "cc0",
+        "core_fantasy",
+        "dungeon",
+        "hero",
+        "weapons"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 165,
+      "castsShadow": true,
+      "dominantHex": "#3F352C",
+      "widthPx": 330,
+      "heightPx": 306
+    },
+    {
+      "path": "hero/hero_arcane_seal.png",
+      "displayName": "Glowing Stone Summoning Seal (Hero)",
+      "category": "object",
+      "tags": [
+        "arcane",
+        "cc0",
+        "core_fantasy",
+        "dungeon",
+        "hero",
+        "magic",
+        "rune"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 165,
+      "castsShadow": false,
+      "dominantHex": "#3C5959",
+      "widthPx": 429,
+      "heightPx": 428
+    },
+    {
+      "path": "hero/hero_oak_tree.png",
+      "displayName": "Lush Oak Tree Canopy (Hero)",
+      "category": "object",
+      "tags": [
+        "cc0",
+        "core_fantasy",
+        "forest",
+        "hero",
+        "oak",
+        "tree",
+        "wilderness"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 142,
+      "castsShadow": true,
+      "dominantHex": "#485A27",
+      "widthPx": 512,
+      "heightPx": 498
+    },
+    {
+      "path": "hero/hero_pine_tree.png",
+      "displayName": "Evergreen Pine Canopy (Hero)",
+      "category": "object",
+      "tags": [
+        "cc0",
+        "core_fantasy",
+        "forest",
+        "hero",
+        "pine",
+        "tree",
+        "wilderness"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 160,
+      "castsShadow": true,
+      "dominantHex": "#253626",
+      "widthPx": 500,
+      "heightPx": 512
+    },
+    {
+      "path": "hero/hero_autumn_maple.png",
+      "displayName": "Autumn Maple Tree Canopy (Hero)",
+      "category": "object",
+      "tags": [
+        "autumn",
+        "cc0",
+        "core_fantasy",
+        "forest",
+        "hero",
+        "tree",
+        "wilderness"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 146,
+      "castsShadow": true,
+      "dominantHex": "#9C5E22",
+      "widthPx": 512,
+      "heightPx": 509
+    },
+    {
+      "path": "hero/hero_boulder_cluster.png",
+      "displayName": "Mossy Granite Boulder Formation (Hero)",
+      "category": "object",
+      "tags": [
+        "boulder",
+        "cc0",
+        "core_fantasy",
+        "hero",
+        "rock",
+        "wilderness"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 165,
+      "castsShadow": true,
+      "dominantHex": "#5E634D",
+      "widthPx": 412,
+      "heightPx": 393
+    },
+    {
+      "path": "hero/hero_campfire_lit.png",
+      "displayName": "Stone-Ring Crackling Campfire (Hero)",
+      "category": "object",
+      "tags": [
+        "camp",
+        "campfire",
+        "cc0",
+        "core_fantasy",
+        "fire",
+        "hero",
+        "wilderness"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 165,
+      "castsShadow": true,
+      "dominantHex": "#624E41",
+      "widthPx": 264,
+      "heightPx": 263
+    },
+    {
+      "path": "hero/hero_fallen_mossy_log.png",
+      "displayName": "Hollow Fallen Mossy Log (Hero)",
+      "category": "object",
+      "tags": [
+        "cc0",
+        "core_fantasy",
+        "forest",
+        "hero",
+        "log",
+        "wilderness"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 165,
+      "castsShadow": true,
+      "dominantHex": "#4D4326",
+      "widthPx": 462,
+      "heightPx": 349
+    },
+    {
+      "path": "hero/hero_berry_thicket.png",
+      "displayName": "Wild Fern & Berry Thicket (Hero)",
+      "category": "object",
+      "tags": [
+        "bush",
+        "cc0",
+        "core_fantasy",
+        "forest",
+        "hero",
+        "wilderness"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 165,
+      "castsShadow": true,
+      "dominantHex": "#3E4B29",
+      "widthPx": 330,
+      "heightPx": 314
+    },
+    {
+      "path": "hero/hero_ancient_stump.png",
+      "displayName": "Ancient Gnarled Tree Stump (Hero)",
+      "category": "object",
+      "tags": [
+        "cc0",
+        "core_fantasy",
+        "forest",
+        "hero",
+        "stump",
+        "wilderness"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 165,
+      "castsShadow": true,
+      "dominantHex": "#665037",
+      "widthPx": 297,
+      "heightPx": 297
+    },
+    {
+      "path": "hero/hero_covered_wagon.png",
+      "displayName": "Merchant Covered Supply Wagon (Hero)",
+      "category": "object",
+      "tags": [
+        "camp",
+        "cart",
+        "cc0",
+        "core_fantasy",
+        "hero",
+        "wagon",
+        "wilderness"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 151,
+      "castsShadow": true,
+      "dominantHex": "#938876",
+      "widthPx": 309,
+      "heightPx": 512
+    },
+    {
+      "path": "hero/hero_supply_handcart.png",
+      "displayName": "Loaded Merchant Handcart (Hero)",
+      "category": "object",
+      "tags": [
+        "camp",
+        "cart",
+        "cc0",
+        "core_fantasy",
+        "hero",
+        "tavern",
+        "wilderness"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 165,
+      "castsShadow": true,
+      "dominantHex": "#7B634C",
+      "widthPx": 250,
+      "heightPx": 363
+    },
+    {
+      "path": "hero/hero_cooking_cauldron.png",
+      "displayName": "Campfire Tripod & Stew Cauldron (Hero)",
+      "category": "object",
+      "tags": [
+        "camp",
+        "campfire",
+        "cauldron",
+        "cc0",
+        "core_fantasy",
+        "hero",
+        "wilderness"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 165,
+      "castsShadow": true,
+      "dominantHex": "#705E47",
+      "widthPx": 280,
+      "heightPx": 266
+    },
+    {
+      "path": "hero/hero_wooden_rowboat.png",
+      "displayName": "Wooden Rowboat & Oars (Hero)",
+      "category": "object",
+      "tags": [
+        "boat",
+        "camp",
+        "cc0",
+        "core_fantasy",
+        "hero",
+        "water",
+        "wilderness"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 165,
+      "castsShadow": true,
+      "dominantHex": "#85664A",
+      "widthPx": 423,
+      "heightPx": 462
+    },
+    {
+      "path": "hero/hero_spiked_barricade.png",
+      "displayName": "Sharpened Timber Palisade Barricade (Hero)",
+      "category": "object",
+      "tags": [
+        "barricade",
+        "camp",
+        "castle",
+        "cc0",
+        "core_fantasy",
+        "defense",
+        "hero"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 165,
+      "castsShadow": true,
+      "dominantHex": "#634F3D",
+      "widthPx": 396,
+      "heightPx": 334
+    },
+    {
+      "path": "hero/hero_adventurer_gear.png",
+      "displayName": "Adventurer Backpacks & Rope Kit (Hero)",
+      "category": "object",
+      "tags": [
+        "camp",
+        "cc0",
+        "clutter",
+        "core_fantasy",
+        "gear",
+        "hero",
+        "wilderness"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 165,
+      "castsShadow": true,
+      "dominantHex": "#7A5D44",
+      "widthPx": 246,
+      "heightPx": 248
+    },
+    {
+      "path": "hero/hero_lashed_footbridge.png",
+      "displayName": "Lashed Timber Footbridge (Hero)",
+      "category": "object",
+      "tags": [
+        "bridge",
+        "camp",
+        "cc0",
+        "core_fantasy",
+        "hero",
+        "wilderness"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 165,
+      "castsShadow": true,
+      "dominantHex": "#7B6B59",
+      "widthPx": 429,
+      "heightPx": 413
+    },
+    {
+      "path": "hero/hero_firewood_axe.png",
+      "displayName": "Firewood Stack & Chopping Stump (Hero)",
+      "category": "object",
+      "tags": [
+        "camp",
+        "cc0",
+        "core_fantasy",
+        "hero",
+        "tavern",
+        "wilderness",
+        "wood"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 165,
+      "castsShadow": true,
+      "dominantHex": "#83684D",
+      "widthPx": 314,
+      "heightPx": 294
+    },
+    {
+      "path": "hero/hero_hitching_trough.png",
+      "displayName": "Hitching Post & Water Trough (Hero)",
+      "category": "object",
+      "tags": [
+        "camp",
+        "cc0",
+        "core_fantasy",
+        "hero",
+        "horse",
+        "tavern",
+        "wood"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 165,
+      "castsShadow": true,
+      "dominantHex": "#8A877C",
+      "widthPx": 363,
+      "heightPx": 324
+    },
+    {
+      "path": "hero/hero_archery_target.png",
+      "displayName": "Straw Archery Target & Quiver (Hero)",
+      "category": "object",
+      "tags": [
+        "archery",
+        "camp",
+        "castle",
+        "cc0",
+        "core_fantasy",
+        "hero",
+        "training"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 165,
+      "castsShadow": true,
+      "dominantHex": "#806642",
+      "widthPx": 292,
+      "heightPx": 297
+    },
+    {
+      "path": "hero/hero_noble_canopy_bed.png",
+      "displayName": "Grand Four-Poster Canopy Bed (Hero)",
+      "category": "object",
+      "tags": [
+        "bed",
+        "castle",
+        "cc0",
+        "core_fantasy",
+        "furniture",
+        "hero",
+        "mansion"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 165,
+      "castsShadow": true,
+      "dominantHex": "#603835",
+      "widthPx": 405,
+      "heightPx": 429
+    },
+    {
+      "path": "hero/hero_banquet_table.png",
+      "displayName": "Grand Banquet Table & Candelabra (Hero)",
+      "category": "object",
+      "tags": [
+        "castle",
+        "cc0",
+        "core_fantasy",
+        "furniture",
+        "hero",
+        "mansion",
+        "table"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 151,
+      "castsShadow": true,
+      "dominantHex": "#795746",
+      "widthPx": 304,
+      "heightPx": 512
+    },
+    {
+      "path": "hero/hero_library_bookcase.png",
+      "displayName": "Mahogany Library Bookcase (Hero)",
+      "category": "object",
+      "tags": [
+        "bookshelf",
+        "cc0",
+        "core_fantasy",
+        "furniture",
+        "hero",
+        "library",
+        "mansion"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 165,
+      "castsShadow": true,
+      "dominantHex": "#442822",
+      "widthPx": 363,
+      "heightPx": 235
+    },
+    {
+      "path": "hero/hero_grand_piano.png",
+      "displayName": "Polished Black Grand Piano (Hero)",
+      "category": "object",
+      "tags": [
+        "cc0",
+        "core_fantasy",
+        "furniture",
+        "hero",
+        "mansion",
+        "music",
+        "piano"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 165,
+      "castsShadow": true,
+      "dominantHex": "#302F33",
+      "widthPx": 412,
+      "heightPx": 412
+    },
+    {
+      "path": "hero/hero_scholar_desk.png",
+      "displayName": "Scholar Writing Desk & Globe (Hero)",
+      "category": "object",
+      "tags": [
+        "cc0",
+        "core_fantasy",
+        "desk",
+        "furniture",
+        "hero",
+        "mansion",
+        "study"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 165,
+      "castsShadow": true,
+      "dominantHex": "#6F4B3C",
+      "widthPx": 363,
+      "heightPx": 293
+    },
+    {
+      "path": "hero/hero_velvet_sofa.png",
+      "displayName": "Emerald Velvet Parlor Sofa (Hero)",
+      "category": "object",
+      "tags": [
+        "cc0",
+        "core_fantasy",
+        "furniture",
+        "hero",
+        "mansion",
+        "sofa"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 165,
+      "castsShadow": true,
+      "dominantHex": "#2D412F",
+      "widthPx": 396,
+      "heightPx": 231
+    },
+    {
+      "path": "hero/hero_marble_fountain.png",
+      "displayName": "Marble Courtyard Fountain (Hero)",
+      "category": "object",
+      "tags": [
+        "castle",
+        "cc0",
+        "core_fantasy",
+        "fountain",
+        "hero",
+        "mansion",
+        "water"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 165,
+      "castsShadow": true,
+      "dominantHex": "#96A698",
+      "widthPx": 462,
+      "heightPx": 462
+    },
+    {
+      "path": "hero/hero_alchemy_bench.png",
+      "displayName": "Alchemist Glassware Workbench (Hero)",
+      "category": "object",
+      "tags": [
+        "alchemy",
+        "arcane",
+        "cc0",
+        "core_fantasy",
+        "dungeon",
+        "hero",
+        "mansion"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 165,
+      "castsShadow": true,
+      "dominantHex": "#7C563E",
+      "widthPx": 396,
+      "heightPx": 265
+    },
+    {
+      "path": "hero/hero_noble_carpet.png",
+      "displayName": "Ornate Crimson & Gold Carpet (Hero)",
+      "category": "object",
+      "tags": [
+        "carpet",
+        "castle",
+        "cc0",
+        "core_fantasy",
+        "hero",
+        "mansion",
+        "rug"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 165,
+      "castsShadow": false,
+      "dominantHex": "#834238",
+      "widthPx": 495,
+      "heightPx": 342
+    },
+    {
+      "path": "hero/hero_royal_throne.png",
+      "displayName": "Gilded Royal Throne on Dais (Hero)",
+      "category": "object",
+      "tags": [
+        "castle",
+        "cc0",
+        "core_fantasy",
+        "furniture",
+        "hero",
+        "mansion",
+        "throne"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 165,
+      "castsShadow": true,
+      "dominantHex": "#7E6C64",
+      "widthPx": 428,
+      "heightPx": 429
+    },
+    {
+      "path": "hero/hero_siege_ballista.png",
+      "displayName": "Heavy Siege Ballista Engine (Hero)",
+      "category": "object",
+      "tags": [
+        "ballista",
+        "castle",
+        "cc0",
+        "core_fantasy",
+        "hero",
+        "siege",
+        "war"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 165,
+      "castsShadow": true,
+      "dominantHex": "#4C4238",
+      "widthPx": 462,
+      "heightPx": 426
+    },
+    {
+      "path": "hero/hero_war_map_table.png",
+      "displayName": "War Room Tactical Map Table (Hero)",
+      "category": "object",
+      "tags": [
+        "castle",
+        "cc0",
+        "core_fantasy",
+        "hero",
+        "mansion",
+        "table",
+        "war"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 165,
+      "castsShadow": true,
+      "dominantHex": "#A28E6E",
+      "widthPx": 462,
+      "heightPx": 338
+    },
+    {
+      "path": "hero/hero_stone_spiral_stair.png",
+      "displayName": "Castle Tower Spiral Staircase (Hero)",
+      "category": "object",
+      "tags": [
+        "castle",
+        "cc0",
+        "core_fantasy",
+        "dungeon",
+        "hero",
+        "spiral",
+        "stairs"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 165,
+      "castsShadow": true,
+      "dominantHex": "#615F59",
+      "widthPx": 428,
+      "heightPx": 429
+    },
+    {
+      "path": "hero/hero_courtyard_well.png",
+      "displayName": "Stone Courtyard Wellhead (Hero)",
+      "category": "object",
+      "tags": [
+        "castle",
+        "cc0",
+        "core_fantasy",
+        "hero",
+        "tavern",
+        "well",
+        "wilderness"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 165,
+      "castsShadow": true,
+      "dominantHex": "#5B5852",
+      "widthPx": 346,
+      "heightPx": 329
+    },
+    {
+      "path": "hero/hero_royal_strongbox.png",
+      "displayName": "Royal Treasury Strongbox & Gold (Hero)",
+      "category": "object",
+      "tags": [
+        "castle",
+        "cc0",
+        "chest",
+        "core_fantasy",
+        "hero",
+        "mansion",
+        "treasure"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 165,
+      "castsShadow": true,
+      "dominantHex": "#61513A",
+      "widthPx": 346,
+      "heightPx": 222
+    },
+    {
+      "path": "hero/hero_portcullis_winch.png",
+      "displayName": "Iron Portcullis Chain Winch (Hero)",
+      "category": "object",
+      "tags": [
+        "castle",
+        "cc0",
+        "core_fantasy",
+        "dungeon",
+        "hero",
+        "mechanism",
+        "winch"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 165,
+      "castsShadow": true,
+      "dominantHex": "#493F34",
+      "widthPx": 363,
+      "heightPx": 327
+    },
+    {
+      "path": "hero/hero_plate_armor_stand.png",
+      "displayName": "Knight Plate Armor Display Stand (Hero)",
+      "category": "object",
+      "tags": [
+        "armor",
+        "armory",
+        "castle",
+        "cc0",
+        "core_fantasy",
+        "hero",
+        "mansion"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 165,
+      "castsShadow": true,
+      "dominantHex": "#665850",
+      "widthPx": 248,
+      "heightPx": 239
+    },
+    {
+      "path": "hero/hero_castle_hearth.png",
+      "displayName": "Carved Lion Castle Fireplace (Hero)",
+      "category": "object",
+      "tags": [
+        "castle",
+        "cc0",
+        "core_fantasy",
+        "fireplace",
+        "hearth",
+        "hero",
+        "mansion"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 165,
+      "castsShadow": true,
+      "dominantHex": "#7C6855",
+      "widthPx": 429,
+      "heightPx": 426
+    }
+  ]
+}

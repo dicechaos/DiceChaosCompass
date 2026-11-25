@@ -1,0 +1,2204 @@
+{
+  "specVersion": "1.0",
+  "id": "com.dicechaos.starter-berlin-magipunk-cc0",
+  "name": "Dice Chaos Berlin Magi-Punk & Funicular Starter (CC0)",
+  "author": "Dice Chaos Community",
+  "license": "CC0-1.0",
+  "defaultPpi": 256,
+  "assets": [
+    {
+      "path": "terrain/berlin_wet_cobble.png",
+      "displayName": "Berlin Wet Cobblestone",
+      "category": "terrain",
+      "tags": [
+        "berlin",
+        "magipunk",
+        "city",
+        "cobblestone",
+        "street"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#333845",
+      "widthPx": 512,
+      "heightPx": 512
+    },
+    {
+      "path": "terrain/lower_slum_brick_alley.png",
+      "displayName": "Lower-Town Brick Alley",
+      "category": "terrain",
+      "tags": [
+        "berlin",
+        "slum",
+        "lower_town",
+        "brick",
+        "alley"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#3A2522",
+      "widthPx": 512,
+      "heightPx": 512
+    },
+    {
+      "path": "terrain/upper_marble_promenade.png",
+      "displayName": "Upper-Town Gold Marble",
+      "category": "terrain",
+      "tags": [
+        "berlin",
+        "upper_town",
+        "marble",
+        "promenade",
+        "rich"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#BBB4A6",
+      "widthPx": 512,
+      "heightPx": 512
+    },
+    {
+      "path": "terrain/herringbone_parquet.png",
+      "displayName": "Parlor Herringbone Parquet",
+      "category": "terrain",
+      "tags": [
+        "berlin",
+        "upper_town",
+        "wood",
+        "floor",
+        "terminal"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#4F321C",
+      "widthPx": 512,
+      "heightPx": 512
+    },
+    {
+      "path": "terrain/under_city_abyss.png",
+      "displayName": "Under-City Tenement Depths",
+      "category": "terrain",
+      "tags": [
+        "berlin",
+        "magipunk",
+        "city",
+        "chasm",
+        "under_city"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#1A2534",
+      "widthPx": 512,
+      "heightPx": 512
+    },
+    {
+      "path": "terrain/berlin_canal_dark.png",
+      "displayName": "Urban Canal Water",
+      "category": "terrain",
+      "tags": [
+        "berlin",
+        "water",
+        "canal",
+        "city"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#193C47",
+      "widthPx": 512,
+      "heightPx": 512
+    },
+    {
+      "path": "terrain/slate_rooftop_tiles.png",
+      "displayName": "Prussian Slate Roof Tiles",
+      "category": "terrain",
+      "tags": [
+        "berlin",
+        "roof",
+        "slate",
+        "city"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#32353D",
+      "widthPx": 512,
+      "heightPx": 512
+    },
+    {
+      "path": "walls/grunderzeit_brick_wall.png",
+      "displayName": "Gr\u00fcnderzeit Brick Wall",
+      "category": "wall",
+      "tags": [
+        "wall",
+        "berlin",
+        "brick",
+        "lower_town",
+        "city"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#522720",
+      "widthPx": 512,
+      "heightPx": 128
+    },
+    {
+      "path": "walls/prussian_limestone_wall.png",
+      "displayName": "Prussian Limestone & Gold Wall",
+      "category": "wall",
+      "tags": [
+        "wall",
+        "berlin",
+        "upper_town",
+        "marble",
+        "rich"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#AA9F87",
+      "widthPx": 512,
+      "heightPx": 128
+    },
+    {
+      "path": "walls/jugendstil_iron_balustrade.png",
+      "displayName": "Jugendstil Iron & Gold Railing",
+      "category": "wall",
+      "tags": [
+        "wall",
+        "railing",
+        "berlin",
+        "upper_town",
+        "iron"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#3C3F2B",
+      "widthPx": 512,
+      "heightPx": 128
+    },
+    {
+      "path": "walls/aether_conduit_bulkhead.png",
+      "displayName": "Aether-Pipe Iron Bulkhead",
+      "category": "wall",
+      "tags": [
+        "wall",
+        "magipunk",
+        "aether",
+        "iron",
+        "machinery"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#3D4F52",
+      "widthPx": 512,
+      "heightPx": 128
+    },
+    {
+      "path": "walls/tenement_plaster_wall.png",
+      "displayName": "Tenement Stucco & Timber Wall",
+      "category": "wall",
+      "tags": [
+        "wall",
+        "berlin",
+        "lower_town",
+        "slum"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#6D6152",
+      "widthPx": 512,
+      "heightPx": 128
+    },
+    {
+      "path": "paths/magirail_funicular_track.png",
+      "displayName": "Magi-Rail Aether Funicular Track",
+      "category": "path",
+      "tags": [
+        "path",
+        "funicular",
+        "magipunk",
+        "rail",
+        "aether",
+        "berlin"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#36413F",
+      "widthPx": 512,
+      "heightPx": 192
+    },
+    {
+      "path": "paths/aether_power_conduit.png",
+      "displayName": "Glowing Aether Power Conduit",
+      "category": "path",
+      "tags": [
+        "path",
+        "magipunk",
+        "aether",
+        "cable",
+        "leyline"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#7D8C6F",
+      "widthPx": 512,
+      "heightPx": 72
+    },
+    {
+      "path": "paths/berlin_curb_gutter.png",
+      "displayName": "Berlin Granite Street Curb",
+      "category": "path",
+      "tags": [
+        "path",
+        "berlin",
+        "street",
+        "curb",
+        "city"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#5F646D",
+      "widthPx": 512,
+      "heightPx": 96
+    },
+    {
+      "path": "paths/iron_fire_escape_stairs.png",
+      "displayName": "Iron Fire-Escape Stairs",
+      "category": "path",
+      "tags": [
+        "path",
+        "stairs",
+        "berlin",
+        "lower_town",
+        "iron"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#3A404A",
+      "widthPx": 512,
+      "heightPx": 112
+    },
+    {
+      "path": "paths/laundry_banner_line.png",
+      "displayName": "Alley Laundry & Banner Line",
+      "category": "path",
+      "tags": [
+        "path",
+        "berlin",
+        "slum",
+        "lower_town",
+        "city"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#90756D",
+      "widthPx": 512,
+      "heightPx": 96
+    },
+    {
+      "path": "portals/jugendstil_brass_door.png",
+      "displayName": "Jugendstil Brass Double Door",
+      "category": "portal",
+      "tags": [
+        "portal",
+        "door",
+        "berlin",
+        "upper_town",
+        "brass"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#774326",
+      "widthPx": 256,
+      "heightPx": 128
+    },
+    {
+      "path": "portals/magiglass_stained_window.png",
+      "displayName": "Stained Magi-Glass Window",
+      "category": "portal",
+      "tags": [
+        "portal",
+        "window",
+        "magipunk",
+        "berlin",
+        "upper_town"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#86967E",
+      "widthPx": 256,
+      "heightPx": 128
+    },
+    {
+      "path": "portals/tenement_slum_door.png",
+      "displayName": "Tenement Iron-Bolted Door",
+      "category": "portal",
+      "tags": [
+        "portal",
+        "door",
+        "berlin",
+        "lower_town",
+        "slum"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#41362F",
+      "widthPx": 256,
+      "heightPx": 128
+    },
+    {
+      "path": "portals/slum_grimy_window.png",
+      "displayName": "Gaslit Tenement Window",
+      "category": "portal",
+      "tags": [
+        "portal",
+        "window",
+        "berlin",
+        "lower_town",
+        "slum"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#886D3E",
+      "widthPx": 256,
+      "heightPx": 128
+    },
+    {
+      "path": "portals/aether_sliding_gate.png",
+      "displayName": "Aether-Rail Boarding Gate",
+      "category": "portal",
+      "tags": [
+        "portal",
+        "gate",
+        "funicular",
+        "magipunk",
+        "berlin"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#263A34",
+      "widthPx": 256,
+      "heightPx": 128
+    },
+    {
+      "path": "objects/magipunk_funicular_interior.png",
+      "displayName": "Magi-Punk Funicular Car (Interior)",
+      "category": "object",
+      "tags": [
+        "funicular",
+        "magipunk",
+        "berlin",
+        "carriage",
+        "hero"
+      ],
+      "drawMode": "rgb_channels",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#4D3833",
+      "widthPx": 768,
+      "heightPx": 384
+    },
+    {
+      "path": "objects/magipunk_funicular_roof.png",
+      "displayName": "Magi-Punk Funicular Car (Roof)",
+      "category": "object",
+      "tags": [
+        "funicular",
+        "magipunk",
+        "berlin",
+        "roof",
+        "hero"
+      ],
+      "drawMode": "rgb_channels",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#3D574B",
+      "widthPx": 768,
+      "heightPx": 384
+    },
+    {
+      "path": "objects/hochbahn_steel_viaduct.png",
+      "displayName": "Berlin Hochbahn Steel Viaduct",
+      "category": "object",
+      "tags": [
+        "funicular",
+        "magipunk",
+        "berlin",
+        "bridge",
+        "viaduct",
+        "hero"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#1E2B2D",
+      "widthPx": 768,
+      "heightPx": 512
+    },
+    {
+      "path": "objects/aether_core_dynamo.png",
+      "displayName": "Arcane Aether-Core Bullwheel",
+      "category": "object",
+      "tags": [
+        "funicular",
+        "magipunk",
+        "aether",
+        "machinery",
+        "hero"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#505445",
+      "widthPx": 512,
+      "heightPx": 512
+    },
+    {
+      "path": "objects/crystal_capacitor_bank.png",
+      "displayName": "Aether Crystal Capacitor Bank",
+      "category": "object",
+      "tags": [
+        "magipunk",
+        "aether",
+        "machinery",
+        "upper_town"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#585364",
+      "widthPx": 384,
+      "heightPx": 256
+    },
+    {
+      "path": "objects/aether_track_switch.png",
+      "displayName": "Rune-Etched Track Switch Frog",
+      "category": "object",
+      "tags": [
+        "funicular",
+        "magipunk",
+        "rail",
+        "switch",
+        "aether"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#3B4D4B",
+      "widthPx": 512,
+      "heightPx": 384
+    },
+    {
+      "path": "objects/upper_terminal_glass_dome.png",
+      "displayName": "Upper Terminal Glass-Copper Dome",
+      "category": "object",
+      "tags": [
+        "roof",
+        "berlin",
+        "upper_town",
+        "terminal",
+        "magipunk"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#45665F",
+      "widthPx": 768,
+      "heightPx": 768
+    },
+    {
+      "path": "objects/lower_tenement_roof_a.png",
+      "displayName": "Berlin Tenement Red-Slate Roof",
+      "category": "object",
+      "tags": [
+        "roof",
+        "berlin",
+        "lower_town",
+        "slum",
+        "city"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#4A2521",
+      "widthPx": 768,
+      "heightPx": 512
+    },
+    {
+      "path": "objects/lower_tenement_roof_b.png",
+      "displayName": "Mietskaserne Dark Slate Roof",
+      "category": "object",
+      "tags": [
+        "roof",
+        "berlin",
+        "lower_town",
+        "slum",
+        "city"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#2A2C35",
+      "widthPx": 768,
+      "heightPx": 512
+    },
+    {
+      "path": "objects/upper_town_mansard_roof.png",
+      "displayName": "Charlottenburg Mansard Roof",
+      "category": "object",
+      "tags": [
+        "roof",
+        "berlin",
+        "upper_town",
+        "rich",
+        "city"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#3A585A",
+      "widthPx": 768,
+      "heightPx": 512
+    },
+    {
+      "path": "objects/street_vendor_stall.png",
+      "displayName": "Alley Apothecary & Vendor Stall",
+      "category": "object",
+      "tags": [
+        "berlin",
+        "lower_town",
+        "slum",
+        "market",
+        "magipunk"
+      ],
+      "drawMode": "rgb_channels",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#7D5143",
+      "widthPx": 384,
+      "heightPx": 256
+    },
+    {
+      "path": "objects/slum_scrap_crates.png",
+      "displayName": "Slum Alley Crates & Aether Vat",
+      "category": "object",
+      "tags": [
+        "berlin",
+        "lower_town",
+        "slum",
+        "clutter",
+        "magipunk"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#443729",
+      "widthPx": 256,
+      "heightPx": 256
+    },
+    {
+      "path": "objects/alley_steam_vent.png",
+      "displayName": "Street Steam & Aether Vent",
+      "category": "object",
+      "tags": [
+        "berlin",
+        "lower_town",
+        "magipunk",
+        "street",
+        "clutter"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#49555D",
+      "widthPx": 256,
+      "heightPx": 256
+    },
+    {
+      "path": "objects/aether_streetlamp_slum.png",
+      "displayName": "Lower-Town Aether Streetlamp",
+      "category": "object",
+      "tags": [
+        "light",
+        "berlin",
+        "lower_town",
+        "magipunk",
+        "lamp"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#37A19B",
+      "widthPx": 192,
+      "heightPx": 192
+    },
+    {
+      "path": "objects/ornate_promenade_lamp.png",
+      "displayName": "Upper-Town Gilded Globe Lamp",
+      "category": "object",
+      "tags": [
+        "light",
+        "berlin",
+        "upper_town",
+        "rich",
+        "lamp"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#C1A155",
+      "widthPx": 192,
+      "heightPx": 192
+    },
+    {
+      "path": "objects/aristocrat_cafe_table.png",
+      "displayName": "Promenade Bistro Caf\u00e9 Table",
+      "category": "object",
+      "tags": [
+        "berlin",
+        "upper_town",
+        "rich",
+        "furniture"
+      ],
+      "drawMode": "rgb_channels",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#AF8871",
+      "widthPx": 256,
+      "heightPx": 256
+    },
+    {
+      "path": "objects/ornate_fountain_basin.png",
+      "displayName": "Art-Nouveau Arcane Fountain",
+      "category": "object",
+      "tags": [
+        "berlin",
+        "upper_town",
+        "rich",
+        "fountain",
+        "magipunk"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#5E8C8E",
+      "widthPx": 384,
+      "heightPx": 384
+    },
+    {
+      "path": "objects/velvet_lounge_divan.png",
+      "displayName": "Upper Salon Velvet Divan",
+      "category": "object",
+      "tags": [
+        "berlin",
+        "upper_town",
+        "rich",
+        "furniture"
+      ],
+      "drawMode": "rgb_channels",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#8A2E32",
+      "widthPx": 320,
+      "heightPx": 160
+    },
+    {
+      "path": "objects/urban_linden_tree.png",
+      "displayName": "Berlin Ornamental Linden Tree",
+      "category": "object",
+      "tags": [
+        "berlin",
+        "upper_town",
+        "tree",
+        "city",
+        "foliage"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#2A5835",
+      "widthPx": 384,
+      "heightPx": 384
+    },
+    {
+      "path": "objects/city_planter_box.png",
+      "displayName": "Limestone Floral Planter Box",
+      "category": "object",
+      "tags": [
+        "berlin",
+        "upper_town",
+        "rich",
+        "city",
+        "clutter"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#5A6F53",
+      "widthPx": 256,
+      "heightPx": 160
+    },
+    {
+      "path": "objects/gilded_ticket_kiosk.png",
+      "displayName": "Gilded Aether-Ticker Kiosk",
+      "category": "object",
+      "tags": [
+        "berlin",
+        "upper_town",
+        "terminal",
+        "magipunk",
+        "furniture"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#775B44",
+      "widthPx": 384,
+      "heightPx": 256
+    },
+    {
+      "path": "objects/clockwork_automaton_dock.png",
+      "displayName": "Clockwork Sentry Charging Dock",
+      "category": "object",
+      "tags": [
+        "berlin",
+        "upper_town",
+        "magipunk",
+        "machinery",
+        "guard"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#51594A",
+      "widthPx": 256,
+      "heightPx": 256
+    },
+    {
+      "path": "terrain/alpine_slate_rock.png",
+      "displayName": "Alpine Slate Rock",
+      "category": "terrain",
+      "tags": [
+        "alpine",
+        "rock",
+        "mountain",
+        "slate",
+        "funicular"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#464F5D",
+      "widthPx": 512,
+      "heightPx": 512
+    },
+    {
+      "path": "terrain/granite_cobblestone.png",
+      "displayName": "Station Granite Cobble",
+      "category": "terrain",
+      "tags": [
+        "station",
+        "cobblestone",
+        "stone",
+        "floor"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#474850",
+      "widthPx": 512,
+      "heightPx": 512
+    },
+    {
+      "path": "terrain/alpine_snow_crag.png",
+      "displayName": "Alpine Snow & Crag",
+      "category": "terrain",
+      "tags": [
+        "snow",
+        "alpine",
+        "winter",
+        "mountain"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#C6D3E4",
+      "widthPx": 512,
+      "heightPx": 512
+    },
+    {
+      "path": "terrain/timber_platform_deck.png",
+      "displayName": "Timber Boarding Deck",
+      "category": "terrain",
+      "tags": [
+        "wood",
+        "timber",
+        "platform",
+        "station",
+        "funicular"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#563420",
+      "widthPx": 512,
+      "heightPx": 512
+    },
+    {
+      "path": "terrain/mountain_pine_moss.png",
+      "displayName": "Pine Needles & Moss",
+      "category": "terrain",
+      "tags": [
+        "moss",
+        "forest",
+        "alpine",
+        "ground"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#3A5034",
+      "widthPx": 512,
+      "heightPx": 512
+    },
+    {
+      "path": "terrain/riveted_iron_plate.png",
+      "displayName": "Riveted Iron Grating",
+      "category": "terrain",
+      "tags": [
+        "iron",
+        "industrial",
+        "machinery",
+        "winding_house"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#313642",
+      "widthPx": 512,
+      "heightPx": 512
+    },
+    {
+      "path": "terrain/chasm_abyss_mist.png",
+      "displayName": "Misty Gorge Abyss",
+      "category": "terrain",
+      "tags": [
+        "chasm",
+        "abyss",
+        "gorge",
+        "alpine",
+        "water"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#213146",
+      "widthPx": 512,
+      "heightPx": 512
+    },
+    {
+      "path": "walls/alpine_stone_wall.png",
+      "displayName": "Alpine Stone Wall",
+      "category": "wall",
+      "tags": [
+        "wall",
+        "stone",
+        "station",
+        "alpine"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#51555B",
+      "widthPx": 512,
+      "heightPx": 128
+    },
+    {
+      "path": "walls/timber_station_wall.png",
+      "displayName": "Timber & Iron Wall",
+      "category": "wall",
+      "tags": [
+        "wall",
+        "wood",
+        "timber",
+        "station"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#563F2C",
+      "widthPx": 512,
+      "heightPx": 128
+    },
+    {
+      "path": "walls/iron_safety_railing.png",
+      "displayName": "Iron Safety Railing",
+      "category": "wall",
+      "tags": [
+        "railing",
+        "iron",
+        "balcony",
+        "platform",
+        "funicular"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#313337",
+      "widthPx": 512,
+      "heightPx": 128
+    },
+    {
+      "path": "walls/retaining_cliff_wall.png",
+      "displayName": "Retaining Cliff Wall",
+      "category": "wall",
+      "tags": [
+        "wall",
+        "cliff",
+        "stone",
+        "snow"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#5B5F66",
+      "widthPx": 512,
+      "heightPx": 128
+    },
+    {
+      "path": "paths/funicular_rail_track.png",
+      "displayName": "Dual Funicular Rail Track",
+      "category": "path",
+      "tags": [
+        "funicular",
+        "rail",
+        "track",
+        "iron",
+        "path"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#3E3B3C",
+      "widthPx": 512,
+      "heightPx": 192
+    },
+    {
+      "path": "paths/steel_haul_cable.png",
+      "displayName": "Steel Haulage Cable",
+      "category": "path",
+      "tags": [
+        "funicular",
+        "cable",
+        "steel",
+        "path"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#656C77",
+      "widthPx": 512,
+      "heightPx": 64
+    },
+    {
+      "path": "paths/cliff_ledge_dropoff.png",
+      "displayName": "Alpine Cliff Drop-off",
+      "category": "path",
+      "tags": [
+        "cliff",
+        "ledge",
+        "alpine",
+        "gorge",
+        "path"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#181D27",
+      "widthPx": 512,
+      "heightPx": 128
+    },
+    {
+      "path": "paths/stone_retaining_stairs.png",
+      "displayName": "Granite Mountain Stairs",
+      "category": "path",
+      "tags": [
+        "stairs",
+        "stone",
+        "station",
+        "path"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#4F545E",
+      "widthPx": 512,
+      "heightPx": 128
+    },
+    {
+      "path": "paths/maintenance_catwalk.png",
+      "displayName": "Cliffside Catwalk",
+      "category": "path",
+      "tags": [
+        "catwalk",
+        "bridge",
+        "wood",
+        "funicular",
+        "path"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#584434",
+      "widthPx": 512,
+      "heightPx": 112
+    },
+    {
+      "path": "portals/station_oak_door.png",
+      "displayName": "Station Oak Door",
+      "category": "portal",
+      "tags": [
+        "door",
+        "wood",
+        "station",
+        "portal"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#5D402A",
+      "widthPx": 256,
+      "heightPx": 128
+    },
+    {
+      "path": "portals/funicular_iron_gate.png",
+      "displayName": "Funicular Boarding Gate",
+      "category": "portal",
+      "tags": [
+        "gate",
+        "iron",
+        "funicular",
+        "portal"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#2C2F34",
+      "widthPx": 256,
+      "heightPx": 128
+    },
+    {
+      "path": "portals/station_mullion_window.png",
+      "displayName": "Station Mullion Window",
+      "category": "portal",
+      "tags": [
+        "window",
+        "glass",
+        "station",
+        "portal"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#5D88A6",
+      "widthPx": 256,
+      "heightPx": 128
+    },
+    {
+      "path": "portals/machine_steel_hatch.png",
+      "displayName": "Winding Room Steel Hatch",
+      "category": "portal",
+      "tags": [
+        "door",
+        "iron",
+        "machinery",
+        "portal"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#404549",
+      "widthPx": 256,
+      "heightPx": 128
+    },
+    {
+      "path": "objects/funicular_car_interior.png",
+      "displayName": "Funicular Carriage (Interior)",
+      "category": "object",
+      "tags": [
+        "funicular",
+        "carriage",
+        "vehicle",
+        "rail",
+        "hero"
+      ],
+      "drawMode": "rgb_channels",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#51342B",
+      "widthPx": 768,
+      "heightPx": 384
+    },
+    {
+      "path": "objects/funicular_car_roof.png",
+      "displayName": "Funicular Carriage (Roof)",
+      "category": "object",
+      "tags": [
+        "funicular",
+        "roof",
+        "carriage",
+        "hero"
+      ],
+      "drawMode": "rgb_channels",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#66423A",
+      "widthPx": 768,
+      "heightPx": 384
+    },
+    {
+      "path": "objects/viaduct_arch_deck.png",
+      "displayName": "Steel & Stone Viaduct Span",
+      "category": "object",
+      "tags": [
+        "funicular",
+        "bridge",
+        "viaduct",
+        "iron",
+        "gorge",
+        "hero"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#2A2F38",
+      "widthPx": 768,
+      "heightPx": 512
+    },
+    {
+      "path": "objects/funicular_station_roof_west.png",
+      "displayName": "Alpine Station Roof (Snow)",
+      "category": "object",
+      "tags": [
+        "roof",
+        "station",
+        "snow",
+        "alpine"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#474B53",
+      "widthPx": 768,
+      "heightPx": 640
+    },
+    {
+      "path": "objects/winding_house_roof_east.png",
+      "displayName": "Winding House Roof (Skylight)",
+      "category": "object",
+      "tags": [
+        "roof",
+        "winding_house",
+        "iron",
+        "industrial"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#35373A",
+      "widthPx": 768,
+      "heightPx": 768
+    },
+    {
+      "path": "objects/track_switch_frog.png",
+      "displayName": "Abt Track Switch Frog & Lever",
+      "category": "object",
+      "tags": [
+        "funicular",
+        "rail",
+        "switch",
+        "iron",
+        "machinery"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#3E434C",
+      "widthPx": 512,
+      "heightPx": 384
+    },
+    {
+      "path": "objects/semaphore_signal_post.png",
+      "displayName": "Railway Semaphore Signal",
+      "category": "object",
+      "tags": [
+        "funicular",
+        "rail",
+        "signal",
+        "station"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#534542",
+      "widthPx": 256,
+      "heightPx": 256
+    },
+    {
+      "path": "objects/cable_bullwheel.png",
+      "displayName": "Cable Drive Bullwheel",
+      "category": "object",
+      "tags": [
+        "funicular",
+        "machinery",
+        "winding_house",
+        "iron",
+        "hero"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#303338",
+      "widthPx": 512,
+      "heightPx": 512
+    },
+    {
+      "path": "objects/steam_boiler_furnace.png",
+      "displayName": "Steam Boiler Furnace",
+      "category": "object",
+      "tags": [
+        "boiler",
+        "furnace",
+        "machinery",
+        "winding_house",
+        "fire"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#413B35",
+      "widthPx": 512,
+      "heightPx": 384
+    },
+    {
+      "path": "objects/brake_lever_console.png",
+      "displayName": "Brake & Switch Console",
+      "category": "object",
+      "tags": [
+        "funicular",
+        "lever",
+        "brass",
+        "machinery",
+        "winding_house"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#333236",
+      "widthPx": 256,
+      "heightPx": 256
+    },
+    {
+      "path": "objects/gear_winch_assembly.png",
+      "displayName": "Brass Gear Winch Train",
+      "category": "object",
+      "tags": [
+        "gears",
+        "winch",
+        "machinery",
+        "winding_house"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#433F38",
+      "widthPx": 384,
+      "heightPx": 256
+    },
+    {
+      "path": "objects/coal_hopper_bin.png",
+      "displayName": "Coal Bunker & Shovel",
+      "category": "object",
+      "tags": [
+        "coal",
+        "machinery",
+        "winding_house",
+        "wood"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#2D2825",
+      "widthPx": 256,
+      "heightPx": 256
+    },
+    {
+      "path": "objects/station_ticket_booth.png",
+      "displayName": "Station Ticket Counter",
+      "category": "object",
+      "tags": [
+        "station",
+        "furniture",
+        "wood",
+        "brass"
+      ],
+      "drawMode": "rgb_channels",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#70573E",
+      "widthPx": 384,
+      "heightPx": 256
+    },
+    {
+      "path": "objects/ticket_kiosk_interior_desk.png",
+      "displayName": "Stationmaster Telegraph Desk",
+      "category": "object",
+      "tags": [
+        "station",
+        "furniture",
+        "wood",
+        "brass"
+      ],
+      "drawMode": "rgb_channels",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#5F523A",
+      "widthPx": 256,
+      "heightPx": 192
+    },
+    {
+      "path": "objects/potbelly_cast_stove.png",
+      "displayName": "Potbelly Cast-Iron Stove",
+      "category": "object",
+      "tags": [
+        "station",
+        "fire",
+        "iron",
+        "furniture"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#37373D",
+      "widthPx": 256,
+      "heightPx": 256
+    },
+    {
+      "path": "objects/luggage_hand_cart.png",
+      "displayName": "Porter's Brass Luggage Cart",
+      "category": "object",
+      "tags": [
+        "station",
+        "luggage",
+        "brass",
+        "clutter"
+      ],
+      "drawMode": "rgb_channels",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#583C2E",
+      "widthPx": 256,
+      "heightPx": 192
+    },
+    {
+      "path": "objects/tool_workbench.png",
+      "displayName": "Mechanic's Blueprint Bench",
+      "category": "object",
+      "tags": [
+        "machinery",
+        "winding_house",
+        "wood",
+        "clutter"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#48403D",
+      "widthPx": 384,
+      "heightPx": 192
+    },
+    {
+      "path": "objects/dynamite_supply_crate.png",
+      "displayName": "Blasting Powder & Flares Box",
+      "category": "object",
+      "tags": [
+        "hazard",
+        "explosive",
+        "funicular",
+        "clutter"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#6C3E24",
+      "widthPx": 256,
+      "heightPx": 256
+    },
+    {
+      "path": "objects/oil_barrels_rack.png",
+      "displayName": "Grease & Oil Drums Rack",
+      "category": "object",
+      "tags": [
+        "hazard",
+        "machinery",
+        "winding_house",
+        "iron"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#413327",
+      "widthPx": 256,
+      "heightPx": 192
+    },
+    {
+      "path": "objects/wooden_cargo_pallet.png",
+      "displayName": "Lashed Cargo Pallet",
+      "category": "object",
+      "tags": [
+        "cargo",
+        "station",
+        "wood",
+        "clutter"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#66533B",
+      "widthPx": 256,
+      "heightPx": 256
+    },
+    {
+      "path": "objects/iron_cargo_crane.png",
+      "displayName": "Iron Cargo Jib Crane",
+      "category": "object",
+      "tags": [
+        "crane",
+        "iron",
+        "cargo",
+        "station",
+        "funicular"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#3F3E3C",
+      "widthPx": 384,
+      "heightPx": 384
+    },
+    {
+      "path": "objects/bridge_stone_pylon.png",
+      "displayName": "Viaduct Stone Trestle Pier",
+      "category": "object",
+      "tags": [
+        "pylon",
+        "bridge",
+        "stone",
+        "funicular",
+        "gorge"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#383E47",
+      "widthPx": 384,
+      "heightPx": 384
+    },
+    {
+      "path": "objects/luggage_crates_cluster.png",
+      "displayName": "Luggage & Cargo Crates",
+      "category": "object",
+      "tags": [
+        "crates",
+        "luggage",
+        "station",
+        "wood",
+        "clutter"
+      ],
+      "drawMode": "rgb_channels",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#6E4B30",
+      "widthPx": 256,
+      "heightPx": 256
+    },
+    {
+      "path": "objects/waiting_bench_wood.png",
+      "displayName": "Station Waiting Bench",
+      "category": "object",
+      "tags": [
+        "bench",
+        "furniture",
+        "wood",
+        "station"
+      ],
+      "drawMode": "rgb_channels",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#453121",
+      "widthPx": 256,
+      "heightPx": 128
+    },
+    {
+      "path": "objects/rope_cable_spool.png",
+      "displayName": "Spare Steel Cable Spool",
+      "category": "object",
+      "tags": [
+        "cable",
+        "spool",
+        "funicular",
+        "clutter"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#695849",
+      "widthPx": 256,
+      "heightPx": 256
+    },
+    {
+      "path": "objects/cliff_guard_watchbox.png",
+      "displayName": "Railway Sentry Watchbox",
+      "category": "object",
+      "tags": [
+        "station",
+        "guard",
+        "wood",
+        "alpine"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#49321E",
+      "widthPx": 256,
+      "heightPx": 256
+    },
+    {
+      "path": "objects/iron_lantern_garland.png",
+      "displayName": "Hanging Platform Lamp Line",
+      "category": "object",
+      "tags": [
+        "light",
+        "lamp",
+        "station",
+        "funicular"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#B3944B",
+      "widthPx": 384,
+      "heightPx": 128
+    },
+    {
+      "path": "objects/station_lamp_post.png",
+      "displayName": "Brass Station Lamp Post",
+      "category": "object",
+      "tags": [
+        "light",
+        "lamp",
+        "station",
+        "brass"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#AA8B4E",
+      "widthPx": 192,
+      "heightPx": 192
+    },
+    {
+      "path": "objects/coal_brazier_lit.png",
+      "displayName": "Platform Warming Brazier",
+      "category": "object",
+      "tags": [
+        "light",
+        "fire",
+        "brazier",
+        "station"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#A75924",
+      "widthPx": 192,
+      "heightPx": 192
+    },
+    {
+      "path": "objects/alpine_campfire_pit.png",
+      "displayName": "Watchman's Stone Campfire",
+      "category": "object",
+      "tags": [
+        "light",
+        "fire",
+        "alpine",
+        "camp"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#97552D",
+      "widthPx": 256,
+      "heightPx": 256
+    },
+    {
+      "path": "objects/alpine_pine_snow.png",
+      "displayName": "Snow-Dusted Alpine Pine",
+      "category": "object",
+      "tags": [
+        "tree",
+        "pine",
+        "alpine",
+        "snow",
+        "foliage"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#435851",
+      "widthPx": 384,
+      "heightPx": 384
+    },
+    {
+      "path": "objects/alpine_pine_deep.png",
+      "displayName": "Deep Mountain Fir",
+      "category": "object",
+      "tags": [
+        "tree",
+        "pine",
+        "alpine",
+        "foliage"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#1A3426",
+      "widthPx": 384,
+      "heightPx": 384
+    },
+    {
+      "path": "objects/mountain_boulder_a.png",
+      "displayName": "Snowy Granite Boulder",
+      "category": "object",
+      "tags": [
+        "rock",
+        "boulder",
+        "alpine",
+        "snow",
+        "clutter"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#565D68",
+      "widthPx": 256,
+      "heightPx": 256
+    },
+    {
+      "path": "objects/mountain_boulder_b.png",
+      "displayName": "Jagged Slate Outcrop",
+      "category": "object",
+      "tags": [
+        "rock",
+        "boulder",
+        "alpine",
+        "clutter"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#555C67",
+      "widthPx": 256,
+      "heightPx": 256
+    },
+    {
+      "path": "objects/alpine_shrub_frost.png",
+      "displayName": "Frosted Mountain Juniper",
+      "category": "object",
+      "tags": [
+        "shrub",
+        "foliage",
+        "alpine",
+        "snow",
+        "clutter"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#3E5E48",
+      "widthPx": 192,
+      "heightPx": 192
+    },
+    {
+      "path": "objects/snow_drift_bank.png",
+      "displayName": "Windblown Alpine Snowdrift",
+      "category": "object",
+      "tags": [
+        "snow",
+        "alpine",
+        "winter",
+        "clutter"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#D4DEE8",
+      "widthPx": 384,
+      "heightPx": 256
+    },
+    {
+      "path": "objects/ice_crystal_spire.png",
+      "displayName": "Glacial Ice Crystal Spire",
+      "category": "object",
+      "tags": [
+        "ice",
+        "alpine",
+        "snow",
+        "gorge",
+        "clutter"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#83BFE0",
+      "widthPx": 256,
+      "heightPx": 256
+    },
+    {
+      "path": "objects/cracked_ice_bridge.png",
+      "displayName": "Treacherous Ice Ledge Spur",
+      "category": "object",
+      "tags": [
+        "ice",
+        "bridge",
+        "gorge",
+        "alpine",
+        "hazard"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#719EBF",
+      "widthPx": 512,
+      "heightPx": 256
+    },
+    {
+      "path": "objects/mountain_stream_cascade.png",
+      "displayName": "Alpine Meltwater Cascade",
+      "category": "object",
+      "tags": [
+        "water",
+        "waterfall",
+        "alpine",
+        "gorge"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#72A8D3",
+      "widthPx": 512,
+      "heightPx": 256
+    },
+    {
+      "path": "objects/fallen_pine_log.png",
+      "displayName": "Snowy Fallen Pine Trunk",
+      "category": "object",
+      "tags": [
+        "log",
+        "cover",
+        "alpine",
+        "wood",
+        "clutter"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#5D524B",
+      "widthPx": 384,
+      "heightPx": 160
+    },
+    {
+      "path": "objects/wood_interior_stairs.png",
+      "displayName": "Wooden Tenement Interior Stairs",
+      "category": "object",
+      "widthPx": 256,
+      "heightPx": 384,
+      "defaultPpi": 256,
+      "drawMode": "normal",
+      "dominantHex": "#8B5E3C",
+      "castsShadow": true,
+      "tags": [
+        "stairs",
+        "interior",
+        "floor2",
+        "unterstadt",
+        "tenement",
+        "berlin"
+      ]
+    },
+    {
+      "path": "objects/brass_spiral_staircase.png",
+      "displayName": "Jugendstil Brass Spiral Staircase",
+      "category": "object",
+      "widthPx": 320,
+      "heightPx": 320,
+      "defaultPpi": 256,
+      "drawMode": "normal",
+      "dominantHex": "#D4A438",
+      "castsShadow": true,
+      "tags": [
+        "stairs",
+        "spiral",
+        "floor2",
+        "oberstadt",
+        "terminal",
+        "berlin",
+        "magipunk"
+      ]
+    },
+    {
+      "path": "objects/tenement_iron_bed.png",
+      "displayName": "Wrought-Iron Tenement Cot",
+      "category": "object",
+      "widthPx": 256,
+      "heightPx": 384,
+      "defaultPpi": 256,
+      "drawMode": "normal",
+      "dominantHex": "#7A3E36",
+      "castsShadow": true,
+      "tags": [
+        "bed",
+        "furniture",
+        "lived-in",
+        "unterstadt",
+        "tenement",
+        "interior"
+      ]
+    },
+    {
+      "path": "objects/worn_dining_table.png",
+      "displayName": "Worn Tenement Dining Table",
+      "category": "object",
+      "widthPx": 384,
+      "heightPx": 256,
+      "defaultPpi": 256,
+      "drawMode": "normal",
+      "dominantHex": "#7A5230",
+      "castsShadow": true,
+      "tags": [
+        "table",
+        "chairs",
+        "furniture",
+        "lived-in",
+        "unterstadt",
+        "tenement"
+      ]
+    },
+    {
+      "path": "objects/threadbare_rug.png",
+      "displayName": "Threadbare Tenement Rug",
+      "category": "object",
+      "widthPx": 384,
+      "heightPx": 256,
+      "defaultPpi": 256,
+      "drawMode": "normal",
+      "dominantHex": "#7A2E32",
+      "castsShadow": false,
+      "tags": [
+        "rug",
+        "carpet",
+        "lived-in",
+        "unterstadt",
+        "tenement",
+        "interior"
+      ]
+    },
+    {
+      "path": "objects/wooden_wardrobe_shelf.png",
+      "displayName": "Tenement Wardrobe & Books",
+      "category": "object",
+      "widthPx": 320,
+      "heightPx": 160,
+      "defaultPpi": 256,
+      "drawMode": "normal",
+      "dominantHex": "#684226",
+      "castsShadow": true,
+      "tags": [
+        "wardrobe",
+        "cabinet",
+        "furniture",
+        "lived-in",
+        "unterstadt",
+        "interior"
+      ]
+    },
+    {
+      "path": "objects/alchemy_worktable.png",
+      "displayName": "Black-Market Alchemy Bench",
+      "category": "object",
+      "widthPx": 384,
+      "heightPx": 224,
+      "defaultPpi": 256,
+      "drawMode": "normal",
+      "dominantHex": "#38E8BA",
+      "castsShadow": true,
+      "tags": [
+        "alchemy",
+        "magipunk",
+        "table",
+        "lived-in",
+        "unterstadt",
+        "rebel"
+      ]
+    },
+    {
+      "path": "objects/berlin_litfass_kiosk.png",
+      "displayName": "Berlin Litfass Poster Pillar",
+      "category": "object",
+      "widthPx": 256,
+      "heightPx": 256,
+      "defaultPpi": 256,
+      "drawMode": "normal",
+      "dominantHex": "#3C8C7E",
+      "castsShadow": true,
+      "tags": [
+        "berlin",
+        "kiosk",
+        "street",
+        "lived-in",
+        "unterstadt",
+        "magipunk"
+      ]
+    },
+    {
+      "path": "objects/street_refuse_barrels.png",
+      "displayName": "Alley Barrels & Refuse Bin",
+      "category": "object",
+      "widthPx": 256,
+      "heightPx": 256,
+      "defaultPpi": 256,
+      "drawMode": "normal",
+      "dominantHex": "#6E4A2E",
+      "castsShadow": true,
+      "tags": [
+        "barrels",
+        "clutter",
+        "street",
+        "lived-in",
+        "unterstadt"
+      ]
+    },
+    {
+      "path": "objects/coal_sack_pile.png",
+      "displayName": "Burlap Coal Sacks & Bucket",
+      "category": "object",
+      "widthPx": 256,
+      "heightPx": 224,
+      "defaultPpi": 256,
+      "drawMode": "normal",
+      "dominantHex": "#866E4E",
+      "castsShadow": true,
+      "tags": [
+        "coal",
+        "sacks",
+        "lived-in",
+        "unterstadt",
+        "tenement"
+      ]
+    },
+    {
+      "path": "objects/ornate_persian_carpet.png",
+      "displayName": "Oberstadt Royal Parlor Carpet",
+      "category": "object",
+      "widthPx": 512,
+      "heightPx": 320,
+      "defaultPpi": 256,
+      "drawMode": "normal",
+      "dominantHex": "#9A222E",
+      "castsShadow": false,
+      "tags": [
+        "rug",
+        "carpet",
+        "lived-in",
+        "oberstadt",
+        "salon",
+        "floor2"
+      ]
+    },
+    {
+      "path": "objects/grand_tea_table.png",
+      "displayName": "Gilded Marble Tea Table",
+      "category": "object",
+      "widthPx": 320,
+      "heightPx": 224,
+      "defaultPpi": 256,
+      "drawMode": "normal",
+      "dominantHex": "#E2D6BE",
+      "castsShadow": true,
+      "tags": [
+        "table",
+        "tea",
+        "furniture",
+        "lived-in",
+        "oberstadt",
+        "salon",
+        "floor2"
+      ]
+    },
+    {
+      "path": "objects/luggage_trunk_stack.png",
+      "displayName": "Aristocrat Steamer Trunks",
+      "category": "object",
+      "widthPx": 256,
+      "heightPx": 256,
+      "defaultPpi": 256,
+      "drawMode": "normal",
+      "dominantHex": "#7A3A26",
+      "castsShadow": true,
+      "tags": [
+        "luggage",
+        "trunks",
+        "lived-in",
+        "oberstadt",
+        "station"
+      ]
+    },
+    {
+      "path": "objects/arcane_bookshelf_cabinet.png",
+      "displayName": "Arcane Library Credenza & Globe",
+      "category": "object",
+      "widthPx": 384,
+      "heightPx": 160,
+      "defaultPpi": 256,
+      "drawMode": "normal",
+      "dominantHex": "#6A2822",
+      "castsShadow": true,
+      "tags": [
+        "bookshelf",
+        "arcane",
+        "furniture",
+        "lived-in",
+        "oberstadt",
+        "floor2"
+      ]
+    },
+    {
+      "path": "objects/potted_palm_urn.png",
+      "displayName": "Gilded Urn Parlor Palm",
+      "category": "object",
+      "widthPx": 224,
+      "heightPx": 224,
+      "defaultPpi": 256,
+      "drawMode": "normal",
+      "dominantHex": "#308E54",
+      "castsShadow": true,
+      "tags": [
+        "plant",
+        "palm",
+        "decor",
+        "lived-in",
+        "oberstadt",
+        "salon"
+      ]
+    },
+    {
+      "path": "objects/berlin_newspaper_stand.png",
+      "displayName": "Oberstadt Zeitungs-Kiosk Stand",
+      "category": "object",
+      "widthPx": 320,
+      "heightPx": 224,
+      "defaultPpi": 256,
+      "drawMode": "normal",
+      "dominantHex": "#246856",
+      "castsShadow": true,
+      "tags": [
+        "kiosk",
+        "newspaper",
+        "berlin",
+        "street",
+        "lived-in",
+        "oberstadt"
+      ]
+    },
+    {
+      "path": "objects/funicular_deflection_sheave.png",
+      "displayName": "Funicular Brass Deflection Sheave",
+      "category": "object",
+      "tags": [
+        "funicular",
+        "machinery",
+        "pulley",
+        "cable",
+        "brass",
+        "magipunk",
+        "berlin"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#B28A3E",
+      "widthPx": 256,
+      "heightPx": 256
+    },
+    {
+      "path": "objects/funicular_track_roller.png",
+      "displayName": "Funicular In-Track Cable Guide Roller",
+      "category": "object",
+      "tags": [
+        "funicular",
+        "machinery",
+        "pulley",
+        "cable",
+        "rail",
+        "brass",
+        "magipunk"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": false,
+      "dominantHex": "#BA9244",
+      "widthPx": 192,
+      "heightPx": 128
+    },
+    {
+      "path": "objects/funicular_buffer_stop.png",
+      "displayName": "Funicular Hydraulic Track Buffer Stop",
+      "category": "object",
+      "tags": [
+        "funicular",
+        "rail",
+        "machinery",
+        "iron",
+        "magipunk",
+        "berlin"
+      ],
+      "drawMode": "normal",
+      "defaultPpi": 256,
+      "castsShadow": true,
+      "dominantHex": "#7A4E2C",
+      "widthPx": 128,
+      "heightPx": 224
+    }
+  ],
+  "assetCount": 123
+}

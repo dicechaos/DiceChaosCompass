@@ -1,0 +1,43 @@
+{
+  "name": "dice-chaos-maps",
+  "version": "1.0.0-beta.1",
+  "private": true,
+  "description": "Free, open-source (GPL-3.0), offline-first, GPU-accelerated high-resolution TTRPG battlemap & world atlas cartography studio — part of the Dice Chaos Tabletop Suite (dicechaos.com)",
+  "homepage": "https://dicechaos.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dicechaos/DiceChaosMaps.git"
+  },
+  "type": "module",
+  "license": "GPL-3.0-only",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "build:tauri": "node scripts/build-tauri-frontend.mjs",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check": "tsc --noEmit && vitest run",
+    "app:local": "npm run build && node scripts/launch-local-app.mjs",
+    "tauri": "tauri",
+    "assets:generate": "python scripts/generate_funicular_assets.py"
+  },
+  "dependencies": {
+    "@tanstack/react-virtual": "^3.13.12",
+    "lucide-react": "^0.511.0",
+    "pixi.js": "^8.10.2",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "zustand": "^5.0.5"
+  },
+  "devDependencies": {
+    "@tauri-apps/api": "^2.5.0",
+    "@tauri-apps/cli": "^2.5.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "@vitejs/plugin-react": "^4.5.2",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5",
+    "vitest": "^3.2.4"
+  }
+}

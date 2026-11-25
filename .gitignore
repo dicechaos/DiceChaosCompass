@@ -1,0 +1,23 @@
+node_modules/
+dist/
+src-tauri/target/
+*.local
+.DS_Store
+Thumbs.db
+*.dcmap.bak
+.vault-cache/
+ExtraAsses/
+public/assets/user-packs/
+public/assets/*.dcpack
+.local-app-profile/
+exports/
+*.dungeondraft_map
+*.dungeondraft_pack
+*.wonderdraft_map
+*.wonderdraft_symbols
+TannerGroundEndGame.png
+Temple_of_the_Sovereign.dcmap
+Dice Chaos Maps.lnk
+__pycache__/
+*.pyc
+release/

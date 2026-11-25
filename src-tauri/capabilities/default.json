@@ -1,0 +1,15 @@
+{
+  "$schema": "https://schema.tauri.app/config/2/capability",
+  "identifier": "default",
+  "description": "Default capability for Dice Chaos Maps main and pop-out Asset Vault windows",
+  "windows": ["main", "asset-vault"],
+  "permissions": [
+    "core:default",
+    "core:window:default",
+    "core:window:allow-create",
+    "core:window:allow-set-title",
+    "core:window:allow-show",
+    "core:window:allow-close",
+    "core:event:default"
+  ]
+}

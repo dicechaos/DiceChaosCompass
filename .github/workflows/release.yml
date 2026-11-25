@@ -1,0 +1,206 @@
+name: Build & Publish Release
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    name: Typecheck, Vitest & Rust Tests
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Install Linux Tauri dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Run TypeScript typecheck & Vitest suite
+        run: npm run check
+
+      - name: Build Tauri frontend bundle
+        run: npm run build:tauri
+
+      - name: Run Rust unit tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml
+
+      - name: Run Rust Clippy check
+        run: cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings
+
+  prepare-release:
+    name: Create GitHub Release
+    needs: test
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create or update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ contains(github.ref_name, '-beta') && format('Dice Chaos Maps {0} (Public Beta)', github.ref_name) || format('Dice Chaos Maps {0}', github.ref_name) }}
+          body_path: RELEASE_NOTES.md
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          make_latest: ${{ !contains(github.ref_name, '-') }}
+
+  release:
+    name: Build & Package (${{ matrix.label }})
+    needs: prepare-release
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: Windows x64
+            os: windows-latest
+            rust_target: ""
+            platform: windows
+          - label: macOS ARM64
+            os: macos-latest
+            rust_target: aarch64-apple-darwin
+            platform: macos-arm64
+          - label: macOS x64
+            os: macos-latest
+            rust_target: x86_64-apple-darwin
+            platform: macos-x64
+          - label: Linux x64
+            os: ubuntu-22.04
+            rust_target: ""
+            platform: linux
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_target }}
+
+      - name: Install Linux Tauri dependencies
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Build Windows NSIS installer & Portable ZIP
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          $ver = "${{ github.ref_name }}".TrimStart('v')
+          npx tauri build --bundles nsis
+          New-Item -ItemType Directory -Force -Path "release" | Out-Null
+
+          $nsisExe = Get-ChildItem -Path "src-tauri/target/release/bundle/nsis" -Filter "*-setup.exe" | Select-Object -First 1
+          if (-not $nsisExe) { throw "NSIS setup.exe not found!" }
+          Copy-Item $nsisExe.FullName "release/dice-chaos-maps-$ver-setup.exe"
+
+          $portableDir = "release/portable-staging"
+          New-Item -ItemType Directory -Force -Path "$portableDir/assets" | Out-Null
+          Copy-Item "src-tauri/target/release/dice-chaos-maps.exe" "$portableDir/dice-chaos-maps.exe"
+          foreach ($pack in @("starter-cc0", "core-fantasy-cc0", "modular-suite-cc0", "world-atlas-cc0")) {
+            Copy-Item -Recurse "public/assets/$pack" "$portableDir/assets/$pack"
+          }
+          tar.exe -a -c -f "release/dice-chaos-maps-$ver-win-x64-portable.zip" -C "$portableDir" .
+          Remove-Item -Recurse -Force "$portableDir"
+
+          $lines = @()
+          foreach ($f in Get-ChildItem -Path "release" -File | Sort-Object Name) {
+            $h = (Get-FileHash -Path $f.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            $lines += "$h  $($f.Name)"
+          }
+          $lines | Set-Content -Path "release/SHA256SUMS-Windows.txt" -Encoding UTF8
+
+      - name: Build macOS DMG (${{ matrix.platform }})
+        if: startsWith(matrix.platform, 'macos-')
+        shell: bash
+        env:
+          MACOSX_DEPLOYMENT_TARGET: "10.15"
+        run: |
+          VER="${GITHUB_REF_NAME#v}"
+          ARCH_TAG="${{ matrix.platform == 'macos-arm64' && 'arm64' || 'x64' }}"
+          npx tauri build --target "${{ matrix.rust_target }}" --bundles dmg
+          mkdir -p release
+          DMG_SRC=$(find "src-tauri/target/${{ matrix.rust_target }}/release/bundle/dmg" -maxdepth 1 -name '*.dmg' | head -n 1)
+          if [ -z "$DMG_SRC" ]; then echo "DMG not found!"; exit 1; fi
+          cp "$DMG_SRC" "release/dice-chaos-maps-${VER}-${ARCH_TAG}.dmg"
+          (cd release && shasum -a 256 "dice-chaos-maps-${VER}-${ARCH_TAG}.dmg" > "SHA256SUMS-macOS-${ARCH_TAG}.txt")
+
+      - name: Build Linux AppImage & DEB
+        if: matrix.platform == 'linux'
+        shell: bash
+        run: |
+          VER="${GITHUB_REF_NAME#v}"
+          npx tauri build --bundles appimage,deb
+          mkdir -p release
+          APPIMAGE_SRC=$(find "src-tauri/target/release/bundle/appimage" -maxdepth 1 -name '*.AppImage' | head -n 1)
+          DEB_SRC=$(find "src-tauri/target/release/bundle/deb" -maxdepth 1 -name '*.deb' | head -n 1)
+          if [ -z "$APPIMAGE_SRC" ] || [ -z "$DEB_SRC" ]; then echo "Linux bundle missing!"; exit 1; fi
+          cp "$APPIMAGE_SRC" "release/dice-chaos-maps-${VER}.AppImage"
+          cp "$DEB_SRC" "release/dice-chaos-maps_${VER}_amd64.deb"
+          (cd release && sha256sum "dice-chaos-maps-${VER}.AppImage" "dice-chaos-maps_${VER}_amd64.deb" > SHA256SUMS-Linux.txt)
+
+      - name: Upload release artifacts
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/dice-chaos-maps-*
+            release/dice-chaos-maps_*
+            release/SHA256SUMS-*.txt
