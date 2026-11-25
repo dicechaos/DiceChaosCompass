@@ -285,8 +285,8 @@ impl VaultDb {
                     .join(" ");
 
                 if !fts_expr.is_empty() {
-                    sql.push_str(" JOIN assets_fts fts ON fts.asset_id = a.id ");
-                    where_clauses.push("fts MATCH ?".to_string());
+                    sql.push_str(" JOIN assets_fts ON assets_fts.asset_id = a.id ");
+                    where_clauses.push("assets_fts MATCH ?".to_string());
                     bind_values.push(fts_expr.into());
                 }
             }
