@@ -1,5 +1,5 @@
 @echo off
-title Dice Chaos Maps
+title Dice Chaos Compass
 cd /d "%~dp0"
 if not exist "dist\index.html" (
   echo Building production bundle...
