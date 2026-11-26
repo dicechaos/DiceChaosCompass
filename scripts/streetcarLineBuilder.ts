@@ -226,12 +226,12 @@ export function buildAgedStreetcarLineAndWeathering(
     obj("modular-suite/props/aged_streetcar_line/st_overhead_catenary_pole.png", px, py, 0.90, 0.72, -3 * Q, { z: 75 });
   }
 
-  // Worn & Chipped Granite Block Crosswalks (upgrading all 5 sterile flat white crosswalks!)
-  obj("modular-suite/props/aged_streetcar_line/st_aged_granite_crosswalk.png", 6.75, 20.65, 3.00, 1.35, -0.52, { z: 43, shadow: false });
-  obj("modular-suite/props/aged_streetcar_line/st_aged_granite_crosswalk.png", 13.75, 29.25, 3.00, 1.35, -Q, { z: 43, shadow: false });
-  obj("modular-suite/props/aged_streetcar_line/st_aged_granite_crosswalk.png", 18.55, 33.85, 3.00, 1.35, -Q, { z: 43, shadow: false });
-  obj("modular-suite/props/aged_streetcar_line/st_aged_granite_crosswalk.png", 27.95, 42.45, 3.00, 1.35, -Q, { z: 43, shadow: false });
-  obj("modular-suite/props/aged_streetcar_line/st_aged_granite_crosswalk.png", 28.05, 8.65, 2.70, 1.22, -Q + 0.08, { z: 43, shadow: false });
+  // Worn & Chipped Granite Block Crosswalks (100% cleanly centered curb-to-curb inside roadways!)
+  obj("modular-suite/props/aged_streetcar_line/st_aged_granite_crosswalk.png", 5.55, 21.05, 2.80, 1.26, -0.50, { z: 43, shadow: false });
+  obj("modular-suite/props/aged_streetcar_line/st_aged_granite_crosswalk.png", 13.85, 29.85, 2.90, 1.30, -Q, { z: 43, shadow: false });
+  obj("modular-suite/props/aged_streetcar_line/st_aged_granite_crosswalk.png", 18.15, 33.75, 2.80, 1.26, -Q, { z: 43, shadow: false });
+  obj("modular-suite/props/aged_streetcar_line/st_aged_granite_crosswalk.png", 27.55, 42.35, 2.85, 1.28, -Q, { z: 43, shadow: false });
+  obj("modular-suite/props/aged_streetcar_line/st_aged_granite_crosswalk.png", 27.15, 10.18, 2.18, 0.98, -0.78, { z: 43, shadow: false });
 
   // Soot-Rimmed Municipal Sidewalk Steam/Aether Vent Grates flush on open paved aprons (zero curb wall straddling!)
   obj("modular-suite/props/aged_streetcar_line/st_street_steam_grate_vent.png", 15.60, 19.55, 0.88, 0.72, -Q, { z: 45, shadow: false });
@@ -248,14 +248,14 @@ export function buildAgedStreetcarLineAndWeathering(
     [27.35, 10.35, 0.40],  // NE Tenement street-mouth utility shaft (x+y = 37.70)
     [3.25, 32.35, 0.10],   // SW Cathedral-side road shoulder (x+y = 35.60)
     // Vertically aligned DIRECTLY ABOVE the B2 Flooded Brick Sewer Canal (x = 34.75, y ∈ [11.4..23.5])!
-    [34.75, 12.05, 0.0],   // North Service Alley B2 Sewer Access Manhole
-    [34.75, 21.75, -0.15], // East Winding Alley B2 Sewer Junction Manhole
-    // Souverän-Allee (Cathedral Boulevard) open road utility lanes
+    [34.75, 13.75, 0.0],   // North Service Alley B2 Sewer Access Manhole (dead-center inside real paved alley!)
+    [34.75, 21.75, -0.15], // Watchtower South Alley B2 Sewer Junction Manhole
+    // West Avenue & Souverän-Allee (Cathedral Boulevard) open centerline utility lanes
     [2.65, 14.35, 0.25],
-    [17.15, 31.45, -0.20],
-    [25.15, 39.45, 0.30],
-    [33.05, 47.05, -0.15],
-    [40.85, 52.05, 0.20],
+    [16.85, 32.05, -0.20],
+    [24.95, 39.65, 0.30],
+    [33.35, 46.55, -0.15],
+    [41.25, 51.65, 0.20],
   ];
   for (const [mx, my, mrot] of manholes) {
     obj("modular-suite/props/aged_streetcar_line/st_street_manhole_granite_collar.png", mx, my, 0.92, 0.92, mrot, {
@@ -264,25 +264,25 @@ export function buildAgedStreetcarLineAndWeathering(
     });
   }
 
-  // Mossy Cast-Iron Curb Storm Drain Catch-Basins tucked tightly along road gutters (ZERO in tracks!)
+  // Mossy Cast-Iron Curb Storm Drain Catch-Basins tucked tightly along road gutters (ZERO in tracks or yards!)
   const stormDrains: Array<[number, number, number]> = [
     // Tram Avenue NW curb gutter (x+y ≈ 30.70)
     [5.20, 24.40, Q],
-    [13.25, 17.45, -Q], // Relocated out of the track center to NW gutter!
+    [13.25, 17.45, -Q],
     [22.10, 8.65, -Q],
     // Tram Avenue SE curb gutter (x+y ≈ 35.35)
     [5.45, 29.90, -Q + Math.PI],
     [19.15, 16.20, -Q + Math.PI],
     [26.35, 10.65, -Q],
-    // Souverän-Allee & Side-Street curb gutters
-    [8.50, 19.80, 0.55],
-    [11.80, 27.60, -Q],
-    [15.40, 31.40, Q],
-    [22.60, 36.20, Q],
-    [29.60, 43.20, Q],
-    [37.40, 49.70, Q],
-    [3.80, 17.60, 0.58],
-    [18.60, 48.60, -Q],
+    // West Avenue, Souverän-Allee & SW Cathedral Alley inner curb gutters
+    [8.50, 20.15, 0.15],
+    [11.85, 29.15, Q],
+    [16.05, 30.15, Q],
+    [22.85, 36.35, Q],
+    [30.55, 43.35, 0.60],
+    [37.55, 47.95, 0.56],
+    [2.15, 18.05, 1.04],
+    [22.15, 48.20, -Q],
   ];
   for (const [gx, gy, gr] of stormDrains) {
     obj("modular-suite/props/aged_streetcar_line/st_curb_storm_drain_basin.png", gx, gy, 0.77, 0.56, gr, {
@@ -529,7 +529,7 @@ export function buildAgedStreetcarLineAndWeathering(
     y: 9.50,
     badge: "NOTE",
     title: "1F · Eisenbahnstraße Streetcar #14 & Sewer Manholes",
-    body: "Decades-worn granite-sett girder rails carry Prussian-blue Streetcar #14 past Steam & Scoop Express and the Grand Crossroads. All municipal manholes sit clear of the steel rails in road utility shoulders — and the two embossed alley manholes in the North Service Alley (34.75, 12.05) and East Winding Alley (34.75, 21.75) drop straight down iron rungs into the B2 Flooded Brick Sewer Canal!",
+    body: "Decades-worn granite-sett girder rails carry Prussian-blue Streetcar #14 past Steam & Scoop Express and the Grand Crossroads. All municipal manholes sit clear of the steel rails in road utility shoulders — and the two embossed alley manholes in the North Service Alley (34.75, 13.75) and Watchtower South Alley (34.75, 21.75) drop straight down iron rungs into the B2 Flooded Brick Sewer Canal!",
     colorHex: "#38BDF8",
   });
 }

@@ -1,5 +1,5 @@
 /**
- * High-Craft Wonderdraft-Parity Canvas2D Renderer for Dice Chaos Maps v1.5 World Atlas Studio.
+ * High-Craft Wonderdraft-Parity Canvas2D Renderer for Dice Chaos Compass v1.5 World Atlas Studio.
  *
  * Architecture:
  * 1. Cached Hybrid SDF Landmass + Ocean Plate (2-pass Chamfer SDF at crisp resolution):
@@ -15,7 +15,7 @@
  */
 
 import { getProcessedTexture } from "@/engine/colorShader";
-import { sampleCatmullRom } from "@/engine/geometry";
+import { hasWallSegmentCurves, sampleWallPoints } from "@/engine/geometry";
 import {
   resolveAssetUrl,
   texturePool,
@@ -248,7 +248,7 @@ interface SortedSymbolEntry {
   layerIdx: number;
 }
 const sortedSymbolsCache = new WeakMap<DcMapDocument["layers"], { dm: SortedSymbolEntry[]; player: SortedSymbolEntry[] }>();
-const trailSampleCache = new WeakMap<WorldTrail, { curved: boolean; pts: Point2D[] }>();
+const trailSampleCache = new WeakMap<WorldTrail, { key: string; pts: Point2D[] }>();
 
 export function invalidateWorldRenderCache(): void {
   cachedOverviewPlate = null;
@@ -1173,10 +1173,15 @@ function getOrBuildWorldBasePlate(
 // ---------------------------------------------------------------------------
 
 function traceRegionPath(ctx: CanvasRenderingContext2D, region: WorldRegion, ppc: number) {
-  const pts =
-    region.curved && region.polygon.length >= 3
-      ? sampleCatmullRom(region.polygon, 10, true)
-      : region.polygon;
+  const pts = sampleWallPoints(
+    {
+      points: region.polygon,
+      closed: true,
+      curved: region.curved,
+      segmentCurves: region.segmentCurves,
+    },
+    10,
+  );
   if (pts.length < 3) return false;
   ctx.beginPath();
   ctx.moveTo(pts[0].x * ppc, pts[0].y * ppc);
@@ -1224,6 +1229,11 @@ function computeRegionsSig(regions: WorldRegion[]): string {
     for (let j = 0; j < r.polygon.length; j++) {
       h = (Math.imul(h, 31) + Math.round(r.polygon[j].x * 20) + Math.round(r.polygon[j].y * 20)) | 0;
     }
+    if (r.segmentCurves && r.segmentCurves.length > 0) {
+      for (let j = 0; j < r.segmentCurves.length; j++) {
+        h = (Math.imul(h, 31) + Math.round((r.segmentCurves[j] ?? 0) * 40)) | 0;
+      }
+    }
   }
   const last = regions[regions.length - 1];
   return `${regions.length}:${h}:${last.fillColorHex}:${last.borderColorHex}:${last.borderStyle}`;
@@ -1234,9 +1244,14 @@ function computeRiversSig(rivers: WorldMapData["rivers"]): string {
   let h = rivers.length * 37;
   for (let i = 0; i < rivers.length; i++) {
     const rv = rivers[i];
-    h = (Math.imul(h, 31) + rv.points.length * 17 + Math.round(rv.startWidthCells * 100) + Math.round(rv.endWidthCells * 100) + rv.seed) | 0;
+    h = (Math.imul(h, 31) + rv.points.length * 17 + Math.round(rv.startWidthCells * 100) + Math.round(rv.endWidthCells * 100) + rv.seed + (rv.curved ? 3 : 0)) | 0;
     for (let j = 0; j < rv.points.length; j++) {
       h = (Math.imul(h, 31) + Math.round(rv.points[j].x * 20) + Math.round(rv.points[j].y * 20)) | 0;
+    }
+    if (rv.segmentCurves && rv.segmentCurves.length > 0) {
+      for (let j = 0; j < rv.segmentCurves.length; j++) {
+        h = (Math.imul(h, 31) + Math.round((rv.segmentCurves[j] ?? 0) * 40)) | 0;
+      }
     }
   }
   const last = rivers[rivers.length - 1];
@@ -1356,7 +1371,8 @@ function drawWorldRivers(
 
   const getCachedRiverMesh = (river: WorldMapData["rivers"][number]): CachedRiverMesh => {
     const ptsKey = river.points.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(";");
-    const rKey = `${river.id}|${ptsKey}|${river.startWidthCells}|${river.endWidthCells}|${river.meanderRoughness}|${river.meanderScale}|${river.curved ? 1 : 0}|${river.seed}|${maskSig}`;
+    const curvesKey = (river.segmentCurves ?? []).map((c) => (c ?? 0).toFixed(2)).join(",");
+    const rKey = `${river.id}|${ptsKey}|${curvesKey}|${river.startWidthCells}|${river.endWidthCells}|${river.meanderRoughness}|${river.meanderScale}|${river.curved ? 1 : 0}|${river.seed}|${maskSig}`;
     const hit = riverMeshCache.get(rKey);
     if (hit) return hit;
 
@@ -1529,7 +1545,11 @@ function drawWorldRivers(
             if (p.y < rMinY) rMinY = p.y;
             if (p.y > rMaxY) rMaxY = p.y;
           }
-          if (rMaxX + 1.5 < plate.x0 || rMinX - 1.5 > plate.x1 || rMaxY + 1.5 < plate.y0 || rMinY - 1.5 > plate.y1) {
+          const maxBulge = rv.segmentCurves
+            ? rv.segmentCurves.reduce<number>((m, v) => Math.max(m, Math.abs(v ?? 0)), 0)
+            : 0;
+          const rPad = 1.5 + maxBulge;
+          if (rMaxX + rPad < plate.x0 || rMinX - rPad > plate.x1 || rMaxY + rPad < plate.y0 || rMinY - rPad > plate.y1) {
             continue;
           }
           renderRiverTo(rctx, rv, sx, sy);
@@ -1569,13 +1589,25 @@ export function drawWorldTrail(
 ) {
   if (trail.points.length < 2) return;
   let pts = trail.points;
-  if (trail.curved && trail.points.length >= 3) {
+  const hasSegCurves = hasWallSegmentCurves(trail);
+  if (hasSegCurves || (trail.curved && trail.points.length >= 3)) {
+    const key = hasSegCurves
+      ? `s:${trail.segmentCurves!.map((v) => (v ?? 0).toFixed(3)).join(",")}`
+      : "c:1";
     const cached = trailSampleCache.get(trail);
-    if (cached && cached.curved) {
+    if (cached && cached.key === key) {
       pts = cached.pts;
     } else {
-      pts = sampleCatmullRom(trail.points, 10, false);
-      trailSampleCache.set(trail, { curved: true, pts });
+      pts = sampleWallPoints(
+        {
+          points: trail.points,
+          closed: false,
+          curved: trail.curved,
+          segmentCurves: trail.segmentCurves,
+        },
+        10,
+      );
+      trailSampleCache.set(trail, { key, pts });
     }
   }
   const wPx = Math.max(1.2, trail.widthCells * ppc);

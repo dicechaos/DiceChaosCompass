@@ -292,7 +292,8 @@ export const WORLD_OCEAN_SWATCHES: WorldBiomeSwatch[] = [
   { id: "somber_mist", label: "Somber Storm", colorHex: "#424D50", opacity: 0.50 },
 ];
 
-const CUSTOM_THEMES_STORAGE_KEY = "dice-chaos-maps-world-themes-v1";
+const CUSTOM_THEMES_STORAGE_KEY = "dice-chaos-compass-world-themes-v1";
+const LEGACY_CUSTOM_THEMES_STORAGE_KEY = "dice-chaos-maps-world-themes-v1";
 
 export function getWorldThemeById(themeId: string): WorldThemeConfig {
   const custom = loadCustomWorldThemes();
@@ -303,7 +304,9 @@ export function getWorldThemeById(themeId: string): WorldThemeConfig {
 
 export function loadCustomWorldThemes(): WorldThemeConfig[] {
   try {
-    const raw = localStorage.getItem(CUSTOM_THEMES_STORAGE_KEY);
+    const raw =
+      localStorage.getItem(CUSTOM_THEMES_STORAGE_KEY) ??
+      localStorage.getItem(LEGACY_CUSTOM_THEMES_STORAGE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed : [];

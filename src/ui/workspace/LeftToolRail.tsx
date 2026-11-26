@@ -38,7 +38,7 @@ interface ToolDef {
 const BATTLEMAP_TOOLS: ToolDef[] = [
   { id: "select", label: "Select & Transform", key: "V", icon: <MousePointer2 size={17} />, dividerAfter: true },
   { id: "terrain", terrainSubMode: "brush", label: "Terrain Splat Brush", key: "B", icon: <Paintbrush size={17} /> },
-  { id: "terrain", terrainSubMode: "fill", label: "Smart Terrain Fill (Room / Rect / Poly)", key: "K", icon: <PaintBucket size={17} /> },
+  { id: "terrain", terrainSubMode: "fill", label: "Smart Terrain Fill (Room / Replace / Rect / Poly / Erase)", key: "K", icon: <PaintBucket size={17} /> },
   { id: "cave", label: "Cave & Dungeon Builder (Auto-Walls + Entrances)", key: "H", icon: <Mountain size={17} /> },
   { id: "water", label: "Water Studio (Lakes, Rivers, Islands & Biomes)", key: "W", icon: <Droplets size={17} />, dividerAfter: true },
   { id: "wall", label: "Smart Vector Wall", key: "L", icon: <BrickWall size={17} /> },

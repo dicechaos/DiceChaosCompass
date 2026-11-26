@@ -389,7 +389,7 @@ function buildPrintHtmlSheet(
   <style>@page { margin: 0.5in; } body { margin: 0; background: #111; color: #eee; font-family: system-ui; }
   .note { padding: 12px; font-size: 13px; background: #1b1e28; } @media print { .note { display: none; } body { background: #fff; } }
   img { width: ${mapWIn.toFixed(2)}in; height: ${mapHIn.toFixed(2)}in; display: block; }</style></head>
-  <body><div class="note"><strong>Dice Chaos Maps — 1.00-Inch Calibrated Print Sheet</strong> (${mapWIn.toFixed(1)}" × ${mapHIn.toFixed(1)}"). Print at <strong>100% / Actual Size</strong> with Poster Tiling enabled.</div>
+  <body><div class="note"><strong>Dice Chaos Compass — 1.00-Inch Calibrated Print Sheet</strong> (${mapWIn.toFixed(1)}" × ${mapHIn.toFixed(1)}"). Print at <strong>100% / Actual Size</strong> with Poster Tiling enabled.</div>
   <img src="${dataUrl}" /></body></html>`;
   return new Blob([html], { type: "text/html;charset=utf-8" });
 }

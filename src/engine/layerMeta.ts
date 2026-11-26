@@ -1,7 +1,22 @@
 import { getCaveThemePreset } from "@/engine/caveEngine";
 import { getRoofPresetByAssetId } from "@/engine/roofEngine";
 import { getWaterPreset } from "@/engine/waterEngine";
-import type { DcMapDocument, LayerKind, MapLayer, ToolId, VaultAsset } from "@/types/map";
+import type { DcMapDocument, LayerKind, MapLayer, MapLevel, ToolId, VaultAsset } from "@/types/map";
+
+/** Canonical bottom-to-top rendering order for layer kinds within a single floor band. */
+export const LAYER_KIND_STACK_ORDER: Record<LayerKind, number> = {
+  group: 0,
+  terrain: 10,
+  water: 20,
+  caves: 30,
+  paths: 40,
+  walls: 50,
+  objects: 60,
+  scatter_zone: 65,
+  roofs: 70,
+  lights: 80,
+  dm_notes: 90,
+};
 
 export interface LayerKindMeta {
   kind: LayerKind;
@@ -569,4 +584,98 @@ export function upgradeLegacyLayerName(layerId: string, name: string): string {
     if (withPrefix) return withPrefix;
   }
   return name;
+}
+
+/**
+ * Resolves the adjacent architectural reference level for Onion-Skin ("Ghost") blueprints:
+ *  - Underground (B1..B3): looks UP at the level directly above (1F, B1, B2)
+ *  - Ground (1F): peeks DOWN at B1 if present, otherwise UP at 2F
+ *  - Upper (2F..5F): looks DOWN at the floor directly below (1F, 2F..4F)
+ *  - Roof (ROOF): looks DOWN at the highest interior/ground floor below (fixes ROOF ghost!)
+ *  - Sky (Sky 1..N): looks DOWN at the deck directly below, or ROOF from Sky 1
+ */
+export function getOnionSkinReferenceLevel(doc: DcMapDocument): MapLevel | null {
+  const activeLevel = doc.levels.find((lv) => lv.id === doc.activeLevelId);
+  if (!activeLevel) return null;
+
+  if (activeLevel.kind === "sky") {
+    const skySorted = [...doc.levels]
+      .filter((lv) => lv.kind === "sky")
+      .sort((a, b) => a.elevationFt - b.elevationFt);
+    const sIdx = skySorted.findIndex((lv) => lv.id === activeLevel.id);
+    if (sIdx > 0) return skySorted[sIdx - 1];
+    // Lowest sky deck peeks down at roofs or highest upper/ground floor
+    const roofs = [...doc.levels]
+      .filter((lv) => lv.kind === "roof")
+      .sort((a, b) => b.elevationFt - a.elevationFt);
+    if (roofs.length > 0) return roofs[0];
+    if (sIdx >= 0 && sIdx + 1 < skySorted.length) return skySorted[sIdx + 1];
+    return null;
+  }
+
+  const buildingSorted = [...doc.levels]
+    .filter((lv) => lv.kind !== "roof" && lv.kind !== "sky")
+    .sort((a, b) => a.elevationFt - b.elevationFt);
+
+  if (activeLevel.kind === "roof") {
+    const aboveOrGround = buildingSorted.filter(
+      (lv) => lv.kind === "upper" || lv.kind === "ground",
+    );
+    return aboveOrGround.length > 0 ? aboveOrGround[aboveOrGround.length - 1] : null;
+  }
+
+  const idx = buildingSorted.findIndex((lv) => lv.id === activeLevel.id);
+  if (idx < 0) return null;
+
+  if (activeLevel.kind === "underground") {
+    return idx + 1 < buildingSorted.length ? buildingSorted[idx + 1] : null;
+  }
+  if (activeLevel.kind === "upper") {
+    return idx > 0 ? buildingSorted[idx - 1] : null;
+  }
+  // Ground (1F): prefer B1 below; if no basement exists, peek up at 2F
+  if (idx > 0) return buildingSorted[idx - 1];
+  return idx + 1 < buildingSorted.length ? buildingSorted[idx + 1] : null;
+}
+
+export function getOnionSkinDirection(active: MapLevel, ref: MapLevel): "up" | "down" {
+  return ref.elevationFt > active.elevationFt ? "up" : "down";
+}
+
+export interface LevelSummary {
+  layerCount: number;
+  visibleLayerCount: number;
+  lockedLayerCount: number;
+  totalEntities: number;
+  hasDmNotes: boolean;
+  allVisible: boolean;
+  allLocked: boolean;
+}
+
+export function summarizeLevel(doc: DcMapDocument, levelId: string): LevelSummary {
+  let layerCount = 0;
+  let visibleLayerCount = 0;
+  let lockedLayerCount = 0;
+  let totalEntities = 0;
+  let hasDmNotes = false;
+
+  for (const l of doc.layers) {
+    if (l.levelId !== levelId) continue;
+    layerCount++;
+    if (l.visible) visibleLayerCount++;
+    if (l.locked) lockedLayerCount++;
+    const info = describeLayerContents(l);
+    totalEntities += info.totalCount;
+    if ((l.dmNotes?.length ?? 0) > 0) hasDmNotes = true;
+  }
+
+  return {
+    layerCount,
+    visibleLayerCount,
+    lockedLayerCount,
+    totalEntities,
+    hasDmNotes,
+    allVisible: layerCount > 0 && visibleLayerCount === layerCount,
+    allLocked: layerCount > 0 && lockedLayerCount === layerCount,
+  };
 }

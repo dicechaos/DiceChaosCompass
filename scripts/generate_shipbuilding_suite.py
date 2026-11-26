@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Dice Chaos Maps — Magi-Punk Skyships, Water Boats & Shipbuilding Suite (CC0)
+Dice Chaos Compass — Magi-Punk Skyships, Water Boats & Shipbuilding Suite (CC0)
 =============================================================================
 Generates & slices 212 original CC0 shipbuilding assets in our locked
 "Crisp Hand-Inked Tabletop" house art style:

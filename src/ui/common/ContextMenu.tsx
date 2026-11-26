@@ -10,6 +10,7 @@ export type ContextMenuEntry =
       checked?: boolean;
       danger?: boolean;
       disabled?: boolean;
+      thumbnailUrl?: string;
       onSelect: () => void;
     }
   | {
@@ -20,6 +21,7 @@ export type ContextMenuEntry =
         id: string;
         label: string;
         checked?: boolean;
+        thumbnailUrl?: string;
         onSelect: () => void;
       }>;
     };
@@ -129,6 +131,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ menu, onClose }) => {
       <div
         ref={popoverRef}
         className="dc-context-popover"
+        style={{ maxWidth: 320 }}
         popover="auto"
         onToggle={(e) => {
           const ev = e as unknown as ToggleEvent;
@@ -156,13 +159,36 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ menu, onClose }) => {
                       type="button"
                       role={sub.checked !== undefined ? "menuitemcheckbox" : undefined}
                       aria-checked={sub.checked}
-                      style={{ paddingLeft: 14 }}
+                      style={{ paddingLeft: 14, display: "flex", alignItems: "center", gap: 7 }}
                       onClick={() => {
                         sub.onSelect();
                         closeMenu();
                       }}
                     >
-                      <span>{sub.label}</span>
+                      {sub.thumbnailUrl && (
+                        <img
+                          src={sub.thumbnailUrl}
+                          alt=""
+                          style={{
+                            width: 15,
+                            height: 15,
+                            borderRadius: 3,
+                            objectFit: "cover",
+                            border: "1px solid rgba(255,255,255,0.22)",
+                            flexShrink: 0,
+                          }}
+                        />
+                      )}
+                      <span
+                        style={{
+                          minWidth: 0,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {sub.label}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -181,7 +207,41 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ menu, onClose }) => {
                   closeMenu();
                 }}
               >
-                <span>{entry.label}</span>
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 7,
+                    minWidth: 0,
+                    flex: 1,
+                    overflow: "hidden",
+                  }}
+                >
+                  {entry.thumbnailUrl && (
+                    <img
+                      src={entry.thumbnailUrl}
+                      alt=""
+                      style={{
+                        width: 15,
+                        height: 15,
+                        borderRadius: 3,
+                        objectFit: "cover",
+                        border: "1px solid rgba(255,255,255,0.22)",
+                        flexShrink: 0,
+                      }}
+                    />
+                  )}
+                  <span
+                    style={{
+                      minWidth: 0,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {entry.label}
+                  </span>
+                </span>
                 {entry.shortcut && (
                   <span className="hint" aria-hidden="true">
                     {entry.shortcut}

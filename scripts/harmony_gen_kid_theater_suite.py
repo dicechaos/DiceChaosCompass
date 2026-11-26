@@ -1,5 +1,5 @@
 """
-Dice Chaos Maps — 30-Asset Painterly Community Kid Theater & Puppet Stage Suite
+Dice Chaos Compass — 30-Asset Painterly Community Kid Theater & Puppet Stage Suite
 
 Generates 30 bespoke true top-down CC0 assets in:
   `public/assets/modular-suite-cc0/props/community_kid_theater/`

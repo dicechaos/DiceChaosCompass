@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Local Standalone Production Desktop Launcher for Dice Chaos Maps.
+ * Local Standalone Production Desktop Launcher for Dice Chaos Compass.
  *
  * Serves the minified production bundle (`dist/`) over a fast zero-overhead
  * local HTTP server (with optional local ExtraAsses pack streaming) and opens
@@ -198,7 +198,7 @@ server.listen(0, "127.0.0.1", async () => {
         JSON.stringify({
           url,
           indexStatus: r1.status,
-          hasTitle: html.includes("Dice Chaos Maps"),
+          hasTitle: html.includes("Dice Chaos Compass"),
           worldManifestStatus: r2.status,
           modularManifestStatus: r3.status,
           starterManifestStatus: r4.status,
@@ -212,7 +212,7 @@ server.listen(0, "127.0.0.1", async () => {
     return;
   }
 
-  console.log(`\n  Dice Chaos Maps (Local Production Build)`);
+  console.log(`\n  Dice Chaos Compass (Local Production Build)`);
   console.log(`  Running at: ${url}`);
   console.log(`  Close the app window (or press Ctrl+C) to stop.\n`);
 

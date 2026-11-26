@@ -1,5 +1,5 @@
 /**
- * Showcase World Atlas ("The Shattered Reach") & Blank World Atlas Factory for Dice Chaos Maps v1.5.
+ * Showcase World Atlas ("The Shattered Reach") & Blank World Atlas Factory for Dice Chaos Compass v1.5.
  */
 
 import {
@@ -68,7 +68,7 @@ export function createBlankWorldMap(opts?: {
     mode: "world",
     meta: {
       title: opts?.title ?? "Untitled World Atlas",
-      author: "Dice Chaos Maps",
+      author: "Dice Chaos Compass",
       createdAt: now,
       updatedAt: now,
     },

@@ -1,11 +1,24 @@
-import { sampleCatmullRom } from "@/engine/geometry";
-import type { Point2D, WallSegment } from "@/types/map";
+import { computeCaveGeometry } from "@/engine/caveEngine";
+import { hasWallSegmentCurves, pointInPolygon, sampleWallPoints } from "@/engine/geometry";
+import { computeWaterOutline } from "@/engine/waterEngine";
+import type { DcMapDocument, Point2D, TerrainStroke, WallSegment } from "@/types/map";
 
-function sampleWallPolyline(points: Point2D[], closed: boolean, curved: boolean): Point2D[] {
-  if (curved && points.length >= 3) {
-    return sampleCatmullRom(points, 12, closed);
-  }
-  return points;
+function sampleWallPolyline(wall: WallSegment, closedOverride?: boolean): Point2D[] {
+  return sampleWallPoints(
+    closedOverride !== undefined ? { ...wall, closed: closedOverride } : wall,
+    12,
+  );
+}
+
+export interface BarrierPolyline {
+  points: Point2D[];
+  closed: boolean;
+}
+
+export interface TerrainBarrierOptions {
+  walls: boolean;
+  caves: boolean;
+  water: boolean;
 }
 
 export interface WallBarrierGrid {
@@ -23,6 +36,26 @@ export interface FloodFillResult {
   holes: Point2D[][];
   areaSq: number;
   boundedByWalls: boolean;
+}
+
+export type TerrainHitResult =
+  | {
+      kind: "stroke";
+      layerId: string;
+      strokeId: string;
+      stroke: TerrainStroke;
+      assetId: string;
+    }
+  | {
+      kind: "base";
+      assetId: string;
+    };
+
+export interface UsedTerrainSummary {
+  assetId: string;
+  count: number;
+  isBase: boolean;
+  layerIds: string[];
 }
 
 /**
@@ -63,16 +96,42 @@ function rasterizeSupercover(
   }
 }
 
+function rasterizePolyline(
+  blocked: Uint8Array,
+  gridW: number,
+  gridH: number,
+  pts: Point2D[],
+  closed: boolean,
+  subDiv: number,
+) {
+  if (pts.length < 2) return;
+  const segCount = closed ? pts.length : pts.length - 1;
+  for (let i = 0; i < segCount; i++) {
+    const a = pts[i];
+    const b = pts[(i + 1) % pts.length];
+    rasterizeSupercover(
+      blocked,
+      gridW,
+      gridH,
+      a.x * subDiv,
+      a.y * subDiv,
+      b.x * subDiv,
+      b.y * subDiv,
+    );
+  }
+}
+
 /**
- * Builds a fast sub-cell wall centerline barrier grid for all active-floor walls.
- * Because barriers sit strictly on the 1-subcell wall centerline, the resulting
- * flooded polygon tucks cleanly underneath rendered walls with zero gap and zero bleed!
+ * Builds a fast sub-cell barrier grid for all active-floor walls plus optional
+ * cave auto-walls and water/chasm shorelines. Default `subDiv = 6` delivers crisp
+ * diagonal & curved flood contours with sub-4ms BFS latency.
  */
 export function buildWallBarrierGrid(
   walls: WallSegment[],
   widthCells: number,
   heightCells: number,
-  subDiv = 4,
+  subDiv = 6,
+  extraBarriers: BarrierPolyline[] = [],
 ): WallBarrierGrid {
   const gridW = Math.max(4, Math.round(widthCells * subDiv));
   const gridH = Math.max(4, Math.round(heightCells * subDiv));
@@ -80,21 +139,12 @@ export function buildWallBarrierGrid(
 
   for (const wall of walls) {
     if (wall.points.length < 2) continue;
-    const sampled = sampleWallPolyline(wall.points, wall.closed, wall.curved);
-    const segCount = wall.closed ? sampled.length : sampled.length - 1;
-    for (let i = 0; i < segCount; i++) {
-      const a = sampled[i];
-      const b = sampled[(i + 1) % sampled.length];
-      rasterizeSupercover(
-        blocked,
-        gridW,
-        gridH,
-        a.x * subDiv,
-        a.y * subDiv,
-        b.x * subDiv,
-        b.y * subDiv,
-      );
-    }
+    const sampled = sampleWallPolyline(wall);
+    rasterizePolyline(blocked, gridW, gridH, sampled, wall.closed, subDiv);
+  }
+
+  for (const extra of extraBarriers) {
+    rasterizePolyline(blocked, gridW, gridH, extra.points, extra.closed, subDiv);
   }
 
   return {
@@ -104,8 +154,71 @@ export function buildWallBarrierGrid(
     widthCells,
     heightCells,
     blocked,
-    wallCount: walls.length,
+    wallCount: walls.length + extraBarriers.length,
   };
+}
+
+/**
+ * Builds a unified multi-barrier grid for the active floor combining visible
+ * Walls, Cave/Dungeon perimeter walls, and Water/Chasm shorelines.
+ */
+export function buildFloorBarrierGrid(
+  doc: DcMapDocument,
+  levelId: string,
+  options: TerrainBarrierOptions = { walls: true, caves: true, water: true },
+  subDiv = 6,
+): WallBarrierGrid {
+  const walls: WallSegment[] = [];
+  const extra: BarrierPolyline[] = [];
+
+  for (const layer of doc.layers) {
+    if (!layer.visible || layer.levelId !== levelId) continue;
+
+    if (options.walls && (layer.walls?.length ?? 0) > 0) {
+      walls.push(...(layer.walls ?? []));
+    }
+
+    if (
+      options.caves &&
+      layer.kind === "caves" &&
+      layer.caveSystem &&
+      layer.caveSystem.operations.length > 0
+    ) {
+      const geom = computeCaveGeometry(
+        layer.caveSystem,
+        doc.canvas.widthCells,
+        doc.canvas.heightCells,
+        layer.id,
+      );
+      for (const cw of geom.wallSegments) {
+        if (cw.points.length >= 2) {
+          walls.push(cw);
+        }
+      }
+    }
+
+    if (options.water && (layer.waterRegions?.length ?? 0) > 0) {
+      for (const wr of layer.waterRegions ?? []) {
+        const outline = computeWaterOutline(wr);
+        if (outline.outer.length >= 3) {
+          extra.push({ points: outline.outer, closed: true });
+        }
+        for (const hole of outline.holes) {
+          if (hole.length >= 3) {
+            extra.push({ points: hole, closed: true });
+          }
+        }
+      }
+    }
+  }
+
+  return buildWallBarrierGrid(
+    walls,
+    doc.canvas.widthCells,
+    doc.canvas.heightCells,
+    subDiv,
+    extra,
+  );
 }
 
 function signedArea(poly: Point2D[]): number {
@@ -153,7 +266,65 @@ function rdpOpen(pts: Point2D[], epsSq: number): Point2D[] {
   return [first, last];
 }
 
-function simplifyClosedLoop(raw: Point2D[], epsilon: number): Point2D[] {
+/**
+ * Removes staircase zig-zags along diagonal and curved walls while preserving
+ * genuine macro 90-degree room corners completely razor-sharp!
+ */
+function smoothStaircaseTeeth(
+  pts: Point2D[],
+  stepSize: number,
+  widthCells: number,
+  heightCells: number,
+): Point2D[] {
+  if (pts.length <= 4) return pts;
+  const maxMicroEdge = stepSize * 2.35;
+  const borderEps = stepSize * 0.25;
+  let cur = pts;
+
+  for (let pass = 0; pass < 3; pass++) {
+    const n = cur.length;
+    const nextPts: Point2D[] = new Array(n);
+    for (let i = 0; i < n; i++) {
+      const prev = cur[(i - 1 + n) % n];
+      const p = cur[i];
+      const nxt = cur[(i + 1) % n];
+
+      // Never move vertices pinned to the outer canvas boundary
+      const onCanvasEdge =
+        p.x <= borderEps ||
+        p.x >= widthCells - borderEps ||
+        p.y <= borderEps ||
+        p.y >= heightCells - borderEps;
+      if (onCanvasEdge) {
+        nextPts[i] = p;
+        continue;
+      }
+
+      const dPrev = Math.hypot(p.x - prev.x, p.y - prev.y);
+      const dNext = Math.hypot(nxt.x - p.x, nxt.y - p.y);
+      // Only smooth micro grid-staircase teeth (both edges short); keep true wall corners crisp!
+      if (dPrev <= maxMicroEdge && dNext <= maxMicroEdge) {
+        nextPts[i] = {
+          x: prev.x * 0.25 + p.x * 0.5 + nxt.x * 0.25,
+          y: prev.y * 0.25 + p.y * 0.5 + nxt.y * 0.25,
+        };
+      } else {
+        nextPts[i] = p;
+      }
+    }
+    cur = nextPts;
+  }
+
+  return cur;
+}
+
+function simplifyClosedLoop(
+  raw: Point2D[],
+  epsilon: number,
+  stepSize: number,
+  widthCells: number,
+  heightCells: number,
+): Point2D[] {
   if (raw.length <= 3) return raw;
   // Pass 1: Remove strictly collinear intermediate grid-step points
   const pruned: Point2D[] = [];
@@ -169,24 +340,27 @@ function simplifyClosedLoop(raw: Point2D[], epsilon: number): Point2D[] {
   }
   if (pruned.length <= 4) return pruned;
 
-  // Pass 2: Split closed loop at the two farthest vertices and run RDP on each half
-  let idxA = 0;
-  let idxB = Math.floor(pruned.length / 2);
+  // Pass 2: Collapse diagonal & circular-arc grid staircases without rounding real 90° room corners!
+  const smoothed = smoothStaircaseTeeth(pruned, stepSize, widthCells, heightCells);
+
+  // Pass 3: Split closed loop at the two farthest vertices and run RDP on each half
+  const idxA = 0;
+  let idxB = Math.floor(smoothed.length / 2);
   let bestDist = -1;
-  for (let i = 0; i < pruned.length; i++) {
-    const d = (pruned[i].x - pruned[0].x) ** 2 + (pruned[i].y - pruned[0].y) ** 2;
+  for (let i = 0; i < smoothed.length; i++) {
+    const d = (smoothed[i].x - smoothed[0].x) ** 2 + (smoothed[i].y - smoothed[0].y) ** 2;
     if (d > bestDist) {
       bestDist = d;
       idxB = i;
     }
   }
-  if (idxB === 0 || idxB === pruned.length - 1) return pruned;
+  if (idxB === 0 || idxB === smoothed.length - 1) return smoothed;
 
   const epsSq = epsilon * epsilon;
-  const h1 = rdpOpen(pruned.slice(idxA, idxB + 1), epsSq);
-  const h2 = rdpOpen([...pruned.slice(idxB), pruned[idxA]], epsSq);
+  const h1 = rdpOpen(smoothed.slice(idxA, idxB + 1), epsSq);
+  const h2 = rdpOpen([...smoothed.slice(idxB), smoothed[idxA]], epsSq);
   const merged = [...h1.slice(0, -1), ...h2.slice(0, -1)];
-  return merged.length >= 3 ? merged : pruned;
+  return merged.length >= 3 ? merged : smoothed;
 }
 
 /**
@@ -200,9 +374,6 @@ function traceMaskLoops(
   gridH: number,
   subDiv: number,
 ): Point2D[][] {
-  // Directed unit boundary edges around filled pixels:
-  // Key = vx * (gridH + 1) + vy, storing outgoing edges (toX, toY, dir)
-  // dir: 0=Right (+x), 1=Down (+y), 2=Left (-x), 3=Up (-y)
   const stride = gridH + 1;
   const edgeMap = new Map<number, Array<{ tx: number; ty: number; dir: number; used: boolean }>>();
 
@@ -286,14 +457,14 @@ function traceMaskLoops(
 }
 
 /**
- * Flood-fills from `clickPt` inside the active-floor wall barrier grid and returns
- * clean vector outer contour + optional interior holes (for courtyards around buildings).
+ * Flood-fills from `clickPt` inside the active-floor barrier grid and returns
+ * smooth vector outer contour + optional interior holes (for courtyards around buildings).
  */
 export function computeSmartFloodFill(
   clickPt: Point2D,
   barrier: WallBarrierGrid,
 ): FloodFillResult | null {
-  const { subDiv, gridW, gridH, blocked } = barrier;
+  const { subDiv, gridW, gridH, widthCells, heightCells, blocked } = barrier;
   let sx = Math.floor(clickPt.x * subDiv);
   let sy = Math.floor(clickPt.y * subDiv);
   if (sx < 0 || sx >= gridW || sy < 0 || sy >= gridH) return null;
@@ -371,8 +542,8 @@ export function computeSmartFloodFill(
 
   if (tail === 0) return null;
 
-  // Dilate into immediately adjacent wall centerline pixels (including corner intersections)
-  // ONLY where blocked, so the filled floor meets exact 90-degree wall corners with zero gap!
+  // Dilate 1 step into immediately adjacent wall centerline pixels ONLY where blocked,
+  // so filled floors tuck cleanly under wall centerlines with zero gap!
   const expanded = new Uint8Array(filled);
   for (let i = 0; i < tail; i++) {
     const idx = queue[i];
@@ -394,10 +565,11 @@ export function computeSmartFloodFill(
   const rawLoops = traceMaskLoops(expanded, gridW, gridH, subDiv);
   if (rawLoops.length === 0) return null;
 
-  const eps = Math.min(0.11, 0.36 / subDiv);
+  const stepSize = 1 / subDiv;
+  const eps = Math.min(0.09, 0.34 / subDiv);
   const scored = rawLoops
     .map((lp) => {
-      const simp = simplifyClosedLoop(lp, eps);
+      const simp = simplifyClosedLoop(lp, eps, stepSize, widthCells, heightCells);
       return { pts: simp, area: signedArea(simp) };
     })
     .filter((x) => x.pts.length >= 3 && Math.abs(x.area) > 0.05)
@@ -436,9 +608,210 @@ export function makeRectPolygon(a: Point2D, b: Point2D): Point2D[] {
 
 /**
  * Extracts a crisp vector polygon directly from a wall's closed contour
- * (preserving Catmull-Rom curvature when `wall.curved` is true).
+ * (preserving both legacy Catmull-Rom curvature and per-segment circular arcs!).
  */
 export function makeClosedWallPolygon(wall: WallSegment): Point2D[] {
   if (wall.points.length < 3) return [];
-  return sampleWallPolyline(wall.points, true, wall.curved);
+  return sampleWallPolyline(wall, true);
+}
+
+/**
+ * Resolves the effective sampled outer contour for a polygon `TerrainStroke`
+ * (honoring optional `segmentCurves` when present!).
+ */
+export function sampleTerrainStrokePolygon(stroke: TerrainStroke): Point2D[] {
+  if (stroke.shape !== "polygon" || stroke.points.length < 3) return stroke.points;
+  if (hasWallSegmentCurves(stroke)) {
+    return sampleWallPoints(
+      {
+        points: stroke.points,
+        closed: true,
+        curved: false,
+        segmentCurves: stroke.segmentCurves,
+      },
+      12,
+    );
+  }
+  return stroke.points;
+}
+
+/**
+ * Accurate geometric hit-test for a single `TerrainStroke` (polygon with holes OR brush capsule).
+ */
+export function pointInTerrainStroke(pt: Point2D, stroke: TerrainStroke): boolean {
+  if (stroke.points.length === 0) return false;
+  if (stroke.shape === "polygon") {
+    if (stroke.points.length < 3) return false;
+    const outer = sampleTerrainStrokePolygon(stroke);
+    if (!pointInPolygon(pt, outer)) return false;
+    if (stroke.holes) {
+      for (const hole of stroke.holes) {
+        if (hole.length >= 3 && pointInPolygon(pt, hole)) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  const r = Math.max(0.2, stroke.radiusCells);
+  const rSq = r * r;
+  if (stroke.points.length === 1) {
+    const p = stroke.points[0];
+    return (pt.x - p.x) ** 2 + (pt.y - p.y) ** 2 <= rSq;
+  }
+  const maxConnectDist = stroke.continuous ? Infinity : r * 1.65;
+  for (let i = 0; i < stroke.points.length; i++) {
+    const a = stroke.points[i];
+    if ((pt.x - a.x) ** 2 + (pt.y - a.y) ** 2 <= rSq) return true;
+    if (i > 0) {
+      const prev = stroke.points[i - 1];
+      if (Math.hypot(a.x - prev.x, a.y - prev.y) <= maxConnectDist) {
+        if (pointSegDistSq(pt, prev, a) <= rSq) return true;
+      }
+    }
+  }
+  return false;
+}
+
+/**
+ * Finds the topmost visible painted/filled terrain stroke under `pt` on `levelId`
+ * (respecting layer-scoped `erase` cutouts!), or falls back to the 1F Map Base.
+ */
+export function hitTestTerrainAtPoint(
+  pt: Point2D,
+  doc: DcMapDocument,
+  levelId: string,
+): TerrainHitResult | null {
+  if (
+    pt.x < 0 ||
+    pt.y < 0 ||
+    pt.x > doc.canvas.widthCells ||
+    pt.y > doc.canvas.heightCells
+  ) {
+    return null;
+  }
+
+  // Scan top-to-bottom across visible unlocked terrain layers on this floor
+  for (let li = doc.layers.length - 1; li >= 0; li--) {
+    const layer = doc.layers[li];
+    if (!layer.visible || layer.locked || layer.kind !== "terrain" || layer.levelId !== levelId) {
+      continue;
+    }
+    const strokes = layer.terrainStrokes ?? [];
+    for (let si = strokes.length - 1; si >= 0; si--) {
+      const st = strokes[si];
+      if (!pointInTerrainStroke(pt, st)) continue;
+      if (st.erase) {
+        // Cutout punched through THIS layer — stop checking older strokes on this layer!
+        break;
+      }
+      return {
+        kind: "stroke",
+        layerId: layer.id,
+        strokeId: st.id,
+        stroke: st,
+        assetId: st.assetId,
+      };
+    }
+  }
+
+  const level = doc.levels.find((lv) => lv.id === levelId);
+  if ((!level || level.kind === "ground") && !doc.canvas.baseTerrainTransparent) {
+    return {
+      kind: "base",
+      assetId: doc.canvas.baseTerrainAssetId,
+    };
+  }
+  return null;
+}
+
+/**
+ * Returns true if an existing painted terrain stroke sits completely inside the given
+ * flood contour (and outside its holes) so Smart Fill with "Clean Replace" can prune
+ * buried duplicate room fills instead of stacking dead polygons!
+ */
+export function isTerrainStrokeCoveredByFlood(
+  stroke: TerrainStroke,
+  outer: Point2D[],
+  holes: Point2D[][],
+): boolean {
+  if (stroke.erase || stroke.points.length === 0 || outer.length < 3) return false;
+  const pts = stroke.shape === "polygon" ? sampleTerrainStrokePolygon(stroke) : stroke.points;
+  // Require every vertex (and centroid for polygons) to sit inside `outer` (with tiny edge tolerance)
+  let cx = 0;
+  let cy = 0;
+  for (const p of pts) {
+    cx += p.x;
+    cy += p.y;
+  }
+  cx /= pts.length;
+  cy /= pts.length;
+  const center = { x: cx, y: cy };
+  if (!pointInPolygon(center, outer)) return false;
+  for (const h of holes) {
+    if (h.length >= 3 && pointInPolygon(center, h)) return false;
+  }
+
+  // Pull test points 4% toward centroid so vertices hugging the shared wall centerline still count as covered!
+  for (const p of pts) {
+    const insetPt = {
+      x: p.x + (cx - p.x) * 0.04,
+      y: p.y + (cy - p.y) * 0.04,
+    };
+    if (!pointInPolygon(insetPt, outer)) return false;
+    for (const h of holes) {
+      if (h.length >= 3 && pointInPolygon(insetPt, h)) return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * Lists distinct terrain textures currently used on the active layer or active floor,
+ * ordered by frequency (plus Map Base on 1F when active).
+ */
+export function summarizeUsedTerrains(
+  doc: DcMapDocument,
+  levelId: string,
+  targetLayerId?: string | null,
+): UsedTerrainSummary[] {
+  const byAsset = new Map<string, { count: number; isBase: boolean; layerIds: Set<string> }>();
+
+  for (const layer of doc.layers) {
+    if (layer.kind !== "terrain" || layer.levelId !== levelId) continue;
+    if (targetLayerId && layer.id !== targetLayerId) continue;
+    for (const s of layer.terrainStrokes ?? []) {
+      if (s.erase || !s.assetId) continue;
+      let entry = byAsset.get(s.assetId);
+      if (!entry) {
+        entry = { count: 0, isBase: false, layerIds: new Set() };
+        byAsset.set(s.assetId, entry);
+      }
+      entry.count++;
+      entry.layerIds.add(layer.id);
+    }
+  }
+
+  const level = doc.levels.find((lv) => lv.id === levelId);
+  if (!targetLayerId && (!level || level.kind === "ground") && !doc.canvas.baseTerrainTransparent) {
+    const baseId = doc.canvas.baseTerrainAssetId;
+    if (baseId) {
+      const existing = byAsset.get(baseId);
+      if (existing) {
+        existing.isBase = true;
+      } else {
+        byAsset.set(baseId, { count: 0, isBase: true, layerIds: new Set() });
+      }
+    }
+  }
+
+  return Array.from(byAsset.entries())
+    .map(([assetId, info]) => ({
+      assetId,
+      count: info.count,
+      isBase: info.isBase,
+      layerIds: Array.from(info.layerIds),
+    }))
+    .sort((a, b) => b.count - a.count || (a.isBase ? 1 : -1));
 }

@@ -8,7 +8,10 @@ import {
   findPreferredLayerForKind,
   getLayerKindMeta,
   getNextDefaultLayerName,
+  getOnionSkinDirection,
+  getOnionSkinReferenceLevel,
   suggestLayerNameFromContents,
+  summarizeLevel,
   toolToLayerKind,
   upgradeLegacyLayerName,
 } from "./layerMeta";
@@ -316,5 +319,85 @@ describe("Layer Metadata Engine", () => {
         expect(layer.name).not.toMatch(/^(B\d+|1F|2F|3F|ROOF|Sky \d+\s*·)\s+/);
       }
     }
+  });
+
+  it("resolves Onion-Skin reference levels across underground, ground, upper, roof, and sky elevations", () => {
+    const doc = createBlankMap("Onion_Test.dcmap");
+    doc.levels = [
+      { id: "lvl-b1", shortCode: "B1", name: "Cellar", kind: "underground", elevationFt: -14, visible: false },
+      { id: "lvl-ground", shortCode: "1F", name: "Ground", kind: "ground", elevationFt: 0, visible: true },
+      { id: "lvl-2f", shortCode: "2F", name: "Second", kind: "upper", elevationFt: 14, visible: false },
+      { id: "lvl-3f", shortCode: "3F", name: "Third", kind: "upper", elevationFt: 28, visible: false },
+      { id: "lvl-roofs", shortCode: "ROOF", name: "Roofs", kind: "roof", elevationFt: 42, visible: false },
+      { id: "lvl-sky1", shortCode: "Sky 1", name: "Lower Deck", kind: "sky", elevationFt: 56, visible: false },
+      { id: "lvl-sky2", shortCode: "Sky 2", name: "Upper Deck", kind: "sky", elevationFt: 68, visible: false },
+    ];
+
+    // B1 looks UP at 1F
+    doc.activeLevelId = "lvl-b1";
+    let ref = getOnionSkinReferenceLevel(doc)!;
+    expect(ref.id).toBe("lvl-ground");
+    expect(getOnionSkinDirection(doc.levels[0], ref)).toBe("up");
+
+    // 1F peeks DOWN at B1 when basement exists
+    doc.activeLevelId = "lvl-ground";
+    ref = getOnionSkinReferenceLevel(doc)!;
+    expect(ref.id).toBe("lvl-b1");
+    expect(getOnionSkinDirection(doc.levels[1], ref)).toBe("down");
+
+    // 3F looks DOWN at 2F
+    doc.activeLevelId = "lvl-3f";
+    ref = getOnionSkinReferenceLevel(doc)!;
+    expect(ref.id).toBe("lvl-2f");
+    expect(getOnionSkinDirection(doc.levels[3], ref)).toBe("down");
+
+    // ROOF looks DOWN at 3F (highest building floor below roof!)
+    doc.activeLevelId = "lvl-roofs";
+    ref = getOnionSkinReferenceLevel(doc)!;
+    expect(ref.id).toBe("lvl-3f");
+    expect(getOnionSkinDirection(doc.levels[4], ref)).toBe("down");
+
+    // Sky 1 peeks DOWN at ROOF, Sky 2 looks DOWN at Sky 1
+    doc.activeLevelId = "lvl-sky1";
+    expect(getOnionSkinReferenceLevel(doc)?.id).toBe("lvl-roofs");
+    doc.activeLevelId = "lvl-sky2";
+    expect(getOnionSkinReferenceLevel(doc)?.id).toBe("lvl-sky1");
+
+    // Without B1, 1F peeks UP at 2F
+    doc.levels = doc.levels.filter((lv) => lv.id !== "lvl-b1");
+    doc.activeLevelId = "lvl-ground";
+    ref = getOnionSkinReferenceLevel(doc)!;
+    expect(ref.id).toBe("lvl-2f");
+    expect(getOnionSkinDirection(doc.levels[0], ref)).toBe("up");
+  });
+
+  it("summarizes per-floor layer visibility, lock state, and total entities accurately", () => {
+    const doc = createBlankMap("Summary_Test.dcmap");
+    const objsLayer = doc.layers.find((l) => l.kind === "objects" && l.levelId === "lvl-ground")!;
+    objsLayer.objects = [
+      {
+        id: "p1",
+        assetId: "a.png",
+        x: 2,
+        y: 2,
+        widthCells: 1,
+        heightCells: 1,
+        rotationRad: 0,
+        flipX: false,
+        flipY: false,
+        opacity: 1,
+        castsShadow: true,
+        locked: false,
+        recolor: { ...DEFAULT_RECOLOR },
+        zOrder: 1,
+      },
+    ];
+    objsLayer.locked = true;
+    const sum = summarizeLevel(doc, "lvl-ground");
+    expect(sum.layerCount).toBeGreaterThanOrEqual(4);
+    expect(sum.totalEntities).toBe(1);
+    expect(sum.lockedLayerCount).toBe(1);
+    expect(sum.allLocked).toBe(false);
+    expect(sum.allVisible).toBe(true);
   });
 });

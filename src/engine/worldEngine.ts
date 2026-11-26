@@ -1,5 +1,5 @@
 /**
- * Hybrid Wonderdraft-Parity World Atlas Engine for Dice Chaos Maps v1.5.
+ * Hybrid Wonderdraft-Parity World Atlas Engine for Dice Chaos Compass v1.5.
  *
  * Powers:
  * - Deterministic 2D fractal fBM noise & 7-preset Landmass Generator Wizard
@@ -10,7 +10,7 @@
  * - Travel-time ruler calculations (Miles, Km, Leagues + Walk / Horse / Ship / Airship days)
  */
 
-import { distanceToPolyline, pointInPolygon, sampleCatmullRom } from "@/engine/geometry";
+import { distanceToWall, pointInPolygon, sampleWallPoints } from "@/engine/geometry";
 import { getWorldThemeById } from "@/engine/worldThemes";
 import type {
   DcMapDocument,
@@ -506,10 +506,15 @@ export function buildMeanderingRiverGeometry(river: WorldRiver): {
   if (river.points.length < 2) {
     return { centerline: river.points, leftEdge: [], rightEdge: [], polygon: [] };
   }
-  const basePts =
-    river.curved && river.points.length >= 3
-      ? sampleCatmullRom(river.points, 12, false)
-      : river.points;
+  const basePts = sampleWallPoints(
+    {
+      points: river.points,
+      closed: false,
+      curved: river.curved,
+      segmentCurves: river.segmentCurves,
+    },
+    12,
+  );
 
   // Densify to evenly spaced steps for organic meandering wobble
   const dense: Point2D[] = [basePts[0]];
@@ -771,7 +776,12 @@ export function hitTestWorldLabel(pt: Point2D, labels: WorldLabel[], cellPx = 24
 export function hitTestWorldRiver(pt: Point2D, rivers: WorldRiver[]): WorldRiver | null {
   for (let i = rivers.length - 1; i >= 0; i--) {
     const rv = rivers[i];
-    const hit = distanceToPolyline(pt, rv.points, false, rv.curved);
+    const hit = distanceToWall(pt, {
+      points: rv.points,
+      closed: false,
+      curved: rv.curved,
+      segmentCurves: rv.segmentCurves,
+    });
     if (hit.dist <= Math.max(0.42, rv.endWidthCells * 0.65)) {
       return rv;
     }
@@ -782,7 +792,12 @@ export function hitTestWorldRiver(pt: Point2D, rivers: WorldRiver[]): WorldRiver
 export function hitTestWorldTrail(pt: Point2D, trails: WorldTrail[]): WorldTrail | null {
   for (let i = trails.length - 1; i >= 0; i--) {
     const tr = trails[i];
-    const hit = distanceToPolyline(pt, tr.points, false, tr.curved);
+    const hit = distanceToWall(pt, {
+      points: tr.points,
+      closed: false,
+      curved: tr.curved,
+      segmentCurves: tr.segmentCurves,
+    });
     if (hit.dist <= Math.max(0.4, tr.widthCells * 1.4)) {
       return tr;
     }
@@ -793,10 +808,15 @@ export function hitTestWorldTrail(pt: Point2D, trails: WorldTrail[]): WorldTrail
 export function hitTestWorldRegion(pt: Point2D, regions: WorldRegion[]): WorldRegion | null {
   for (let i = regions.length - 1; i >= 0; i--) {
     const reg = regions[i];
-    const poly =
-      reg.curved && reg.polygon.length >= 3
-        ? sampleCatmullRom(reg.polygon, 8, true)
-        : reg.polygon;
+    const poly = sampleWallPoints(
+      {
+        points: reg.polygon,
+        closed: true,
+        curved: reg.curved,
+        segmentCurves: reg.segmentCurves,
+      },
+      8,
+    );
     if (pointInPolygon(pt, poly)) {
       return reg;
     }

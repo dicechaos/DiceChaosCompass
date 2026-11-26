@@ -220,7 +220,7 @@ fn open_asset_vault_window(app: tauri::AppHandle) -> Result<(), String> {
         "asset-vault",
         WebviewUrl::App("index.html?view=asset-vault".into()),
     )
-    .title("Dice Chaos Maps — Asset Vault")
+    .title("Dice Chaos Compass — Asset Vault")
     .inner_size(1280.0, 820.0)
     .min_inner_size(860.0, 560.0)
     .build()
@@ -389,7 +389,7 @@ pub fn run() {
             open_asset_vault_window,
         ])
         .run(tauri::generate_context!())
-        .expect("error while running Dice Chaos Maps");
+        .expect("error while running Dice Chaos Compass");
 }
 
 #[cfg(test)]

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Dice Chaos Maps — Water Scenes, Lakeshore, River, Docks & Luxury Yacht Suite (CC0)
+Dice Chaos Compass — Water Scenes, Lakeshore, River, Docks & Luxury Yacht Suite (CC0)
 ===================================================================================
 Generates & slices 128 original CC0 strictly 90-degree top-down water scene assets:
   - 112 individual modular props sliced from 7 hand-inked 4x4 top-down sheets:

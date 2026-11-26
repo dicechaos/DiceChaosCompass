@@ -1,5 +1,5 @@
 """
-Dice Chaos Maps — 25-Asset Painterly Watchtower Garrison & Magipunk Signal Suite
+Dice Chaos Compass — 25-Asset Painterly Watchtower Garrison & Magipunk Signal Suite
 
 Generates 25 bespoke true top-down CC0 assets in:
   `public/assets/modular-suite-cc0/props/watchtower_garrison/`

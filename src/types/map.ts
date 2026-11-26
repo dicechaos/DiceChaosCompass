@@ -144,7 +144,11 @@ export interface BiomeKit {
   assetIds: string[];
 }
 
-export type TerrainMode = "brush" | "flood" | "rect" | "polygon";
+export type TerrainMode = "brush" | "flood" | "replace" | "rect" | "polygon" | "erase";
+
+export type TerrainReplaceScope = "patch" | "layer" | "floor" | "map";
+
+export type TerrainEraseShape = "brush" | "room" | "rect" | "polygon";
 
 export type StampPlacementOrder = "above" | "below";
 
@@ -160,6 +164,14 @@ export interface TerrainStroke {
   continuous?: boolean; // True for live freehand fluid brush strokes (draws seamless connected capsule)
   shape?: "brush" | "polygon"; // Default "brush"; "polygon" fills closed outer contour + optional holes cleanly
   holes?: Point2D[][]; // Optional interior cutouts (e.g., open courtyard fill flowing around enclosed buildings)
+  /** Optional per-edge signed circular-arc sagitta (bulge in grid cells) for closed polygon fills */
+  segmentCurves?: Array<number | null>;
+  /** When true, subtracts/punches a transparent cutout strictly on this terrain layer */
+  erase?: boolean;
+  /** Optional repeating texture tile scale multiplier (0.4..2.5, default 1.0) */
+  textureScale?: number;
+  /** Optional parent wall ID for fills created via Fill Room so curving/moving the wall auto-refits the floor */
+  sourceWallId?: string;
   rotationDeg?: number; // Texture & slope downhill direction in degrees (0=East ->, 90=South, 180=West, 270=North)
   slopeShade?: number; // 0..1 directional uphill-light to downhill-shadow gradient across the filled area
   recolor?: RgbRecolor;
@@ -178,6 +190,8 @@ export interface WaterRegion {
   shape?: "polygon" | "river";
   widthCells?: number;
   curved?: boolean;
+  /** Optional per-edge signed circular-arc sagitta (bulge in grid cells), parallel to edges */
+  segmentCurves?: Array<number | null>;
   textureAssetId?: string;
   points: Point2D[];
   deepColorHex: string;
@@ -199,12 +213,24 @@ export interface WaterRegion {
   cutouts?: Point2D[][];
 }
 
+export type WallDrawMode = "free" | "box" | "circle" | "arc" | "split" | "corridor";
+
+export type WallPolygonShape = "round" | "oval" | "hex" | "octagon" | "dodecagon";
+
+export type WallSplitSubMode = "split" | "breach";
+
 export interface WallSegment {
   id: string;
   assetId: string;
   points: Point2D[];
   closed: boolean;
   curved: boolean;
+  /**
+   * Optional per-edge signed circular-arc sagitta (bulge in grid cells),
+   * parallel to edges i -> (i + 1) % n.
+   * null / undefined / 0 = razor-straight section; non-zero = localized circular arc.
+   */
+  segmentCurves?: Array<number | null>;
   thicknessCells: number;
   blocksLight: boolean;
   recolor?: RgbRecolor;
@@ -235,6 +261,8 @@ export interface SplinePath {
   points: Point2D[];
   widthCells: number;
   curved?: boolean; // Defaults to true (Catmull-Rom spline); false = sharp straight polyline
+  /** Optional per-edge signed circular-arc sagitta (bulge in grid cells), parallel to edges */
+  segmentCurves?: Array<number | null>;
   flipSide?: boolean; // Mirrors path perpendicular axis (reverses uphill crest vs downhill drop on embankments/cliffs!)
   taperEnds: boolean;
   fadeEnds: boolean;
@@ -266,6 +294,8 @@ export interface RoofStructure {
   widthCells: number;
   /** Curved Catmull-Rom ridge spine (for curved longhouses / organic pavilions) */
   curved?: boolean;
+  /** Optional per-edge signed circular-arc sagitta (bulge in grid cells), parallel to ridge edges */
+  segmentCurves?: Array<number | null>;
   /** For shed (single-slope) roofs: flips which side of the spine slopes downhill */
   flipSlope?: boolean;
   /** Asymmetric ridge offset (-0.4..+0.4, 0 = centered symmetric ridge; great for saltbox roofs) */
@@ -585,6 +615,8 @@ export interface WorldRiver {
   meanderRoughness: number; // 0..1
   meanderScale: number; // 0.2..2.0
   curved: boolean;
+  /** Optional per-edge signed circular-arc sagitta (bulge in grid cells), parallel to river edges */
+  segmentCurves?: Array<number | null>;
   colorHex?: string;
   bankColorHex?: string;
   seed: number;
@@ -608,6 +640,8 @@ export interface WorldTrail {
   outlineColorHex?: string;
   dashScale: number; // 0.5..2.5
   curved: boolean;
+  /** Optional per-edge signed circular-arc sagitta (bulge in grid cells), parallel to route edges */
+  segmentCurves?: Array<number | null>;
   opacity: number;
 }
 
@@ -616,6 +650,8 @@ export interface WorldRegion {
   name: string;
   polygon: Point2D[];
   curved: boolean;
+  /** Optional per-edge signed circular-arc sagitta (bulge in grid cells), parallel to border edges */
+  segmentCurves?: Array<number | null>;
   fillColorHex: string;
   fillOpacity: number; // 0.05..0.8
   borderColorHex: string;
@@ -762,6 +798,8 @@ export interface DcMapDocument {
     ppi: number;
     baseTerrainAssetId: string;
     baseTerrainImportedRef?: string;
+    /** When true, 1F ground renders as transparent alpha void (for ships, airships, floating islands & VTT cutouts) */
+    baseTerrainTransparent?: boolean;
     grid: {
       type: GridType;
       visible: boolean;

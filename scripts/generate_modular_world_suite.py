@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Dice Chaos Maps — Clean-Room CC0 Modular World & Everyday Scenes Suite Generator
+Dice Chaos Compass — Clean-Room CC0 Modular World & Everyday Scenes Suite Generator
 ================================================================================
 House Art Style: "Crisp Hand-Inked Tabletop"
   - Strict 90-degree top-down orthographic battlemap perspective

@@ -8,12 +8,14 @@ import {
   computeVisibilityPolygon,
   cutWallSegmentsForPortals,
   extractLightOccluders,
-  sampleCatmullRom,
+  sampleWallPoints,
 } from "@/engine/geometry";
+import { getOnionSkinReferenceLevel } from "@/engine/layerMeta";
 import {
   computeRoofGeometry,
   getRoofPresetByAssetId,
 } from "@/engine/roofEngine";
+import { sampleTerrainStrokePolygon } from "@/engine/terrainFill";
 import {
   computeUnifiedWaterLayerOutline,
   computeWaterOutline,
@@ -60,6 +62,11 @@ export interface RenderOptions {
    * so exported floors can be re-stacked pixel-for-pixel in DiceChaosDisplay or any VTT.
    */
   isolatedLevelId?: string;
+  /**
+   * Interactive "Solo Floor" editing mode: renders ONLY visible layers belonging to `doc.activeLevelId`
+   * over a clean dark architectural drafting backdrop (without mutating lower floors' saved `visible` flags!).
+   */
+  isolateActiveFloor?: boolean;
   selectedId?: string | null;
   cropRectPx?: { x: number; y: number; w: number; h: number };
   /** Visible world grid bounds for viewport-adaptive infinite-zoom Hi-DPI rendering & frustum culling */
@@ -253,7 +260,7 @@ function isPointBoxVisible(
 
 // Persistent across-frame geometry, sort & scaled-tile caches (eliminates per-frame GC & allocation churn!)
 const sortedObjectsCache = new WeakMap<ObjectStamp[], ObjectStamp[]>();
-const pathSampleCache = new WeakMap<SplinePath, { curved: boolean; pts: Point2D[] }>();
+const pathSampleCache = new WeakMap<SplinePath, { key: string; pts: Point2D[] }>();
 const roofGeomCache = new WeakMap<RoofStructure, ReturnType<typeof computeRoofGeometry>>();
 const baseTerrainTileCache = new Map<string, HTMLCanvasElement>();
 const terrainTileCanvasCache = new Map<string, HTMLCanvasElement>();
@@ -268,12 +275,26 @@ function getSortedObjects(objects: ObjectStamp[]): ObjectStamp[] {
 }
 
 function getCachedSampledPath(path: SplinePath): Point2D[] {
-  const useCurve = path.curved !== false && path.points.length >= 3;
+  const hasSegCurves = Boolean(
+    path.segmentCurves && path.segmentCurves.some((v) => typeof v === "number" && Math.abs(v) >= 0.04),
+  );
+  const useCurve = hasSegCurves || (path.curved !== false && path.points.length >= 3);
   if (!useCurve) return path.points;
+  const key = hasSegCurves
+    ? `s:${path.segmentCurves!.map((v) => (v ?? 0).toFixed(3)).join(",")}`
+    : "c:1";
   const hit = pathSampleCache.get(path);
-  if (hit && hit.curved) return hit.pts;
-  const sampled = sampleCatmullRom(path.points, 12, false);
-  pathSampleCache.set(path, { curved: true, pts: sampled });
+  if (hit && hit.key === key) return hit.pts;
+  const sampled = sampleWallPoints(
+    {
+      points: path.points,
+      closed: false,
+      curved: path.curved !== false,
+      segmentCurves: path.segmentCurves,
+    },
+    12,
+  );
+  pathSampleCache.set(path, { key, pts: sampled });
   return sampled;
 }
 
@@ -444,6 +465,253 @@ function drawTexturedStrip(
   }
 }
 
+/**
+ * Renders a contiguous masonry wall run using true picture-frame mitered trapezoid
+ * clipping at every internal corner so both dark outer mortar borders meet razor-flush
+ * at 90° boxes, 45° diamonds, hex/octagon towers, and straight-to-curved joins
+ * with ZERO bright corner nubs, ZERO gaps, and crisp square jambs at portal cuts!
+ */
+function drawMiteredWallRun(
+  ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement | HTMLCanvasElement | null,
+  points: Point2D[],
+  widthPx: number,
+  ppc: number,
+  closed: boolean,
+  fallbackColor = "#475569",
+  clipPx?: ClipRectPx,
+) {
+  const n = points.length;
+  if (n < 2) return;
+  const segCount = closed ? n : n - 1;
+
+  if (!img) {
+    ctx.save();
+    ctx.strokeStyle = fallbackColor;
+    ctx.lineWidth = widthPx;
+    ctx.lineCap = "butt";
+    ctx.lineJoin = "miter";
+    ctx.miterLimit = 2.6;
+    ctx.beginPath();
+    ctx.moveTo(points[0].x * ppc, points[0].y * ppc);
+    for (let i = 1; i < n; i++) {
+      ctx.lineTo(points[i].x * ppc, points[i].y * ppc);
+    }
+    if (closed) ctx.closePath();
+    ctx.stroke();
+    ctx.restore();
+    return;
+  }
+
+  const imgW = img instanceof HTMLImageElement ? img.naturalWidth : img.width;
+  const imgH = img instanceof HTMLImageElement ? img.naturalHeight : img.height;
+  if (imgW <= 0 || imgH <= 0) return;
+
+  const halfW = widthPx * 0.5;
+  const aspect = imgW / Math.max(1, imgH);
+  const tileLenPx = Math.max(12, widthPx * aspect);
+  const maxMiterLen = halfW * 2.15;
+
+  // Precompute pixel coordinates, unit directions, left normals (+halfW side), and lengths
+  const pxX = new Float64Array(n);
+  const pxY = new Float64Array(n);
+  for (let i = 0; i < n; i++) {
+    pxX[i] = points[i].x * ppc;
+    pxY[i] = points[i].y * ppc;
+  }
+
+  const segUx = new Float64Array(segCount);
+  const segUy = new Float64Array(segCount);
+  const segLx = new Float64Array(segCount);
+  const segLy = new Float64Array(segCount);
+  const segLens = new Float64Array(segCount);
+
+  for (let i = 0; i < segCount; i++) {
+    const j = (i + 1) % n;
+    const dx = pxX[j] - pxX[i];
+    const dy = pxY[j] - pxY[i];
+    const len = Math.hypot(dx, dy);
+    segLens[i] = len;
+    if (len > 1e-4) {
+      const ux = dx / len;
+      const uy = dy / len;
+      segUx[i] = ux;
+      segUy[i] = uy;
+      segLx[i] = -uy;
+      segLy[i] = ux;
+    }
+  }
+
+  // Compute miter vector `offset` at each vertex `vi` (pointing toward +halfW side;
+  // `-offset` gives the exact symmetric miter on the -halfW side!)
+  const hasMiter = new Uint8Array(n);
+  const miterOx = new Float64Array(n);
+  const miterOy = new Float64Array(n);
+  const miterBevel = new Uint8Array(n);
+
+  for (let vi = 0; vi < n; vi++) {
+    const isInternal = closed || (vi > 0 && vi < n - 1);
+    if (!isInternal) continue;
+    const prevIdx = (vi - 1 + segCount) % segCount;
+    const nextIdx = vi % segCount;
+    if (segLens[prevIdx] < 0.25 || segLens[nextIdx] < 0.25) continue;
+
+    const l1x = segLx[prevIdx];
+    const l1y = segLy[prevIdx];
+    const l2x = segLx[nextIdx];
+    const l2y = segLy[nextIdx];
+    const dot = segUx[prevIdx] * segUx[nextIdx] + segUy[prevIdx] * segUy[nextIdx];
+    const denom = 1 + dot;
+
+    if (denom < 0.22) {
+      // Extreme acute hairpin (> ~141° turn): fall back to bevel/butt join so corners never spike
+      miterBevel[vi] = 1;
+      continue;
+    }
+
+    let ox = (halfW / denom) * (l1x + l2x);
+    let oy = (halfW / denom) * (l1y + l2y);
+    const mLen = Math.hypot(ox, oy);
+    if (mLen > maxMiterLen) {
+      const s = maxMiterLen / mLen;
+      ox *= s;
+      oy *= s;
+    }
+    hasMiter[vi] = 1;
+    miterOx[vi] = ox;
+    miterOy[vi] = oy;
+  }
+
+  const segPad = widthPx * 2.4 + 6;
+  let accDist = 0;
+
+  for (let i = 0; i < segCount; i++) {
+    const len = segLens[i];
+    if (len < 0.25) continue;
+    const j = (i + 1) % n;
+    const ax = pxX[i];
+    const ay = pxY[i];
+    const bx = pxX[j];
+    const by = pxY[j];
+
+    if (
+      clipPx &&
+      (Math.max(ax, bx) + segPad < clipPx.x0 ||
+        Math.min(ax, bx) - segPad > clipPx.x1 ||
+        Math.max(ay, by) + segPad < clipPx.y0 ||
+        Math.min(ay, by) - segPad > clipPx.y1)
+    ) {
+      accDist += len;
+      continue;
+    }
+
+    const ux = segUx[i];
+    const uy = segUy[i];
+    const lx = segLx[i];
+    const ly = segLy[i];
+
+    // Local coordinates along segment axis: x in [0..len], y = +halfW (L) or -halfW (-L)
+    // Start miter projection along u (protect against self-inversion on micro segments!)
+    let sPosX = 0;
+    let sNegX = 0;
+    if (hasMiter[i]) {
+      const proj = miterOx[i] * ux + miterOy[i] * uy;
+      const clampP = Math.max(-maxMiterLen, Math.min(len * 0.65, proj));
+      const clampN = Math.max(-maxMiterLen, Math.min(len * 0.65, -proj));
+      sPosX = clampP;
+      sNegX = clampN;
+    }
+
+    let ePosX = len;
+    let eNegX = len;
+    if (hasMiter[j]) {
+      const proj = miterOx[j] * ux + miterOy[j] * uy;
+      const clampP = Math.max(-len * 0.65, Math.min(maxMiterLen, proj));
+      const clampN = Math.max(-len * 0.65, Math.min(maxMiterLen, -proj));
+      ePosX = len + clampP;
+      eNegX = len + clampN;
+    }
+
+    // Subtle 0.35px outgoing overlap at mitered joints eliminates Canvas2D diagonal AA hairlines
+    // while keeping incoming corners razor-flush!
+    const overlapStart = 0;
+    const overlapEnd = hasMiter[j] ? 0.35 : 0;
+    const qStartPos = sPosX - overlapStart;
+    const qStartNeg = sNegX - overlapStart;
+    const qEndPos = ePosX + overlapEnd;
+    const qEndNeg = eNegX + overlapEnd;
+
+    const drawStart = Math.min(0, qStartPos, qStartNeg) - 0.5;
+    const drawEnd = Math.max(len, qEndPos, qEndNeg) + 0.5;
+    const angle = Math.atan2(uy, ux);
+
+    ctx.save();
+    ctx.translate(ax, ay);
+    ctx.rotate(angle);
+
+    // Clip cleanly to the exact 4-corner picture-frame miter trapezoid!
+    ctx.beginPath();
+    ctx.moveTo(qStartPos, halfW);
+    ctx.lineTo(qEndPos, halfW);
+    ctx.lineTo(qEndNeg, -halfW);
+    ctx.lineTo(qStartNeg, -halfW);
+    ctx.closePath();
+    ctx.clip();
+
+    // Tile the wall strip along [drawStart .. drawEnd] at its exact native widthPx
+    // so both dark outer mortar borders stay 100% locked to y = +/- halfW!
+    let drawn = drawStart;
+    let guard = 0;
+    while (drawn < drawEnd - 0.1 && guard++ < 512) {
+      const rawPhase = (((accDist + drawn) % tileLenPx) + tileLenPx) % tileLenPx;
+      const phase = rawPhase >= tileLenPx - 0.25 ? 0 : rawPhase;
+      const remainInTile = Math.max(0.5, tileLenPx - phase);
+      const step = Math.max(0.5, Math.min(drawEnd - drawn, remainInTile));
+      const srcX = Math.min(imgW - 1, (phase / tileLenPx) * imgW);
+      const srcW = Math.max(1, Math.min(imgW - srcX, (step / tileLenPx) * imgW));
+
+      ctx.drawImage(
+        img,
+        srcX,
+        0,
+        srcW,
+        imgH,
+        drawn - 0.5,
+        -halfW,
+        step + 1.0,
+        widthPx,
+      );
+      drawn += step;
+    }
+
+    ctx.restore();
+
+    // Clean bevel bridge ONLY at extreme acute hairpins (> 141° fold)
+    if (miterBevel[j]) {
+      const nextIdx = j % segCount;
+      const bx2 = pxX[j];
+      const by2 = pxY[j];
+      ctx.save();
+      ctx.fillStyle = fallbackColor;
+      ctx.beginPath();
+      ctx.moveTo(bx2, by2);
+      ctx.lineTo(bx2 + lx * halfW, by2 + ly * halfW);
+      ctx.lineTo(bx2 + segLx[nextIdx] * halfW, by2 + segLy[nextIdx] * halfW);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(bx2, by2);
+      ctx.lineTo(bx2 - lx * halfW, by2 - ly * halfW);
+      ctx.lineTo(bx2 - segLx[nextIdx] * halfW, by2 - segLy[nextIdx] * halfW);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    accDist += len;
+  }
+}
+
 function drawTerrainBase(
   ctx: CanvasRenderingContext2D,
   wPx: number,
@@ -502,10 +770,11 @@ function drawTerrainBase(
   ctx.fillRect(rx, ry, rw, rh);
 }
 
-// Reusable offscreen scratch buffers for zero-ring unified terrain alpha masking
+// Reusable offscreen scratch buffers for zero-ring unified terrain alpha masking & layer-scoped erasers
 let _terrainMaskCanvas: HTMLCanvasElement | null = null;
 let _terrainFillCanvas: HTMLCanvasElement | null = null;
 let _terrainBlurHalfCanvas: HTMLCanvasElement | null = null;
+let _terrainLayerCanvas: HTMLCanvasElement | null = null;
 
 function ensureTerrainScratch(w: number, h: number): {
   maskCanvas: HTMLCanvasElement;
@@ -531,10 +800,26 @@ function ensureTerrainScratch(w: number, h: number): {
   return { maskCanvas: _terrainMaskCanvas, maskCtx, fillCanvas: _terrainFillCanvas, fillCtx };
 }
 
+function ensureTerrainLayerScratch(w: number, h: number): {
+  layerCanvas: HTMLCanvasElement;
+  layerCtx: CanvasRenderingContext2D;
+} | null {
+  const cw = Math.max(16, Math.ceil(w));
+  const ch = Math.max(16, Math.ceil(h));
+  if (!_terrainLayerCanvas) _terrainLayerCanvas = document.createElement("canvas");
+  if (_terrainLayerCanvas.width < cw || _terrainLayerCanvas.height < ch) {
+    _terrainLayerCanvas.width = Math.max(_terrainLayerCanvas.width, cw);
+    _terrainLayerCanvas.height = Math.max(_terrainLayerCanvas.height, ch);
+  }
+  const layerCtx = _terrainLayerCanvas.getContext("2d");
+  if (!layerCtx) return null;
+  return { layerCanvas: _terrainLayerCanvas, layerCtx };
+}
+
 /**
- * Renders one or more terrain strokes sharing the SAME material into a single unified
- * soft-feathered alpha mask so overlapping brush dabs and repeated strokes of the same
- * terrain merge seamlessly with ZERO internal rings or dark seam borders!
+ * Renders one or more terrain strokes sharing the SAME material (or subtractive erase mask)
+ * into a single unified soft-feathered alpha mask so overlapping brush dabs and repeated
+ * strokes merge seamlessly with ZERO internal rings or dark seam borders!
  */
 export function drawUnifiedTerrainGroup(
   ctx: CanvasRenderingContext2D,
@@ -550,11 +835,12 @@ export function drawUnifiedTerrainGroup(
 ) {
   if (strokes.length === 0) return;
   const first = strokes[0];
-  const url = resolveAssetUrl(first.assetId, assetLookup);
-  const rawImg = texturePool.get(url);
-  if (!rawImg) return;
-  const assetMeta = assetLookup.get(first.assetId);
-  const cacheKey = getRecolorCacheKey(url, first.recolor, assetMeta);
+  const isErase = Boolean(first.erase);
+
+  // Pre-resolve curved polygon points once per stroke so bbox and mask stay 100% consistent
+  const resolvedPolys: Array<Point2D[] | null> = strokes.map((s) =>
+    s.shape === "polygon" && s.points.length >= 3 ? sampleTerrainStrokePolygon(s) : null,
+  );
 
   // Compute tight bounding box across the unified stroke group BEFORE allocating patterns
   let minX = Infinity;
@@ -562,7 +848,8 @@ export function drawUnifiedTerrainGroup(
   let maxX = -Infinity;
   let maxY = -Infinity;
   let maxBlur = 0;
-  for (const s of strokes) {
+  for (let si = 0; si < strokes.length; si++) {
+    const s = strokes[si];
     const isPoly = s.shape === "polygon";
     const rPx = isPoly ? 0 : s.radiusCells * ppc;
     const blurPx =
@@ -571,7 +858,8 @@ export function drawUnifiedTerrainGroup(
         : 0;
     if (blurPx > maxBlur) maxBlur = blurPx;
     const pad = rPx + Math.min(20, blurPx) * 2.2 + 4;
-    for (const pt of s.points) {
+    const pts = resolvedPolys[si] ?? s.points;
+    for (const pt of pts) {
       const cx = pt.x * ppc;
       const cy = pt.y * ppc;
       if (cx - pad < minX) minX = cx - pad;
@@ -614,24 +902,35 @@ export function drawUnifiedTerrainGroup(
   const bh = by2 - by;
   if (bw <= 0 || bh <= 0) return;
 
-  const rawTilePx = Math.max(32, ppc * 3.2);
-  const tileSz = getQuantizedTileSize(rawTilePx);
-  const patRatio = rawTilePx / tileSz;
-  const patCacheKey = `${cacheKey}|${tileSz}`;
+  let pat: CanvasPattern | null = null;
+  let patRatio = 1;
+  if (!isErase) {
+    const url = resolveAssetUrl(first.assetId, assetLookup);
+    const rawImg = texturePool.get(url);
+    if (!rawImg) return;
+    const assetMeta = assetLookup.get(first.assetId);
+    const cacheKey = getRecolorCacheKey(url, first.recolor, assetMeta);
+    const texScale = Math.max(0.4, Math.min(2.5, first.textureScale ?? 1));
+    const rawTilePx = Math.max(24, ppc * 3.2 * texScale);
+    const tileSz = getQuantizedTileSize(rawTilePx);
+    patRatio = rawTilePx / tileSz;
+    const patCacheKey = `${cacheKey}|${tileSz}`;
 
-  let pat = tileCache.get(patCacheKey);
-  if (pat === undefined) {
-    const img = getProcessedTexture(rawImg, url, first.recolor, assetMeta, 512);
-    const tileCanvas = getOrCreateTerrainTileCanvas(
-      img,
-      cacheKey,
-      tileSz,
-      assetMeta?.dominantHex || "#1A1816",
-    );
-    pat = tileCanvas ? ctx.createPattern(tileCanvas, "repeat") : null;
-    tileCache.set(patCacheKey, pat);
+    let cachedPat = tileCache.get(patCacheKey);
+    if (cachedPat === undefined) {
+      const img = getProcessedTexture(rawImg, url, first.recolor, assetMeta, 512);
+      const tileCanvas = getOrCreateTerrainTileCanvas(
+        img,
+        cacheKey,
+        tileSz,
+        assetMeta?.dominantHex || "#1A1816",
+      );
+      cachedPat = tileCanvas ? ctx.createPattern(tileCanvas, "repeat") : null;
+      tileCache.set(patCacheKey, cachedPat);
+    }
+    if (!cachedPat) return;
+    pat = cachedPat;
   }
-  if (!pat) return;
 
   const scratch = ensureTerrainScratch(bw, bh);
   if (!scratch) return;
@@ -647,16 +946,18 @@ export function drawUnifiedTerrainGroup(
   maskCtx.lineCap = "round";
   maskCtx.lineJoin = "round";
 
-  for (const s of strokes) {
+  for (let si = 0; si < strokes.length; si++) {
+    const s = strokes[si];
     if (s.points.length === 0) continue;
 
     // Crisp vector area fill (Smart Wall Flood Fill, Rectangle Fill, Polygon Fill, or Closed Room Fill)
     if (s.shape === "polygon") {
-      if (s.points.length < 3) continue;
+      const polyPts = resolvedPolys[si];
+      if (!polyPts || polyPts.length < 3) continue;
       maskCtx.beginPath();
-      maskCtx.moveTo(s.points[0].x * ppc - bx, s.points[0].y * ppc - by);
-      for (let i = 1; i < s.points.length; i++) {
-        maskCtx.lineTo(s.points[i].x * ppc - bx, s.points[i].y * ppc - by);
+      maskCtx.moveTo(polyPts[0].x * ppc - bx, polyPts[0].y * ppc - by);
+      for (let i = 1; i < polyPts.length; i++) {
+        maskCtx.lineTo(polyPts[i].x * ppc - bx, polyPts[i].y * ppc - by);
       }
       maskCtx.closePath();
       if (s.holes) {
@@ -684,8 +985,6 @@ export function drawUnifiedTerrainGroup(
       continue;
     }
 
-    // Draw smooth connected capsules for continuous strokes (and adjacent points in a room)
-    // without accidentally bridging disconnected rooms in preset dot grids!
     maskCtx.beginPath();
     let penX = s.points[0].x * ppc - bx;
     let penY = s.points[0].y * ppc - by;
@@ -699,7 +998,6 @@ export function drawUnifiedTerrainGroup(
       if (d <= maxConnectDist) {
         maskCtx.lineTo(nx, ny);
       } else {
-        // Finish previous sub-run (add dot if it was a single isolated point)
         maskCtx.lineTo(penX + 0.01, penY);
         maskCtx.moveTo(nx, ny);
       }
@@ -711,17 +1009,13 @@ export function drawUnifiedTerrainGroup(
   }
   maskCtx.restore();
 
-  // 2. Apply ONE unified Gaussian feather to the combined silhouette, then mask the
-  //    world-space-locked repeating terrain texture cleanly through it (texture stays 100% crisp!)
-  const rotDeg = first.rotationDeg ?? 0;
-  const slopeShade = first.slopeShade ?? 0;
+  // 2. Apply ONE unified Gaussian feather to the combined silhouette
   fillCtx.save();
   fillCtx.setTransform(1, 0, 0, 1, 0, 0);
   fillCtx.globalCompositeOperation = "source-over";
   fillCtx.filter = "none";
   fillCtx.clearRect(0, 0, bw, bh);
   if (effectiveBlur >= 4 && (bw > 320 || bh > 320)) {
-    // 8x faster half-res alpha-mask Gaussian feather (upscaled smoothly while texture remains 100% crisp full-res!)
     const hw = Math.max(8, Math.ceil(bw * 0.5));
     const hh = Math.max(8, Math.ceil(bh * 0.5));
     if (!_terrainBlurHalfCanvas) _terrainBlurHalfCanvas = document.createElement("canvas");
@@ -750,15 +1044,29 @@ export function drawUnifiedTerrainGroup(
     fillCtx.drawImage(maskCanvas, 0, 0, bw, bh, 0, 0, bw, bh);
     fillCtx.filter = "none";
   }
+
+  if (isErase) {
+    fillCtx.restore();
+    // Subtractive erase pass onto the offscreen layer buffer (never punches through lower layers!)
+    ctx.save();
+    ctx.globalCompositeOperation = "destination-out";
+    ctx.globalAlpha = first.opacity;
+    ctx.drawImage(fillCanvas, 0, 0, bw, bh, bx, by, bw, bh);
+    ctx.restore();
+    return;
+  }
+
+  const rotDeg = first.rotationDeg ?? 0;
+  const slopeShade = first.slopeShade ?? 0;
   fillCtx.globalCompositeOperation = "source-in";
   fillCtx.translate(-bx, -by);
-  if (typeof DOMMatrix !== "undefined" && typeof pat.setTransform === "function") {
+  if (pat && typeof DOMMatrix !== "undefined" && typeof pat.setTransform === "function") {
     let m = new DOMMatrix();
     if (Math.abs(rotDeg) > 0.1) m = m.rotate(rotDeg);
     if (Math.abs(patRatio - 1) > 0.004) m = m.scale(patRatio, patRatio);
     pat.setTransform(m);
   }
-  fillCtx.fillStyle = pat;
+  fillCtx.fillStyle = pat!;
   fillCtx.fillRect(bx, by, bw, bh);
 
   // Optional directional uphill-rim-light -> downhill-depth-shadow slope gradient (anchored to unclipped bbox!)
@@ -771,7 +1079,6 @@ export function drawUnifiedTerrainGroup(
     const halfSpan = (Math.abs(Math.cos(rad)) * origBw + Math.abs(Math.sin(rad)) * origBh) * 0.5;
     const dx = Math.cos(rad) * halfSpan;
     const dy = Math.sin(rad) * halfSpan;
-    // Uphill = (cx - dx, cy - dy) bright lip; Downhill = (cx + dx, cy + dy) deep shadow toe
     const grad = fillCtx.createLinearGradient(cx - dx, cy - dy, cx + dx, cy + dy);
     grad.addColorStop(0, `rgba(255, 248, 228, ${Math.min(0.28, slopeShade * 0.34)})`);
     grad.addColorStop(0.26, "rgba(0, 0, 0, 0)");
@@ -782,7 +1089,7 @@ export function drawUnifiedTerrainGroup(
   }
   fillCtx.restore();
 
-  // 3. Blit seamless feathered terrain onto main canvas in ONE crisp pass
+  // 3. Blit seamless feathered terrain onto target canvas in ONE crisp pass
   ctx.save();
   ctx.globalAlpha = first.opacity * layerOpacity;
   ctx.drawImage(fillCanvas, 0, 0, bw, bh, bx, by, bw, bh);
@@ -803,39 +1110,74 @@ function drawTerrainLayer(
   const strokes = layer.terrainStrokes ?? [];
   if (strokes.length === 0) return;
 
-  // Group consecutive strokes that share the same terrain assetId, opacity & color grade so
-  // painting adds smoothly into existing terrain of the same material with ZERO internal rings!
+  const hasErase = strokes.some((s) => s.erase);
+  let targetCtx = ctx;
+  let targetLayerOpacity = layer.opacity;
+  let lx = 0;
+  let ly = 0;
+  let lw = 0;
+  let lh = 0;
+  let layerCanvas: HTMLCanvasElement | null = null;
+
+  if (hasErase) {
+    lx = clipPx ? Math.max(0, Math.floor(clipPx.x0)) : 0;
+    ly = clipPx ? Math.max(0, Math.floor(clipPx.y0)) : 0;
+    const lx2 = clipPx ? Math.min(Math.ceil(maxW), Math.ceil(clipPx.x1)) : Math.ceil(maxW);
+    const ly2 = clipPx ? Math.min(Math.ceil(maxH), Math.ceil(clipPx.y1)) : Math.ceil(maxH);
+    lw = lx2 - lx;
+    lh = ly2 - ly;
+    if (lw <= 0 || lh <= 0) return;
+    const buf = ensureTerrainLayerScratch(lw, lh);
+    if (!buf) return;
+    layerCanvas = buf.layerCanvas;
+    targetCtx = buf.layerCtx;
+    targetLayerOpacity = 1;
+    targetCtx.save();
+    targetCtx.setTransform(1, 0, 0, 1, 0, 0);
+    targetCtx.globalCompositeOperation = "source-over";
+    targetCtx.globalAlpha = 1;
+    targetCtx.clearRect(0, 0, lw, lh);
+    targetCtx.translate(-lx, -ly);
+  }
+
+  // Group consecutive strokes sharing the same erase flag, material, scale, opacity & color grade
   let i = 0;
   while (i < strokes.length) {
     const base = strokes[i];
-    const baseKey = getRecolorCacheKey(
-      resolveAssetUrl(base.assetId, assetLookup),
-      base.recolor,
-      assetLookup.get(base.assetId),
-    );
+    const baseErase = Boolean(base.erase);
+    const baseKey = baseErase
+      ? "__erase__"
+      : getRecolorCacheKey(
+          resolveAssetUrl(base.assetId, assetLookup),
+          base.recolor,
+          assetLookup.get(base.assetId),
+        );
     const group: TerrainStroke[] = [base];
     let j = i + 1;
     while (
       j < strokes.length &&
-      strokes[j].assetId === base.assetId &&
+      Boolean(strokes[j].erase) === baseErase &&
+      (baseErase || strokes[j].assetId === base.assetId) &&
       Math.abs(strokes[j].opacity - base.opacity) < 0.01 &&
       Math.abs(strokes[j].softness - base.softness) < 0.02 &&
-      Math.abs((strokes[j].rotationDeg ?? 0) - (base.rotationDeg ?? 0)) < 0.5 &&
-      Math.abs((strokes[j].slopeShade ?? 0) - (base.slopeShade ?? 0)) < 0.02 &&
-      getRecolorCacheKey(
-        resolveAssetUrl(strokes[j].assetId, assetLookup),
-        strokes[j].recolor,
-        assetLookup.get(strokes[j].assetId),
-      ) === baseKey
+      (baseErase ||
+        (Math.abs((strokes[j].rotationDeg ?? 0) - (base.rotationDeg ?? 0)) < 0.5 &&
+          Math.abs((strokes[j].slopeShade ?? 0) - (base.slopeShade ?? 0)) < 0.02 &&
+          Math.abs((strokes[j].textureScale ?? 1) - (base.textureScale ?? 1)) < 0.01 &&
+          getRecolorCacheKey(
+            resolveAssetUrl(strokes[j].assetId, assetLookup),
+            strokes[j].recolor,
+            assetLookup.get(strokes[j].assetId),
+          ) === baseKey))
     ) {
       group.push(strokes[j]);
       j++;
     }
     drawUnifiedTerrainGroup(
-      ctx,
+      targetCtx,
       group,
       ppc,
-      layer.opacity,
+      targetLayerOpacity,
       assetLookup,
       tileCache,
       maxW,
@@ -844,6 +1186,14 @@ function drawTerrainLayer(
       interactive,
     );
     i = j;
+  }
+
+  if (hasErase && layerCanvas) {
+    targetCtx.restore();
+    ctx.save();
+    ctx.globalAlpha = layer.opacity;
+    ctx.drawImage(layerCanvas, 0, 0, lw, lh, lx, ly, lw, lh);
+    ctx.restore();
   }
 }
 
@@ -1855,6 +2205,12 @@ function computeLightmapSignature(
       wallHash = (Math.imul(wallHash, 31) + Math.round(w.points[j].x * 20)) | 0;
       wallHash = (Math.imul(wallHash, 31) + Math.round(w.points[j].y * 20)) | 0;
     }
+    if (w.segmentCurves && w.segmentCurves.length > 0) {
+      for (let j = 0; j < w.segmentCurves.length; j++) {
+        const sc = w.segmentCurves[j];
+        wallHash = (Math.imul(wallHash, 31) + (typeof sc === "number" ? Math.round(sc * 40) : 0)) | 0;
+      }
+    }
   }
   parts.push(`W:${wallHash}`);
   for (let i = 0; i < portals.length; i++) {
@@ -2143,8 +2499,11 @@ function drawVttAndDmOverlays(
       }
       for (const wall of layer.walls ?? []) {
         if (!wall.blocksLight || wall.points.length < 2) continue;
-        if (!isPointBoxVisible(wall.points, vp, 1.0)) continue;
-        const pts = wall.curved ? sampleCatmullRom(wall.points, 6, wall.closed) : wall.points;
+        const maxBulge = wall.segmentCurves
+          ? wall.segmentCurves.reduce<number>((m, v) => Math.max(m, Math.abs(v ?? 0)), 0)
+          : 0;
+        if (!isPointBoxVisible(wall.points, vp, 1.0 + maxBulge)) continue;
+        const pts = sampleWallPoints(wall, 6);
         ctx.strokeStyle = "#22D3EE";
         ctx.lineWidth = Math.max(2, ppc * 0.06);
         ctx.beginPath();
@@ -2657,8 +3016,19 @@ export function renderMapScene(
     activeLevel.kind !== "ground" &&
     activeLevel.kind !== "underground";
 
+  const isInteractiveSoloNonGround =
+    Boolean(opts.isolateActiveFloor) &&
+    !opts.isolatedLevelId &&
+    activeLevel !== undefined &&
+    activeLevel.kind !== "ground" &&
+    activeLevel.kind !== "underground";
+
   if (isTransparentIsolated) {
     ctx.clearRect(fillX0, fillY0, fillW, fillH);
+  } else if (isInteractiveSoloNonGround) {
+    // Clean dark blueprint slate backdrop when solo-isolating an upper/roof/sky floor for editing
+    ctx.fillStyle = "#0C1018";
+    ctx.fillRect(fillX0, fillY0, fillW, fillH);
   } else if (activeLevel?.kind === "underground") {
     ctx.fillStyle = "#090D14";
     ctx.fillRect(fillX0, fillY0, fillW, fillH);
@@ -2669,6 +3039,26 @@ export function renderMapScene(
       ctx.globalAlpha = 0.22;
       drawTerrainBase(ctx, fullW, fullH, ppc, stoneImg, stoneUrl, clipPx);
       ctx.restore();
+    }
+  } else if (doc.canvas.baseTerrainTransparent) {
+    ctx.clearRect(fillX0, fillY0, fillW, fillH);
+    // In interactive viewport editing, draw a sleek dark transparency checkerboard; exports stay 100% pure alpha!
+    if (vp) {
+      const sq = Math.max(8, ppc * 0.5);
+      const col0 = Math.floor(fillX0 / sq);
+      const row0 = Math.floor(fillY0 / sq);
+      const col1 = Math.ceil((fillX0 + fillW) / sq);
+      const row1 = Math.ceil((fillY0 + fillH) / sq);
+      ctx.fillStyle = "#0E131D";
+      ctx.fillRect(fillX0, fillY0, fillW, fillH);
+      ctx.fillStyle = "#141C2B";
+      for (let r = row0; r < row1; r++) {
+        for (let c = col0; c < col1; c++) {
+          if (((r + c) & 1) === 0) {
+            ctx.fillRect(c * sq, r * sq, sq, sq);
+          }
+        }
+      }
     }
   } else {
     const baseUrl = resolveAssetUrl(doc.canvas.baseTerrainAssetId, assetLookup);
@@ -2701,8 +3091,9 @@ export function renderMapScene(
   const visibleLayers = doc.layers.filter((layer) => {
     if (opts.isolatedLevelId) {
       if (layer.levelId !== opts.isolatedLevelId) return false;
-    } else if (!layer.visible) {
-      return false;
+    } else {
+      if (!layer.visible) return false;
+      if (opts.isolateActiveFloor && layer.levelId !== doc.activeLevelId) return false;
     }
     if (layer.dmOnly && !opts.dmView) return false;
     return true;
@@ -2753,7 +3144,11 @@ export function renderMapScene(
         if (lyr.kind === "terrain" && (lyr.terrainStrokes?.length ?? 0) > 0) {
           const isTopOverlayDeck = lyr.levelId === "lvl-sky-upper";
           const visiblePolys = (lyr.terrainStrokes ?? []).filter(
-            (s) => s.shape === "polygon" && s.points.length >= 3 && isPointBoxVisible(s.points, vp, 2.5),
+            (s) =>
+              !s.erase &&
+              s.shape === "polygon" &&
+              s.points.length >= 3 &&
+              isPointBoxVisible(s.points, vp, 2.5),
           );
           if (visiblePolys.length === 0) continue;
           outCtx.save();
@@ -2807,6 +3202,7 @@ export function renderMapScene(
         if (seenWaterInBand && (layer.terrainStrokes?.length ?? 0) > 0) {
           const elevatedPolys = (layer.terrainStrokes ?? []).filter(
             (s) =>
+              !s.erase &&
               s.shape === "polygon" &&
               s.points.length >= 3 &&
               s.softness < 0.08 &&
@@ -3285,44 +3681,88 @@ export function renderMapScene(
       const layerPortals = layer.portals ?? [];
       for (const wall of layer.walls ?? []) {
         allWalls.push(wall);
-        if (!isPointBoxVisible(wall.points, vp, wall.thicknessCells + 1.2)) continue;
+        const maxBulge = wall.segmentCurves
+          ? wall.segmentCurves.reduce<number>((m, v) => Math.max(m, Math.abs(v ?? 0)), 0)
+          : 0;
+        if (!isPointBoxVisible(wall.points, vp, wall.thicknessCells + 1.2 + maxBulge)) continue;
         const carvedSegments = cutWallSegmentsForPortals(wall, layerPortals);
+        if (carvedSegments.length === 0) continue;
+
+        // Group contiguous uninterrupted carved segments into continuous runs so
+        // 90° Box corners, Hex/Octagon turrets & L-walls get seamless mitered joins
+        // while portal cutouts keep razor-sharp square door/window jambs!
+        const runs: Array<{ pts: Point2D[]; closed: boolean }> = [];
+        for (const [sa, sb] of carvedSegments) {
+          const curRun = runs[runs.length - 1];
+          if (curRun) {
+            const last = curRun.pts[curRun.pts.length - 1];
+            if (Math.hypot(sa.x - last.x, sa.y - last.y) < 1e-3) {
+              curRun.pts.push(sb);
+              continue;
+            }
+          }
+          runs.push({ pts: [sa, sb], closed: false });
+        }
+        // If a closed wall had a portal cut mid-perimeter, stitch the wrap-around run cleanly
+        if (wall.closed && runs.length > 1) {
+          const firstPt = runs[0].pts[0];
+          const lastRun = runs[runs.length - 1];
+          const lastPt = lastRun.pts[lastRun.pts.length - 1];
+          if (Math.hypot(firstPt.x - lastPt.x, firstPt.y - lastPt.y) < 1e-3) {
+            lastRun.pts.push(...runs[0].pts.slice(1));
+            runs.shift();
+          }
+        }
+        // Mark single uninterrupted closed loop cleanly so vertex 0 also gets a seamless corner join
+        if (wall.closed && runs.length === 1 && runs[0].pts.length >= 4) {
+          const r = runs[0];
+          const first = r.pts[0];
+          const last = r.pts[r.pts.length - 1];
+          if (Math.hypot(first.x - last.x, first.y - last.y) < 1e-3) {
+            r.pts.pop();
+            r.closed = true;
+          }
+        }
+
         const wallUrl = resolveAssetUrl(wall.assetId, assetLookup);
         const rawWallImg = texturePool.get(wallUrl);
         const img = rawWallImg
           ? getProcessedTexture(rawWallImg, wallUrl, wall.recolor, assetLookup.get(wall.assetId))
           : null;
+        const stripW = wall.thicknessCells * ppc * 2.1;
+
         ctx.save();
         ctx.globalAlpha = layer.opacity;
-        // Fast single-pass vector contact drop shadow under carved wall runs
-        if (carvedSegments.length > 0) {
-          ctx.save();
-          ctx.translate(Math.max(2, ppc * 0.08), Math.max(3, ppc * 0.12));
-          ctx.strokeStyle = "rgba(5, 8, 15, 0.52)";
-          ctx.lineWidth = wall.thicknessCells * ppc * 1.9;
-          ctx.lineCap = "butt";
-          ctx.lineJoin = "miter";
-          ctx.beginPath();
-          for (const [sa, sb] of carvedSegments) {
-            ctx.moveTo(sa.x * ppc, sa.y * ppc);
-            ctx.lineTo(sb.x * ppc, sb.y * ppc);
+        // Fast single-pass vector contact drop shadow with true mitered corners across each run
+        ctx.save();
+        ctx.translate(Math.max(2, ppc * 0.08), Math.max(3, ppc * 0.12));
+        ctx.strokeStyle = "rgba(5, 8, 15, 0.52)";
+        ctx.lineWidth = wall.thicknessCells * ppc * 1.9;
+        ctx.lineCap = "butt";
+        ctx.lineJoin = "miter";
+        ctx.miterLimit = 2.6;
+        ctx.beginPath();
+        for (const run of runs) {
+          if (run.pts.length < 2) continue;
+          ctx.moveTo(run.pts[0].x * ppc, run.pts[0].y * ppc);
+          for (let pi = 1; pi < run.pts.length; pi++) {
+            ctx.lineTo(run.pts[pi].x * ppc, run.pts[pi].y * ppc);
           }
-          ctx.stroke();
-          ctx.restore();
+          if (run.closed) ctx.closePath();
         }
-        // Draw each carved masonry run cleanly around portal cutouts
-        for (const [sa, sb] of carvedSegments) {
-          drawTexturedStrip(
+        ctx.stroke();
+        ctx.restore();
+
+        // Draw each uninterrupted masonry run with true picture-frame mitered trapezoid corners!
+        for (const run of runs) {
+          drawMiteredWallRun(
             ctx,
             img,
-            [sa, sb],
-            wall.thicknessCells * ppc * 2.1,
+            run.pts,
+            stripW,
             ppc,
-            false,
-            false,
+            run.closed,
             "#475569",
-            false,
-            false,
             clipPx,
           );
         }
@@ -3586,30 +4026,9 @@ export function renderMapScene(
     drawGridOverlay(ctx, doc, ppc, vp);
   }
 
-  // 4b. Onion-Skin Architectural Blueprint of Adjacent Floor (align stairs, hatches, manholes & load-bearing walls!)
+  // 4b. Onion-Skin Architectural Blueprint of Adjacent Floor (align stairs, hatches, manholes, roofs & load-bearing walls!)
   if (opts.showOnionSkin && activeLevel) {
-    let refLevel = null;
-    if (activeLevel.kind === "sky") {
-      const skySorted = [...doc.levels]
-        .filter((lv) => lv.kind === "sky")
-        .sort((a, b) => a.elevationFt - b.elevationFt);
-      const sIdx = skySorted.findIndex((lv) => lv.id === activeLevel.id);
-      if (sIdx > 0) refLevel = skySorted[sIdx - 1];
-      else if (sIdx >= 0 && sIdx + 1 < skySorted.length) refLevel = skySorted[sIdx + 1];
-    } else {
-      const nonRoof = [...doc.levels]
-        .filter((lv) => lv.kind !== "roof" && lv.kind !== "sky")
-        .sort((a, b) => a.elevationFt - b.elevationFt);
-      const idx = nonRoof.findIndex((lv) => lv.id === activeLevel.id);
-      // Underground looks UP at the floor above; Upper looks DOWN at the floor below; Ground peeks down at B1
-      if (activeLevel.kind === "underground" && idx >= 0 && idx + 1 < nonRoof.length) {
-        refLevel = nonRoof[idx + 1];
-      } else if (activeLevel.kind === "upper" && idx > 0) {
-        refLevel = nonRoof[idx - 1];
-      } else if (activeLevel.kind === "ground" && idx > 0) {
-        refLevel = nonRoof[idx - 1];
-      }
-    }
+    const refLevel = getOnionSkinReferenceLevel(doc);
 
     if (refLevel) {
       const refLayers = doc.layers.filter((l) => l.levelId === refLevel!.id);
@@ -3621,7 +4040,7 @@ export function renderMapScene(
 
       for (const rl of refLayers) {
         for (const w of rl.walls ?? []) {
-          const pts = w.curved && w.points.length >= 3 ? sampleCatmullRom(w.points, 8, w.closed) : w.points;
+          const pts = sampleWallPoints(w, 8);
           if (pts.length < 2) continue;
           ctx.beginPath();
           pts.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x * ppc, p.y * ppc) : ctx.lineTo(p.x * ppc, p.y * ppc)));

@@ -94,7 +94,7 @@ jobs:
       - name: Create or update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: ${{ contains(github.ref_name, '-beta') && format('Dice Chaos Maps {0} (Public Beta)', github.ref_name) || format('Dice Chaos Maps {0}', github.ref_name) }}
+          name: ${{ contains(github.ref_name, '-beta') && format('Dice Chaos Compass {0} (Public Beta)', github.ref_name) || format('Dice Chaos Compass {0}', github.ref_name) }}
           body_path: RELEASE_NOTES.md
           prerelease: ${{ contains(github.ref_name, '-') }}
           make_latest: ${{ !contains(github.ref_name, '-') }}
@@ -169,15 +169,15 @@ jobs:
 
           $nsisExe = Get-ChildItem -Path "src-tauri/target/release/bundle/nsis" -Filter "*-setup.exe" | Select-Object -First 1
           if (-not $nsisExe) { throw "NSIS setup.exe not found!" }
-          Copy-Item $nsisExe.FullName "release/dice-chaos-maps-$ver-setup.exe"
+          Copy-Item $nsisExe.FullName "release/dice-chaos-compass-$ver-setup.exe"
 
           $portableDir = "release/portable-staging"
           New-Item -ItemType Directory -Force -Path "$portableDir/assets" | Out-Null
-          Copy-Item "src-tauri/target/release/dice-chaos-maps.exe" "$portableDir/dice-chaos-maps.exe"
+          Copy-Item "src-tauri/target/release/dice-chaos-compass.exe" "$portableDir/dice-chaos-compass.exe"
           foreach ($pack in @("starter-cc0", "core-fantasy-cc0", "modular-suite-cc0", "world-atlas-cc0")) {
             Copy-Item -Recurse "public/assets/$pack" "$portableDir/assets/$pack"
           }
-          tar.exe -a -c -f "release/dice-chaos-maps-$ver-win-x64-portable.zip" -C "$portableDir" .
+          tar.exe -a -c -f "release/dice-chaos-compass-$ver-win-x64-portable.zip" -C "$portableDir" .
           Remove-Item -Recurse -Force "$portableDir"
 
           $lines = @()
@@ -199,8 +199,8 @@ jobs:
           mkdir -p release
           DMG_SRC=$(find "src-tauri/target/${{ matrix.rust_target }}/release/bundle/dmg" -maxdepth 1 -name '*.dmg' | head -n 1)
           if [ -z "$DMG_SRC" ]; then echo "DMG not found!"; exit 1; fi
-          cp "$DMG_SRC" "release/dice-chaos-maps-${VER}-${ARCH_TAG}.dmg"
-          (cd release && shasum -a 256 "dice-chaos-maps-${VER}-${ARCH_TAG}.dmg" > "SHA256SUMS-macOS-${ARCH_TAG}.txt")
+          cp "$DMG_SRC" "release/dice-chaos-compass-${VER}-${ARCH_TAG}.dmg"
+          (cd release && shasum -a 256 "dice-chaos-compass-${VER}-${ARCH_TAG}.dmg" > "SHA256SUMS-macOS-${ARCH_TAG}.txt")
 
       - name: Build Linux AppImage & DEB
         if: matrix.platform == 'linux'
@@ -212,14 +212,14 @@ jobs:
           APPIMAGE_SRC=$(find "src-tauri/target/release/bundle/appimage" -maxdepth 1 -name '*.AppImage' | head -n 1)
           DEB_SRC=$(find "src-tauri/target/release/bundle/deb" -maxdepth 1 -name '*.deb' | head -n 1)
           if [ -z "$APPIMAGE_SRC" ] || [ -z "$DEB_SRC" ]; then echo "Linux bundle missing!"; exit 1; fi
-          cp "$APPIMAGE_SRC" "release/dice-chaos-maps-${VER}.AppImage"
-          cp "$DEB_SRC" "release/dice-chaos-maps_${VER}_amd64.deb"
-          (cd release && sha256sum "dice-chaos-maps-${VER}.AppImage" "dice-chaos-maps_${VER}_amd64.deb" > SHA256SUMS-Linux.txt)
+          cp "$APPIMAGE_SRC" "release/dice-chaos-compass-${VER}.AppImage"
+          cp "$DEB_SRC" "release/dice-chaos-compass_${VER}_amd64.deb"
+          (cd release && sha256sum "dice-chaos-compass-${VER}.AppImage" "dice-chaos-compass_${VER}_amd64.deb" > SHA256SUMS-Linux.txt)
 
       - name: Upload release artifacts
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            release/dice-chaos-maps-*
-            release/dice-chaos-maps_*
+            release/dice-chaos-compass-*
+            release/dice-chaos-compass_*
             release/SHA256SUMS-*.txt

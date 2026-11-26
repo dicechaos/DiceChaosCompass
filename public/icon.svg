@@ -1,34 +1,105 @@
 <svg width="256" height="256" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <radialGradient id="bgGlow" cx="50%" cy="46%" r="54%">
-      <stop offset="0%" stop-color="#282342" />
-      <stop offset="65%" stop-color="#141824" />
-      <stop offset="100%" stop-color="#0C0F17" />
+      <stop offset="0%" stop-color="#2E2554" />
+      <stop offset="56%" stop-color="#141826" />
+      <stop offset="100%" stop-color="#0A0D15" />
     </radialGradient>
-    <linearGradient id="goldRim" x1="12%" y1="8%" x2="88%" y2="92%">
-      <stop offset="0%" stop-color="#F7CF6E" />
-      <stop offset="50%" stop-color="#E5A93C" />
-      <stop offset="100%" stop-color="#C6811E" />
+    <radialGradient id="coreHalo" cx="50%" cy="50%" r="38%">
+      <stop offset="0%" stop-color="#E5A93C" stop-opacity="0.30" />
+      <stop offset="55%" stop-color="#8B5CF6" stop-opacity="0.18" />
+      <stop offset="100%" stop-color="#8B5CF6" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="goldBright" x1="15%" y1="5%" x2="85%" y2="95%">
+      <stop offset="0%" stop-color="#FFEFA8" />
+      <stop offset="48%" stop-color="#F2BD48" />
+      <stop offset="100%" stop-color="#CC821C" />
     </linearGradient>
-    <linearGradient id="arcaneFace" x1="50%" y1="14%" x2="50%" y2="70%">
-      <stop offset="0%" stop-color="#EDE4FF" />
-      <stop offset="100%" stop-color="#C4B5FD" />
+    <linearGradient id="goldShade" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#B06D16" />
+      <stop offset="100%" stop-color="#70400A" />
+    </linearGradient>
+    <linearGradient id="northNeedle" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#FFFBE0" />
+      <stop offset="48%" stop-color="#F8D264" />
+      <stop offset="100%" stop-color="#DC9524" />
+    </linearGradient>
+    <linearGradient id="arcaneLight" x1="15%" y1="15%" x2="85%" y2="85%">
+      <stop offset="0%" stop-color="#DDD0FF" />
+      <stop offset="100%" stop-color="#A78BFA" />
+    </linearGradient>
+    <linearGradient id="arcaneShade" x1="15%" y1="15%" x2="85%" y2="85%">
+      <stop offset="0%" stop-color="#7C56D6" />
+      <stop offset="100%" stop-color="#4A2C92" />
     </linearGradient>
   </defs>
-  <rect x="2" y="2" width="60" height="60" rx="14" fill="url(#bgGlow)" stroke="#2A3147" stroke-width="1.5" />
-  <circle cx="32" cy="32" r="22" stroke="#E5A93C" stroke-opacity="0.16" stroke-width="1" stroke-dasharray="2.5 2.5" />
-  <polygon points="32,7 54.5,19.8 54.5,44.2 32,57 9.5,44.2 9.5,19.8" fill="#1C2233" stroke="url(#goldRim)" stroke-width="2.6" stroke-linejoin="round" />
-  <polygon points="32,17.5 44.5,39.2 19.5,39.2" fill="url(#arcaneFace)" fill-opacity="0.92" stroke="url(#goldRim)" stroke-width="2.0" stroke-linejoin="round" />
-  <line x1="32" y1="7" x2="32" y2="17.5" stroke="url(#goldRim)" stroke-width="1.9" stroke-linecap="round" />
-  <line x1="54.5" y1="19.8" x2="44.5" y2="39.2" stroke="url(#goldRim)" stroke-width="1.7" stroke-linecap="round" />
-  <line x1="9.5" y1="19.8" x2="19.5" y2="39.2" stroke="url(#goldRim)" stroke-width="1.7" stroke-linecap="round" />
-  <line x1="54.5" y1="19.8" x2="32" y2="17.5" stroke="url(#goldRim)" stroke-width="1.6" stroke-linecap="round" />
-  <line x1="9.5" y1="19.8" x2="32" y2="17.5" stroke="url(#goldRim)" stroke-width="1.6" stroke-linecap="round" />
-  <line x1="54.5" y1="44.2" x2="44.5" y2="39.2" stroke="url(#goldRim)" stroke-width="1.7" stroke-linecap="round" />
-  <line x1="9.5" y1="44.2" x2="19.5" y2="39.2" stroke="url(#goldRim)" stroke-width="1.7" stroke-linecap="round" />
-  <line x1="32" y1="57" x2="44.5" y2="39.2" stroke="url(#goldRim)" stroke-width="1.6" stroke-linecap="round" />
-  <line x1="32" y1="57" x2="19.5" y2="39.2" stroke="url(#goldRim)" stroke-width="1.6" stroke-linecap="round" />
-  <!-- Subtle cartographer's compass crosshairs inside central arcane triangle -->
-  <polygon points="32,23.5 34.1,30.2 39.5,32.5 34.1,34.4 32,37.8 29.9,34.4 24.5,32.5 29.9,30.2" fill="#3B2A6B" fill-opacity="0.72" />
-  <circle cx="32" cy="32.2" r="1.5" fill="#E5A93C" />
+
+  <!-- Rounded dark-sapphire app badge -->
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="url(#bgGlow)" stroke="#2F3854" stroke-width="1.5" />
+  <circle cx="32" cy="32" r="26" fill="url(#coreHalo)" />
+
+  <!-- Subtle outer brass cartographer's degree bezel -->
+  <circle cx="32" cy="32" r="24.5" stroke="#D99B30" stroke-opacity="0.34" stroke-width="0.95" />
+  <circle cx="32" cy="32" r="22.1" stroke="#D99B30" stroke-opacity="0.18" stroke-width="0.65" stroke-dasharray="1.3 2.55" />
+
+  <!-- D20 icosahedron housing (crisp gold rim with understated crystalline facets) -->
+  <polygon
+    points="32,8.5 52.4,20.25 52.4,43.75 32,55.5 11.6,43.75 11.6,20.25"
+    fill="#151A2A"
+    fill-opacity="0.94"
+    stroke="url(#goldBright)"
+    stroke-width="2.1"
+    stroke-linejoin="round"
+  />
+  <!-- Subtle D20 facet geometry -->
+  <polygon
+    points="32,16.8 45.2,39.6 18.8,39.6"
+    fill="#242046"
+    fill-opacity="0.72"
+    stroke="#D4962A"
+    stroke-opacity="0.30"
+    stroke-width="0.95"
+    stroke-linejoin="round"
+  />
+  <g stroke="#D4962A" stroke-opacity="0.24" stroke-width="0.85" stroke-linecap="round">
+    <line x1="52.4" y1="20.25" x2="32" y2="16.8" />
+    <line x1="11.6" y1="20.25" x2="32" y2="16.8" />
+    <line x1="52.4" y1="20.25" x2="45.2" y2="39.6" />
+    <line x1="11.6" y1="20.25" x2="18.8" y2="39.6" />
+    <line x1="52.4" y1="43.75" x2="45.2" y2="39.6" />
+    <line x1="11.6" y1="43.75" x2="18.8" y2="39.6" />
+    <line x1="32" y1="55.5" x2="45.2" y2="39.6" />
+    <line x1="32" y1="55.5" x2="18.8" y2="39.6" />
+  </g>
+
+  <!-- Delicate inner brass compass dial ring -->
+  <circle cx="32" cy="32" r="11.2" stroke="#D99B30" stroke-opacity="0.34" stroke-width="0.85" />
+
+  <!-- 4 Diagonal Intercardinal Compass Points (Arcane Violet Beveled) -->
+  <polygon points="32,32 45.2,18.8 35.6,32" fill="url(#arcaneLight)" />
+  <polygon points="32,32 45.2,18.8 32,28.4" fill="url(#arcaneShade)" />
+  <polygon points="32,32 45.2,45.2 32,35.6" fill="url(#arcaneLight)" />
+  <polygon points="32,32 45.2,45.2 35.6,32" fill="url(#arcaneShade)" />
+  <polygon points="32,32 18.8,45.2 28.4,32" fill="url(#arcaneLight)" />
+  <polygon points="32,32 18.8,45.2 32,35.6" fill="url(#arcaneShade)" />
+  <polygon points="32,32 18.8,18.8 32,28.4" fill="url(#arcaneLight)" />
+  <polygon points="32,32 18.8,18.8 28.4,32" fill="url(#arcaneShade)" />
+
+  <!-- 4 Cardinal Compass Needles (Classic Two-Tone Gilded Cartographic Bevels) -->
+  <!-- North Hero Needle -->
+  <polygon points="32,6.0 32,32 27.6,27.6" fill="url(#northNeedle)" />
+  <polygon points="32,6.0 36.4,27.6 32,32" fill="url(#goldShade)" />
+  <!-- South Needle -->
+  <polygon points="32,57.4 32,32 36.2,36.2" fill="url(#goldBright)" />
+  <polygon points="32,57.4 27.8,36.2 32,32" fill="url(#goldShade)" />
+  <!-- East Needle -->
+  <polygon points="56.6,32 32,32 36.2,27.8" fill="url(#goldBright)" />
+  <polygon points="56.6,32 36.2,36.2 32,32" fill="url(#goldShade)" />
+  <!-- West Needle -->
+  <polygon points="7.4,32 32,32 27.8,36.2" fill="url(#goldBright)" />
+  <polygon points="7.4,32 27.8,27.8 32,32" fill="url(#goldShade)" />
+
+  <!-- Center Compass Pivot Jewel -->
+  <circle cx="32" cy="32" r="4.2" fill="#121623" stroke="url(#goldBright)" stroke-width="1.5" />
+  <circle cx="32" cy="32" r="1.9" fill="#FFF4C4" />
 </svg>

@@ -37,7 +37,7 @@ describe("zipArchive", () => {
   it("packs nested folder paths into a valid PKWARE ZIP archive with local, central, and EOCD headers", async () => {
     const pngStub = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 1, 2, 3, 4]);
     const vttJson = new TextEncoder().encode(
-      JSON.stringify({ format: 0.3, repeated: "dice-chaos-maps ".repeat(60) }),
+      JSON.stringify({ format: 0.3, repeated: "dice-chaos-compass ".repeat(60) }),
     );
 
     const zip = await buildZipBytes([

@@ -1,4 +1,4 @@
-import { pointInPolygon, sampleCatmullRom } from "@/engine/geometry";
+import { pointInPolygon, sampleCatmullRom, sampleWallPoints } from "@/engine/geometry";
 import type { Point2D, WaterBodyKind, WaterRegion } from "@/types/map";
 
 export interface WaterBiomePreset {
@@ -1533,13 +1533,19 @@ export function buildRiverOutline(
   curved = true,
   organicRoughness = 0,
   seed = 17,
+  segmentCurves?: Array<number | null>,
 ): { outer: Point2D[]; holes: Point2D[][] } {
   if (centerline.length < 2) return { outer: [], holes: [] };
   const halfW = Math.max(0.35, widthCells * 0.5);
-  const sampled =
-    curved && centerline.length >= 2
-      ? sampleCatmullRom(centerline, 8, false)
-      : centerline;
+  const sampled = sampleWallPoints(
+    {
+      points: centerline,
+      closed: false,
+      curved,
+      segmentCurves,
+    },
+    8,
+  );
 
   let minX = Infinity;
   let minY = Infinity;
@@ -1622,10 +1628,13 @@ function computeOutlineSignature(region: WaterRegion): string {
   const pts = region.points
     .map((p) => `${Math.round(p.x * 1000)},${Math.round(p.y * 1000)}`)
     .join(";");
+  const curves = (region.segmentCurves ?? [])
+    .map((c) => (typeof c === "number" ? Math.round(c * 1000) : ""))
+    .join(",");
   const cuts = (region.cutouts ?? [])
     .map((c) => c.map((p) => `${Math.round(p.x * 1000)},${Math.round(p.y * 1000)}`).join(";"))
     .join("|");
-  return `${region.shape ?? "polygon"}:${region.kind}:${region.widthCells ?? 2.6}:${region.curved ?? ""}:${region.organicRoughness ?? 0}:${region.seed ?? 0}:${pts}#${cuts}`;
+  return `${region.shape ?? "polygon"}:${region.kind}:${region.widthCells ?? 2.6}:${region.curved ?? ""}:${curves}:${region.organicRoughness ?? 0}:${region.seed ?? 0}:${pts}#${cuts}`;
 }
 
 /**
@@ -1652,13 +1661,22 @@ export function computeWaterOutline(region: WaterRegion): {
       region.curved !== false,
       region.organicRoughness ?? 0,
       region.seed ?? 17,
+      region.segmentCurves,
     );
     outer = riverOutline.outer;
     riverHoles = riverOutline.holes;
   } else {
     if (region.points.length < 3) return { outer: [], holes: [] };
     const useCurve = region.curved ?? region.kind !== "chasm";
-    const sampled = useCurve ? sampleCatmullRom(region.points, 6, true) : region.points;
+    const sampled = sampleWallPoints(
+      {
+        points: region.points,
+        closed: true,
+        curved: useCurve,
+        segmentCurves: region.segmentCurves,
+      },
+      6,
+    );
     outer =
       (region.organicRoughness ?? 0) > 0.01
         ? perturbShoreline(sampled, region.organicRoughness ?? 0, region.seed ?? 31, true)

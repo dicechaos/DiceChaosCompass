@@ -178,7 +178,7 @@ export async function pickExportDirectory(): Promise<
   }
   try {
     const handle = await win.showDirectoryPicker({
-      id: "dice-chaos-maps-export",
+      id: "dice-chaos-compass-export",
       mode: "readwrite",
     });
     return { status: "picked", handle };

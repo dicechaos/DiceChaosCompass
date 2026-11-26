@@ -36,10 +36,28 @@ import {
   unbindFileHandle,
   writeJsonToHandle,
 } from "@/engine/fileSaveService";
-import { generateScatterPlacements } from "@/engine/geometry";
-import { findPreferredLayerForKind, getNextDefaultLayerName, toolToLayerKind, upgradeLegacyLayerName } from "@/engine/layerMeta";
+import {
+  computeDefaultWallEdgeBulge,
+  convertLegacyWallCurveToSegments,
+  generateScatterPlacements,
+  getWallSegmentCount,
+  normalizeWallSegmentCurves,
+} from "@/engine/geometry";
+import {
+  findPreferredLayerForKind,
+  getNextDefaultLayerName,
+  getOnionSkinReferenceLevel,
+  LAYER_KIND_STACK_ORDER,
+  toolToLayerKind,
+  upgradeLegacyLayerName,
+} from "@/engine/layerMeta";
 import { getRoofPreset } from "@/engine/roofEngine";
-import { makeClosedWallPolygon } from "@/engine/terrainFill";
+import {
+  isTerrainStrokeCoveredByFlood,
+  makeClosedWallPolygon,
+  makeRectPolygon,
+} from "@/engine/terrainFill";
+import { carveWallBreachAtArcLength, splitWallAtArcLength } from "@/engine/wallEngine";
 import {
   brushStrokeOverlapsWaterRegion,
   buildWaterBrushShape,
@@ -81,10 +99,15 @@ import {
   type SplinePath,
   type StampPlacementOrder,
   type StampRotateMode,
+  type TerrainEraseShape,
   type TerrainMode,
+  type TerrainReplaceScope,
   type TerrainStroke,
   type ToolId,
+  type WallDrawMode,
+  type WallPolygonShape,
   type WallSegment,
+  type WallSplitSubMode,
   type WaterBodyKind,
   type WaterDrawMode,
   type WaterRegion,
@@ -105,16 +128,29 @@ import {
   type WorldTrailStyle,
 } from "@/types/map";
 
-const PREFS_STORAGE_KEY = "dice-chaos-maps-prefs-v1";
-const SWATCHES_STORAGE_KEY = "dice-chaos-maps-swatches-v1";
-const OBJECT_TEMPLATES_STORAGE_KEY = "dice-chaos-maps-object-templates-v1";
-const AUTOSAVE_STORAGE_KEY = "dice-chaos-maps-autosave-v33";
+const PREFS_STORAGE_KEY = "dice-chaos-compass-prefs-v1";
+const LEGACY_PREFS_STORAGE_KEY = "dice-chaos-maps-prefs-v1";
+const SWATCHES_STORAGE_KEY = "dice-chaos-compass-swatches-v1";
+const LEGACY_SWATCHES_STORAGE_KEY = "dice-chaos-maps-swatches-v1";
+const RECENT_TERRAINS_STORAGE_KEY = "dice-chaos-compass-recent-terrains-v1";
+const LEGACY_RECENT_TERRAINS_STORAGE_KEY = "dice-chaos-maps-recent-terrains-v1";
+const OBJECT_TEMPLATES_STORAGE_KEY = "dice-chaos-compass-object-templates-v1";
+const LEGACY_OBJECT_TEMPLATES_STORAGE_KEY = "dice-chaos-maps-object-templates-v1";
+const AUTOSAVE_STORAGE_KEY = "dice-chaos-compass-autosave-v33";
+const LEGACY_AUTOSAVE_STORAGE_KEY = "dice-chaos-maps-autosave-v33";
 const MAX_HISTORY = 60;
+
+function readStorageWithLegacyFallback(primaryKey: string, legacyKey: string): string | null {
+  return localStorage.getItem(primaryKey) ?? localStorage.getItem(legacyKey);
+}
 
 function loadObjectTemplates(): ObjectTemplate[] {
   let saved: ObjectTemplate[] = [];
   try {
-    const raw = localStorage.getItem(OBJECT_TEMPLATES_STORAGE_KEY);
+    const raw = readStorageWithLegacyFallback(
+      OBJECT_TEMPLATES_STORAGE_KEY,
+      LEGACY_OBJECT_TEMPLATES_STORAGE_KEY,
+    );
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
@@ -232,7 +268,7 @@ const DEFAULT_CUSTOM_SWATCHES = ["#0EA5E9", "#E5A93C", "#DC2626", "#10B981", "#8
 
 function loadCustomSwatches(): string[] {
   try {
-    const raw = localStorage.getItem(SWATCHES_STORAGE_KEY);
+    const raw = readStorageWithLegacyFallback(SWATCHES_STORAGE_KEY, LEGACY_SWATCHES_STORAGE_KEY);
     if (raw) {
       const arr = JSON.parse(raw);
       if (Array.isArray(arr)) return arr.filter((x): x is string => typeof x === "string").slice(0, 18);
@@ -251,12 +287,62 @@ function saveCustomSwatches(swatches: string[]) {
   }
 }
 
+const DEFAULT_RECENT_TERRAINS = [
+  "terrain/berlin_wet_cobble.png",
+  "terrain/herringbone_parquet.png",
+  "core-fantasy/terrain/cavern_rough_stone.png",
+];
+
+function sanitizeTerrainAssetId(id: string): string {
+  const clean = id.trim();
+  if (clean === "terrain/parlor_herringbone.png") {
+    return "terrain/herringbone_parquet.png";
+  }
+  return clean;
+}
+
+function loadRecentTerrains(): string[] {
+  try {
+    const raw = readStorageWithLegacyFallback(RECENT_TERRAINS_STORAGE_KEY, LEGACY_RECENT_TERRAINS_STORAGE_KEY);
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) {
+        const dedup: string[] = [];
+        for (const item of arr) {
+          if (typeof item !== "string") continue;
+          const clean = sanitizeTerrainAssetId(item);
+          if (clean.length > 0 && !dedup.includes(clean)) {
+            dedup.push(clean);
+          }
+          if (dedup.length >= 3) break;
+        }
+        if (dedup.length > 0) return dedup;
+      }
+    }
+  } catch {
+    // Ignore storage read errors
+  }
+  return [...DEFAULT_RECENT_TERRAINS];
+}
+
+function pushRecentTerrain(list: string[], assetId: string): string[] {
+  const clean = sanitizeTerrainAssetId(assetId);
+  if (!clean) return list;
+  const next = [clean, ...list.map(sanitizeTerrainAssetId).filter((id) => id !== clean)].slice(0, 3);
+  try {
+    localStorage.setItem(RECENT_TERRAINS_STORAGE_KEY, JSON.stringify(next));
+  } catch {
+    // Ignore storage write errors
+  }
+  return next;
+}
+
 export type ColorableToolKey = "wall" | "path" | "portal" | "terrain" | "roof";
 export type EyedropperTarget = null | "stamp" | "selection" | ColorableToolKey;
 
 function loadPrefs(): AppPreferences {
   try {
-    const raw = localStorage.getItem(PREFS_STORAGE_KEY);
+    const raw = readStorageWithLegacyFallback(PREFS_STORAGE_KEY, LEGACY_PREFS_STORAGE_KEY);
     if (raw) {
       return { ...DEFAULT_PREFERENCES, ...JSON.parse(raw) };
     }
@@ -322,8 +408,13 @@ interface DocumentStoreState {
   showScatterOutlines: boolean;
   showOnionSkin: boolean; // 30% ghost blueprint of adjacent floor (great for aligning stairs, traps & basements!)
   filterLayersByFloor: boolean; // Keep Layers dock tidy on multi-story maps
+  isolateActiveFloor: boolean; // Solo active floor on canvas without mutating saved layer visibility
+  lockLowerFloors: boolean; // Prevent accidental clicks on lower-elevation floors while editing upper stories
+  soloLayerId: string | null; // Currently soloed layer ID (Alt+Click Eye)
+  soloVisibilityBackup: Record<string, boolean> | null; // Saved sibling visibilities while a layer is soloed
 
   selection: SelectionRef | null;
+  selectedWallSegmentIndex: number | null;
   copiedObject: ObjectStamp | null;
   copiedRecolor: RgbRecolor | null;
 
@@ -332,6 +423,8 @@ interface DocumentStoreState {
   activePathAssetId: string;
   activePortalAssetId: string;
   activeTerrainAssetId: string;
+  /** Up to 3 most recently used floor / terrain textures for 1-click room filling */
+  recentTerrainAssetIds: string[];
   activePortalWidthCells: number;
   activePortalClosed: boolean;
   activePortalSwingInvert: boolean;
@@ -377,6 +470,23 @@ interface DocumentStoreState {
   terrainFillSoftness: number;
   terrainRotationDeg: number;
   terrainSlopeShade: number;
+  terrainTextureScale: number;
+  terrainPolygonCurved: boolean;
+  terrainReplaceScope: TerrainReplaceScope;
+  terrainReplaceApplyStyle: boolean;
+  terrainEraseShape: TerrainEraseShape;
+  terrainFloodReplaceUnderneath: boolean;
+  terrainBarrierWalls: boolean;
+  terrainBarrierCaves: boolean;
+  terrainBarrierWater: boolean;
+  wallDrawMode: WallDrawMode;
+  wallPolygonShape: WallPolygonShape;
+  wallBoxRotationDeg: number;
+  wallSnapToWalls: boolean;
+  wallSplitSubMode: WallSplitSubMode;
+  wallBreachWidthCells: number;
+  wallCorridorWidthCells: number;
+  wallCorridorCapEnds: boolean;
   wallThicknessCells: number;
   wallCurved: boolean;
   wallBlocksLight: boolean;
@@ -575,17 +685,26 @@ interface DocumentStoreState {
   addSkyLevel: () => void;
   addLevelBelow: () => void;
   renameLevel: (levelId: string, name: string) => void;
+  updateLevelMeta: (
+    levelId: string,
+    partial: { name?: string; shortCode?: string; elevationFt?: number },
+  ) => void;
   deleteLevel: (levelId: string) => void;
   setShowOnionSkin: (show: boolean) => void;
   setFilterLayersByFloor: (filter: boolean) => void;
+  setIsolateActiveFloor: (isolate: boolean) => void;
+  setLockLowerFloors: (lock: boolean) => void;
+  toggleLevelLayersVisible: (levelId: string) => void;
+  toggleLevelLayersLocked: (levelId: string) => void;
   setFloorView: (mode: "ground" | "floor2" | "roofs") => void;
   setDmViewMode: (dm: boolean) => void;
   setShowVttOverlay: (show: boolean) => void;
   setShowScatterOutlines: (show: boolean) => void;
   setSelection: (sel: SelectionRef | null) => void;
+  setSelectedWallSegmentIndex: (index: number | null) => void;
   setZoomPercent: (pct: number) => void;
   setCursorGridPos: (pos: { x: number; y: number } | null) => void;
-  setBrushParams: (partial: Partial<Pick<DocumentStoreState, "terrainMode" | "caveDrawMode" | "caveThemeId" | "caveBrushRadiusCells" | "caveRoughness" | "caveWallThicknessCells" | "caveOuterRimCells" | "caveUndergroundFill" | "caveBlocksLight" | "caveFloorAssetId" | "caveWallAssetId" | "caveEntranceWidthCells" | "caveEntranceFadeCells" | "caveEntranceThreshold" | "caveEntranceMarkerLabel" | "caveEntranceShowMarker" | "caveEntranceDmOnly" | "waterDrawMode" | "waterPresetId" | "waterKind" | "waterTextureAssetId" | "waterDeepColorHex" | "waterShallowColorHex" | "waterRimColorHex" | "waterOpacity" | "waterBrushRadiusCells" | "waterRiverWidthCells" | "waterCurved" | "waterRippleIntensity" | "waterCausticsIntensity" | "waterDepthFeather" | "waterShoreBankIntensity" | "waterOrganicRoughness" | "activeWallAssetId" | "activePathAssetId" | "activePortalAssetId" | "activeTerrainAssetId" | "activePortalWidthCells" | "activePortalClosed" | "activePortalSwingInvert" | "activePortalHingeFlip" | "brushRadiusCells" | "brushOpacity" | "brushSoftness" | "terrainFillSoftness" | "terrainRotationDeg" | "terrainSlopeShade" | "wallThicknessCells" | "wallCurved" | "wallBlocksLight" | "wallAutoFillClosed" | "pathWidthCells" | "pathCurved" | "pathFlipSide" | "pathTaperEnds" | "roofDrawMode" | "roofStyle" | "roofPresetId" | "activeRoofAssetId" | "roofWidthCells" | "roofCurved" | "roofFlipSlope" | "roofRidgeOffset" | "roofHipInsetRatio" | "roofMansardCrownRatio" | "roofConeFacets" | "roofOverhangCells" | "roofRotateBoxRidge" | "roofSunAngleDeg" | "roofSlopeShade" | "roofRidgeCapStyle" | "roofRidgeCapWidthCells" | "roofEaveTrim" | "roofDropShadow" | "roofShadowDistanceCells" | "roofTextureScale" | "roofWeathering" | "roofOpacity" | "stampScale" | "stampRotationRad" | "stampFlipX" | "stampPlacementOrder" | "stampPaintDrag" | "stampPaintSpacingCells" | "stampAutoRotate" | "stampRotateMode" | "stampRotateSpreadDeg" | "stampRotateStepDeg" | "stampRandomFlipX" | "stampRandomJitter" | "stampColorJitter" | "activeLightColorHex" | "activeLightRadiusCells" | "activeLightIntensity" | "activeLightCastShadows" | "activeLightConeDeg" | "scatterPresetName" | "scatterAssetIds" | "scatterMinSpacing" | "scatterMinScale" | "scatterMaxScale" | "scatterAvoidWalls" | "scatterAvoidPaths" | "worldLandMode" | "worldLandRadiusCells" | "worldLandRoughness" | "worldLandStrength" | "worldBiomeTarget" | "worldBiomePattern" | "worldBiomeColorHex" | "worldBiomeRadiusCells" | "worldBiomeOpacity" | "worldBiomeSoftness" | "worldBiomeRoughness" | "worldRiverStartWidth" | "worldRiverEndWidth" | "worldRiverMeander" | "worldRiverMeanderScale" | "worldRiverCurved" | "worldRiverFadeMouth" | "worldRiverClipToLand" | "worldTrailStyle" | "worldTrailWidth" | "worldTrailColorHex" | "worldTrailDashScale" | "worldTrailCurved" | "worldTrailOpacity" | "worldRegionName" | "worldRegionFillHex" | "worldRegionFillOpacity" | "worldRegionBorderHex" | "worldRegionBorderWidth" | "worldRegionBorderStyle" | "worldRegionClipToLand" | "worldLabelText" | "worldLabelCategory" | "worldLabelFontSize" | "worldLabelCurveBend" | "worldLabelRotationDeg" | "worldLabelLetterSpacing" | "worldLabelBoxStyle" | "worldLabelBold" | "worldLabelItalic" | "worldLabelUppercase" | "worldLabelDmOnly" | "worldNameCulture" | "worldSymbolAvoidWater" | "worldSymbolSampleBiome" | "worldSymbolMultiVariant">>) => void;
+  setBrushParams: (partial: Partial<Pick<DocumentStoreState, "terrainMode" | "caveDrawMode" | "caveThemeId" | "caveBrushRadiusCells" | "caveRoughness" | "caveWallThicknessCells" | "caveOuterRimCells" | "caveUndergroundFill" | "caveBlocksLight" | "caveFloorAssetId" | "caveWallAssetId" | "caveEntranceWidthCells" | "caveEntranceFadeCells" | "caveEntranceThreshold" | "caveEntranceMarkerLabel" | "caveEntranceShowMarker" | "caveEntranceDmOnly" | "waterDrawMode" | "waterPresetId" | "waterKind" | "waterTextureAssetId" | "waterDeepColorHex" | "waterShallowColorHex" | "waterRimColorHex" | "waterOpacity" | "waterBrushRadiusCells" | "waterRiverWidthCells" | "waterCurved" | "waterRippleIntensity" | "waterCausticsIntensity" | "waterDepthFeather" | "waterShoreBankIntensity" | "waterOrganicRoughness" | "activeWallAssetId" | "activePathAssetId" | "activePortalAssetId" | "activeTerrainAssetId" | "activePortalWidthCells" | "activePortalClosed" | "activePortalSwingInvert" | "activePortalHingeFlip" | "brushRadiusCells" | "brushOpacity" | "brushSoftness" | "terrainFillSoftness" | "terrainRotationDeg" | "terrainSlopeShade" | "terrainTextureScale" | "terrainPolygonCurved" | "terrainReplaceScope" | "terrainReplaceApplyStyle" | "terrainEraseShape" | "terrainFloodReplaceUnderneath" | "terrainBarrierWalls" | "terrainBarrierCaves" | "terrainBarrierWater" | "wallDrawMode" | "wallPolygonShape" | "wallBoxRotationDeg" | "wallSnapToWalls" | "wallSplitSubMode" | "wallBreachWidthCells" | "wallCorridorWidthCells" | "wallCorridorCapEnds" | "wallThicknessCells" | "wallCurved" | "wallBlocksLight" | "wallAutoFillClosed" | "pathWidthCells" | "pathCurved" | "pathFlipSide" | "pathTaperEnds" | "roofDrawMode" | "roofStyle" | "roofPresetId" | "activeRoofAssetId" | "roofWidthCells" | "roofCurved" | "roofFlipSlope" | "roofRidgeOffset" | "roofHipInsetRatio" | "roofMansardCrownRatio" | "roofConeFacets" | "roofOverhangCells" | "roofRotateBoxRidge" | "roofSunAngleDeg" | "roofSlopeShade" | "roofRidgeCapStyle" | "roofRidgeCapWidthCells" | "roofEaveTrim" | "roofDropShadow" | "roofShadowDistanceCells" | "roofTextureScale" | "roofWeathering" | "roofOpacity" | "stampScale" | "stampRotationRad" | "stampFlipX" | "stampPlacementOrder" | "stampPaintDrag" | "stampPaintSpacingCells" | "stampAutoRotate" | "stampRotateMode" | "stampRotateSpreadDeg" | "stampRotateStepDeg" | "stampRandomFlipX" | "stampRandomJitter" | "stampColorJitter" | "activeLightColorHex" | "activeLightRadiusCells" | "activeLightIntensity" | "activeLightCastShadows" | "activeLightConeDeg" | "scatterPresetName" | "scatterAssetIds" | "scatterMinSpacing" | "scatterMinScale" | "scatterMaxScale" | "scatterAvoidWalls" | "scatterAvoidPaths" | "worldLandMode" | "worldLandRadiusCells" | "worldLandRoughness" | "worldLandStrength" | "worldBiomeTarget" | "worldBiomePattern" | "worldBiomeColorHex" | "worldBiomeRadiusCells" | "worldBiomeOpacity" | "worldBiomeSoftness" | "worldBiomeRoughness" | "worldRiverStartWidth" | "worldRiverEndWidth" | "worldRiverMeander" | "worldRiverMeanderScale" | "worldRiverCurved" | "worldRiverFadeMouth" | "worldRiverClipToLand" | "worldTrailStyle" | "worldTrailWidth" | "worldTrailColorHex" | "worldTrailDashScale" | "worldTrailCurved" | "worldTrailOpacity" | "worldRegionName" | "worldRegionFillHex" | "worldRegionFillOpacity" | "worldRegionBorderHex" | "worldRegionBorderWidth" | "worldRegionBorderStyle" | "worldRegionClipToLand" | "worldLabelText" | "worldLabelCategory" | "worldLabelFontSize" | "worldLabelCurveBend" | "worldLabelRotationDeg" | "worldLabelLetterSpacing" | "worldLabelBoxStyle" | "worldLabelBold" | "worldLabelItalic" | "worldLabelUppercase" | "worldLabelDmOnly" | "worldNameCulture" | "worldSymbolAvoidWater" | "worldSymbolSampleBiome" | "worldSymbolMultiVariant">>) => void;
   setActiveRecolor: (partial: Partial<RgbRecolor>) => void;
   setToolRecolor: (tool: ColorableToolKey, partial: Partial<RgbRecolor>) => void;
   addCustomSwatch: (hex: string) => void;
@@ -601,6 +720,8 @@ interface DocumentStoreState {
   deleteLayer: (layerId: string) => void;
   renameLayer: (layerId: string, name: string) => void;
   toggleLayerVisible: (layerId: string) => void;
+  soloLayer: (layerId: string) => void;
+  stepActiveLayer: (direction: "up" | "down") => void;
   toggleLayerLocked: (layerId: string) => void;
   toggleLayerDmOnly: (layerId: string) => void;
   setLayerOpacity: (layerId: string, opacity: number) => void;
@@ -615,12 +736,36 @@ interface DocumentStoreState {
   // Canvas & Lighting settings
   setGridSettings: (partial: Partial<{ type: GridType; visible: boolean; colorHex: string; opacity: number }>) => void;
   setBaseTerrainAsset: (assetId: string) => void;
+  setBaseTerrainTransparent: (transparent: boolean) => void;
   setLightingSettings: (partial: Partial<DcMapDocument["lighting"]>) => void;
   applyLightingPreset: (presetId: string) => void;
 
   // Entity mutations
-  addTerrainStroke: (stroke: TerrainStroke) => void;
-  fillWallInterior: (layerId: string, wallId: string) => boolean;
+  addTerrainStroke: (stroke: TerrainStroke, opts?: { pruneContained?: boolean }) => void;
+  replaceTerrainStroke: (
+    layerId: string,
+    strokeId: string,
+    nextAssetId: string,
+    applyStyle?: boolean,
+  ) => boolean;
+  replaceTerrainMaterial: (
+    sourceAssetId: string,
+    targetAssetId: string,
+    scope: "layer" | "floor" | "map",
+    applyStyle?: boolean,
+    explicitLayerId?: string,
+  ) => number;
+  replaceAllTerrainOnScope: (
+    targetAssetId: string,
+    scope: "layer" | "floor",
+    applyStyle?: boolean,
+    explicitLayerId?: string,
+  ) => number;
+  fillWholeLayerTerrain: (targetAssetId: string, explicitLayerId?: string) => void;
+  deleteTerrainStroke: (layerId: string, strokeId: string) => boolean;
+  clearTerrainLayer: (layerId?: string) => number;
+  clearTerrainFloor: (levelId?: string) => number;
+  fillWallInterior: (layerId: string, wallId: string, terrainAssetIdOverride?: string) => boolean;
   applyCaveTheme: (themeId: string) => void;
   addCaveOperation: (op: CaveOperation) => void;
   updateActiveCaveSystem: (partial: Partial<CaveDungeonSystem>, recordHistory?: boolean) => void;
@@ -653,7 +798,38 @@ interface DocumentStoreState {
   carveWaterIsland: (cutoutPolygon: Point2D[]) => boolean;
   clearWaterCutouts: (layerId: string, regionId: string) => void;
   addWall: (wall: WallSegment) => void;
+  addWallsBatch: (walls: WallSegment[], autoFloorPolygon?: Point2D[]) => void;
   updateWall: (layerId: string, wallId: string, partial: Partial<WallSegment>, recordHistory?: boolean) => void;
+  setWallSegmentCurve: (
+    layerId: string,
+    wallId: string,
+    segIdx: number,
+    sagitta: number | null,
+    recordHistory?: boolean,
+  ) => void;
+  toggleWallSegmentCurve: (
+    layerId: string,
+    wallId: string,
+    segIdx: number,
+    preset?: "90" | "180",
+  ) => boolean;
+  flipWallSegmentCurve: (layerId: string, wallId: string, segIdx: number) => void;
+  setEntitySegmentCurve: (
+    sel: SelectionRef,
+    segIdx: number,
+    sagitta: number | null,
+    recordHistory?: boolean,
+  ) => void;
+  toggleEntitySegmentCurve: (
+    sel: SelectionRef,
+    segIdx: number,
+    preset?: "90" | "180",
+  ) => boolean;
+  flipEntitySegmentCurve: (sel: SelectionRef, segIdx: number) => void;
+  flattenEntityCurves: (sel: SelectionRef) => void;
+  splitWallAt: (layerId: string, wallId: string, arcLength: number) => boolean;
+  breachWallAt: (layerId: string, wallId: string, arcLength: number, widthCells?: number) => boolean;
+  copyWallsFromLevelBelow: () => number;
   addPortal: (portal: PortalNode) => void;
   updatePortal: (layerId: string, portalId: string, partial: Partial<PortalNode>, recordHistory?: boolean) => void;
   togglePortalClosed: (layerId: string, portalId: string) => void;
@@ -768,6 +944,42 @@ function cloneDoc(doc: DcMapDocument): DcMapDocument {
 }
 
 /**
+ * Auto-refits any room floor fill linked to `wallId` via `sourceWallId` whenever
+ * that wall is moved, reshaped, or curved — zero stale terrain bleed past curved arches!
+ */
+function syncLinkedWallFloorFills(
+  doc: DcMapDocument,
+  wallId: string,
+  updatedWall: WallSegment,
+): DcMapDocument {
+  if (updatedWall.points.length < 3) return doc;
+  const hasLinked = doc.layers.some(
+    (l) =>
+      l.kind === "terrain" &&
+      (l.terrainStrokes?.some((s) => s.sourceWallId === wallId && !s.erase) ?? false),
+  );
+  if (!hasLinked) return doc;
+  const nextPoly = makeClosedWallPolygon(updatedWall);
+  if (nextPoly.length < 3) return doc;
+  return {
+    ...doc,
+    layers: doc.layers.map((l) => {
+      if (l.kind !== "terrain" || !l.terrainStrokes?.some((s) => s.sourceWallId === wallId && !s.erase)) {
+        return l;
+      }
+      return {
+        ...l,
+        terrainStrokes: l.terrainStrokes.map((s) =>
+          s.sourceWallId === wallId && !s.erase
+            ? { ...s, points: nextPoly.map((p) => ({ ...p })), holes: undefined, segmentCurves: undefined }
+            : s,
+        ),
+      };
+    }),
+  };
+}
+
+/**
  * Canonical top-to-bottom architectural sort for the Elevator Shaft:
  * Sky (Airships) -> Roofs -> Upper Floors (highest to lowest) -> Ground (1F) -> Underground (B1, B2, B3...)
  */
@@ -779,6 +991,58 @@ export function sortLevelsTopDown(levels: MapLevel[]): MapLevel[] {
     if (rd !== 0) return rd;
     return b.elevationFt - a.elevationFt;
   });
+}
+
+function getLevelBottomUpRank(lv: MapLevel | undefined): number {
+  if (!lv) return 1000;
+  const kindRank =
+    lv.kind === "underground"
+      ? 0
+      : lv.kind === "ground"
+        ? 1000
+        : lv.kind === "upper"
+          ? 2000
+          : lv.kind === "roof"
+            ? 3000
+            : 4000;
+  return kindRank + lv.elevationFt;
+}
+
+/**
+ * Inserts a layer into `d.layers` at its canonical position within its floor's elevation band
+ * using `LAYER_KIND_STACK_ORDER`, so new or moved layers never land above Roofs/higher floors.
+ */
+function insertLayerInFloorBand(d: DcMapDocument, layer: MapLayer): void {
+  const targetOrder = LAYER_KIND_STACK_ORDER[layer.kind] ?? 60;
+  let lastOnLevel = -1;
+  let insertBeforeIdx = -1;
+  for (let i = 0; i < d.layers.length; i++) {
+    const cur = d.layers[i];
+    if (cur.levelId !== layer.levelId) continue;
+    lastOnLevel = i;
+    if (insertBeforeIdx < 0 && (LAYER_KIND_STACK_ORDER[cur.kind] ?? 60) > targetOrder) {
+      insertBeforeIdx = i;
+    }
+  }
+  if (insertBeforeIdx >= 0) {
+    d.layers.splice(insertBeforeIdx, 0, layer);
+    return;
+  }
+  if (lastOnLevel >= 0) {
+    d.layers.splice(lastOnLevel + 1, 0, layer);
+    return;
+  }
+  // Target floor currently has no layers — insert before the first layer of any higher-ranked floor
+  const levelMap = new Map(d.levels.map((lv) => [lv.id, lv]));
+  const targetRank = getLevelBottomUpRank(levelMap.get(layer.levelId));
+  const firstHigher = d.layers.findIndex(
+    (l) => getLevelBottomUpRank(levelMap.get(l.levelId)) > targetRank,
+  );
+  if (firstHigher >= 0) {
+    d.layers.splice(firstHigher, 0, layer);
+  } else {
+    d.layers.push(layer);
+  }
 }
 
 function applyLevelVisibility(
@@ -893,57 +1157,7 @@ function findOrEnsureLayer(doc: DcMapDocument, kind: LayerKind): MapLayer {
     lights: kind === "lights" ? [] : undefined,
     dmNotes: kind === "dm_notes" ? [] : undefined,
   };
-  if (kind === "terrain") {
-    const firstOnLevel = doc.layers.findIndex((l) => l.levelId === doc.activeLevelId);
-    if (firstOnLevel >= 0) {
-      doc.layers.splice(firstOnLevel, 0, created);
-    } else {
-      doc.layers.unshift(created);
-    }
-  } else if (kind === "roofs") {
-    // Insert roofs above ground structures/objects on this floor, just below lights & DM notes
-    const firstAbove = doc.layers.findIndex(
-      (l) => l.levelId === doc.activeLevelId && (l.kind === "lights" || l.kind === "dm_notes"),
-    );
-    if (firstAbove >= 0) {
-      doc.layers.splice(firstAbove, 0, created);
-    } else {
-      doc.layers.push(created);
-    }
-  } else if (kind === "water") {
-    let lastTerrain = -1;
-    for (let i = 0; i < doc.layers.length; i++) {
-      const l = doc.layers[i];
-      if (l.levelId === doc.activeLevelId && l.kind === "terrain") {
-        lastTerrain = i;
-      }
-    }
-    if (lastTerrain >= 0) {
-      doc.layers.splice(lastTerrain + 1, 0, created);
-    } else {
-      const firstOnLevel = doc.layers.findIndex((l) => l.levelId === doc.activeLevelId);
-      if (firstOnLevel >= 0) doc.layers.splice(firstOnLevel, 0, created);
-      else doc.layers.unshift(created);
-    }
-  } else if (kind === "caves") {
-    // Insert Cave & Dungeon layer right above Terrain / Water layers on this floor (and below Objects/Lights!)
-    let insertAt = -1;
-    for (let i = 0; i < doc.layers.length; i++) {
-      const l = doc.layers[i];
-      if (l.levelId === doc.activeLevelId && (l.kind === "terrain" || l.kind === "water")) {
-        insertAt = i + 1;
-      }
-    }
-    if (insertAt >= 0) {
-      doc.layers.splice(insertAt, 0, created);
-    } else {
-      const firstOnLevel = doc.layers.findIndex((l) => l.levelId === doc.activeLevelId);
-      if (firstOnLevel >= 0) doc.layers.splice(firstOnLevel, 0, created);
-      else doc.layers.push(created);
-    }
-  } else {
-    doc.layers.push(created);
-  }
+  insertLayerInFloorBand(doc, created);
   doc.activeLayerId = created.id;
   return created;
 }
@@ -980,9 +1194,14 @@ export const useDocumentStore = create<DocumentStoreState>((set, get) => ({
   showVttOverlay: false,
   showScatterOutlines: true,
   showOnionSkin: false,
-  filterLayersByFloor: false,
+  filterLayersByFloor: true,
+  isolateActiveFloor: false,
+  lockLowerFloors: true,
+  soloLayerId: null,
+  soloVisibilityBackup: null,
 
   selection: null,
+  selectedWallSegmentIndex: null,
   copiedObject: null,
   copiedRecolor: null,
 
@@ -990,6 +1209,7 @@ export const useDocumentStore = create<DocumentStoreState>((set, get) => ({
   activePathAssetId: "paths/magirail_funicular_track.png",
   activePortalAssetId: "portals/jugendstil_brass_door.png",
   activeTerrainAssetId: "terrain/berlin_wet_cobble.png",
+  recentTerrainAssetIds: loadRecentTerrains(),
   activePortalWidthCells: 1.5,
   activePortalClosed: true,
   activePortalSwingInvert: false,
@@ -1034,6 +1254,23 @@ export const useDocumentStore = create<DocumentStoreState>((set, get) => ({
   terrainFillSoftness: 0.0,
   terrainRotationDeg: 0,
   terrainSlopeShade: 0,
+  terrainTextureScale: 1.0,
+  terrainPolygonCurved: false,
+  terrainReplaceScope: "patch",
+  terrainReplaceApplyStyle: false,
+  terrainEraseShape: "brush",
+  terrainFloodReplaceUnderneath: true,
+  terrainBarrierWalls: true,
+  terrainBarrierCaves: true,
+  terrainBarrierWater: true,
+  wallDrawMode: "free",
+  wallPolygonShape: "round",
+  wallBoxRotationDeg: 0,
+  wallSnapToWalls: true,
+  wallSplitSubMode: "breach",
+  wallBreachWidthCells: 2.0,
+  wallCorridorWidthCells: 2.5,
+  wallCorridorCapEnds: false,
   wallThicknessCells: 0.38,
   wallCurved: false,
   wallBlocksLight: true,
@@ -1618,6 +1855,8 @@ export const useDocumentStore = create<DocumentStoreState>((set, get) => ({
         redoStack: bucket.redo,
         dirty: Boolean(s.dirtyDocIds[docId]),
         selection: null,
+        soloLayerId: null,
+        soloVisibilityBackup: null,
         activeTool: nextTool,
       };
     }),
@@ -1865,7 +2104,7 @@ export const useDocumentStore = create<DocumentStoreState>((set, get) => ({
 
   restoreAutosavedSession: () => {
     try {
-      const raw = localStorage.getItem(AUTOSAVE_STORAGE_KEY);
+      const raw = readStorageWithLegacyFallback(AUTOSAVE_STORAGE_KEY, LEGACY_AUTOSAVE_STORAGE_KEY);
       if (!raw) return false;
       const parsed = JSON.parse(raw) as {
         savedAt?: number;
@@ -2032,7 +2271,7 @@ export const useDocumentStore = create<DocumentStoreState>((set, get) => ({
     get().commitDocMutation((d) => {
       applyLevelVisibility(d, levelId, preferredKind);
     }, false);
-    set({ selection: null });
+    set({ selection: null, soloLayerId: null, soloVisibilityBackup: null });
   },
   stepLevel: (direction) => {
     const doc = get().getActiveDoc();
@@ -2316,6 +2555,36 @@ export const useDocumentStore = create<DocumentStoreState>((set, get) => ({
       if (lv) lv.name = trimmed;
     });
   },
+  updateLevelMeta: (levelId, partial) => {
+    const doc = get().getActiveDoc();
+    const existing = doc.levels.find((x) => x.id === levelId);
+    if (!existing) return;
+    const nextName =
+      partial.name !== undefined && partial.name.trim() ? partial.name.trim() : existing.name;
+    const nextShortCode =
+      partial.shortCode !== undefined && partial.shortCode.trim()
+        ? partial.shortCode.trim().slice(0, 10)
+        : existing.shortCode;
+    const nextElev =
+      partial.elevationFt !== undefined && Number.isFinite(partial.elevationFt)
+        ? Math.round(partial.elevationFt)
+        : existing.elevationFt;
+    if (
+      nextName === existing.name &&
+      nextShortCode === existing.shortCode &&
+      nextElev === existing.elevationFt
+    ) {
+      return;
+    }
+    get().commitDocMutation((d) => {
+      const lv = d.levels.find((x) => x.id === levelId);
+      if (!lv) return;
+      lv.name = nextName;
+      lv.shortCode = nextShortCode;
+      lv.elevationFt = nextElev;
+    });
+    get().pushToast(`Updated ${nextShortCode} (${nextName})`, "success");
+  },
   deleteLevel: (levelId) => {
     const doc = get().getActiveDoc();
     const target = doc.levels.find((lv) => lv.id === levelId);
@@ -2331,11 +2600,46 @@ export const useDocumentStore = create<DocumentStoreState>((set, get) => ({
         applyLevelVisibility(d, ground.id);
       }
     });
-    set({ selection: null });
+    set({ selection: null, soloLayerId: null, soloVisibilityBackup: null });
     get().pushToast(`Removed ${target.shortCode} floor`);
   },
   setShowOnionSkin: (showOnionSkin) => set({ showOnionSkin }),
   setFilterLayersByFloor: (filterLayersByFloor) => set({ filterLayersByFloor }),
+  setIsolateActiveFloor: (isolateActiveFloor) => set({ isolateActiveFloor }),
+  setLockLowerFloors: (lockLowerFloors) => set({ lockLowerFloors }),
+  toggleLevelLayersVisible: (levelId) => {
+    const doc = get().getActiveDoc();
+    const lv = doc.levels.find((x) => x.id === levelId);
+    const levelLayers = doc.layers.filter((l) => l.levelId === levelId);
+    if (!lv || levelLayers.length === 0) return;
+    const nextVisible = levelLayers.some((l) => !l.visible);
+    get().commitDocMutation((d) => {
+      const targetLv = d.levels.find((x) => x.id === levelId);
+      if (targetLv) targetLv.visible = nextVisible;
+      for (const l of d.layers) {
+        if (l.levelId === levelId) l.visible = nextVisible;
+      }
+    });
+    set({ soloLayerId: null, soloVisibilityBackup: null });
+    get().pushToast(
+      nextVisible ? `Shown all ${lv.shortCode} layers` : `Hidden all ${lv.shortCode} layers`,
+    );
+  },
+  toggleLevelLayersLocked: (levelId) => {
+    const doc = get().getActiveDoc();
+    const lv = doc.levels.find((x) => x.id === levelId);
+    const levelLayers = doc.layers.filter((l) => l.levelId === levelId);
+    if (!lv || levelLayers.length === 0) return;
+    const nextLocked = !levelLayers.every((l) => l.locked);
+    get().commitDocMutation((d) => {
+      for (const l of d.layers) {
+        if (l.levelId === levelId) l.locked = nextLocked;
+      }
+    });
+    get().pushToast(
+      nextLocked ? `Locked all ${lv.shortCode} layers` : `Unlocked all ${lv.shortCode} layers`,
+    );
+  },
   setFloorView: (mode) => {
     const doc = get().getActiveDoc();
     const target =
@@ -2351,8 +2655,14 @@ export const useDocumentStore = create<DocumentStoreState>((set, get) => ({
   setShowScatterOutlines: (showScatterOutlines) => set({ showScatterOutlines }),
   setSelection: (selection) =>
     set((s) => {
+      const sameEntity =
+        Boolean(selection && s.selection) &&
+        selection!.kind === s.selection!.kind &&
+        selection!.id === s.selection!.id &&
+        selection!.layerId === s.selection!.layerId;
+      const nextSegIdx = sameEntity ? s.selectedWallSegmentIndex : null;
       if (!selection?.layerId) {
-        return { selection };
+        return { selection, selectedWallSegmentIndex: nextSegIdx };
       }
       const doc = s.documents.find((d) => d.id === s.activeDocId) ?? s.documents[0];
       if (
@@ -2360,18 +2670,26 @@ export const useDocumentStore = create<DocumentStoreState>((set, get) => ({
         doc.activeLayerId === selection.layerId ||
         !doc.layers.some((l) => l.id === selection.layerId)
       ) {
-        return { selection };
+        return { selection, selectedWallSegmentIndex: nextSegIdx };
       }
       return {
         selection,
+        selectedWallSegmentIndex: nextSegIdx,
         documents: s.documents.map((d) =>
           d.id === doc.id ? { ...d, activeLayerId: selection.layerId } : d,
         ),
       };
     }),
+  setSelectedWallSegmentIndex: (selectedWallSegmentIndex) => set({ selectedWallSegmentIndex }),
   setZoomPercent: (zoomPercent) => set({ zoomPercent }),
   setCursorGridPos: (cursorGridPos) => set({ cursorGridPos }),
-  setBrushParams: (partial) => set(partial),
+  setBrushParams: (partial) =>
+    set((s) => ({
+      ...partial,
+      ...(partial.activeTerrainAssetId
+        ? { recentTerrainAssetIds: pushRecentTerrain(s.recentTerrainAssetIds, partial.activeTerrainAssetId) }
+        : {}),
+    })),
   setActiveRecolor: (partial) =>
     set((s) => ({ activeRecolor: { ...s.activeRecolor, ...partial } })),
   setToolRecolor: (tool, partial) =>
@@ -2488,29 +2806,7 @@ export const useDocumentStore = create<DocumentStoreState>((set, get) => ({
         lights: kind === "lights" ? [] : undefined,
         dmNotes: kind === "dm_notes" ? [] : undefined,
       };
-      if (kind === "water") {
-        let lastTerrain = -1;
-        for (let i = 0; i < d.layers.length; i++) {
-          if (d.layers[i].levelId === targetLevel && d.layers[i].kind === "terrain") {
-            lastTerrain = i;
-          }
-        }
-        if (lastTerrain >= 0) {
-          d.layers.splice(lastTerrain + 1, 0, newLayer);
-        } else {
-          const firstOnLevel = d.layers.findIndex((l) => l.levelId === targetLevel);
-          if (firstOnLevel >= 0) d.layers.splice(firstOnLevel, 0, newLayer);
-          else d.layers.push(newLayer);
-        }
-      } else if (kind === "roofs") {
-        const firstAbove = d.layers.findIndex(
-          (l) => l.levelId === targetLevel && (l.kind === "lights" || l.kind === "dm_notes"),
-        );
-        if (firstAbove >= 0) d.layers.splice(firstAbove, 0, newLayer);
-        else d.layers.push(newLayer);
-      } else {
-        d.layers.push(newLayer);
-      }
+      insertLayerInFloorBand(d, newLayer);
       d.activeLayerId = newId;
     });
     get().pushToast(`Added layer "${name}"`, "success");
@@ -2518,16 +2814,23 @@ export const useDocumentStore = create<DocumentStoreState>((set, get) => ({
 
   setLayerLevel: (layerId, levelId) => {
     const doc = get().getActiveDoc();
+    const existing = doc.layers.find((x) => x.id === layerId);
     const targetLvl = doc.levels.find((lv) => lv.id === levelId);
-    const label = targetLvl ? `${targetLvl.shortCode} (${targetLvl.name})` : levelId;
+    if (!existing || !targetLvl || existing.levelId === levelId) return;
+    const label = `${targetLvl.shortCode} (${targetLvl.name})`;
     get().commitDocMutation((d) => {
-      const l = d.layers.find((x) => x.id === layerId);
+      const idx = d.layers.findIndex((x) => x.id === layerId);
       const lv = d.levels.find((x) => x.id === levelId);
-      if (!l || !lv) return;
-      l.levelId = levelId;
-      l.visible = lv.visible;
+      if (idx < 0 || !lv) return;
+      const [moved] = d.layers.splice(idx, 1);
+      moved.levelId = levelId;
+      moved.visible = lv.visible;
+      insertLayerInFloorBand(d, moved);
     });
-    get().pushToast(`Assigned layer to ${label}`, "success");
+    if (get().soloLayerId === layerId) {
+      set({ soloLayerId: null, soloVisibilityBackup: null });
+    }
+    get().pushToast(`Moved "${existing.name}" to ${label}`, "success");
   },
 
   duplicateLayer: (layerId) =>
@@ -2567,11 +2870,92 @@ export const useDocumentStore = create<DocumentStoreState>((set, get) => ({
     });
   },
 
-  toggleLayerVisible: (layerId) =>
+  toggleLayerVisible: (layerId) => {
     get().commitDocMutation((d) => {
       const l = d.layers.find((x) => x.id === layerId);
       if (l) l.visible = !l.visible;
-    }),
+    });
+    if (get().soloLayerId) {
+      set({ soloLayerId: null, soloVisibilityBackup: null });
+    }
+  },
+
+  soloLayer: (layerId) => {
+    const state = get();
+    const doc = state.getActiveDoc();
+    const target = doc.layers.find((l) => l.id === layerId);
+    if (!target) return;
+
+    // Second Alt+Click on the same soloed layer restores original floor visibilities
+    if (state.soloLayerId === layerId && state.soloVisibilityBackup) {
+      const backup = state.soloVisibilityBackup;
+      state.commitDocMutation((d) => {
+        for (const l of d.layers) {
+          if (Object.prototype.hasOwnProperty.call(backup, l.id)) {
+            l.visible = backup[l.id];
+          }
+        }
+      }, false);
+      set({ soloLayerId: null, soloVisibilityBackup: null });
+      state.pushToast("Restored layer visibility");
+      return;
+    }
+
+    // If switching solo to another layer on a different floor, restore previous floor first
+    const prevSolo = state.soloLayerId
+      ? doc.layers.find((l) => l.id === state.soloLayerId)
+      : undefined;
+    const reuseSameFloorBackup =
+      Boolean(prevSolo && prevSolo.levelId === target.levelId && state.soloVisibilityBackup);
+    const prevBackup = state.soloVisibilityBackup;
+
+    const nextBackup: Record<string, boolean> = reuseSameFloorBackup
+      ? { ...prevBackup! }
+      : {};
+    if (!reuseSameFloorBackup) {
+      for (const l of doc.layers) {
+        if (l.levelId === target.levelId) {
+          nextBackup[l.id] = l.visible;
+        }
+      }
+    }
+
+    state.commitDocMutation((d) => {
+      if (!reuseSameFloorBackup && prevBackup) {
+        for (const l of d.layers) {
+          if (Object.prototype.hasOwnProperty.call(prevBackup, l.id)) {
+            l.visible = prevBackup[l.id];
+          }
+        }
+      }
+      for (const l of d.layers) {
+        if (l.levelId === target.levelId) {
+          l.visible = l.id === layerId;
+        }
+      }
+      d.activeLayerId = layerId;
+    }, false);
+    set({ soloLayerId: layerId, soloVisibilityBackup: nextBackup });
+    state.pushToast(`Soloed "${target.name}" (Alt+Click Eye to restore)`);
+  },
+
+  stepActiveLayer: (direction) => {
+    const doc = get().getActiveDoc();
+    const floorLayers = doc.layers.filter((l) => l.levelId === doc.activeLevelId);
+    const pool = floorLayers.length > 0 ? floorLayers : doc.layers;
+    if (pool.length === 0) return;
+    const curIdx = pool.findIndex((l) => l.id === doc.activeLayerId);
+    const nextIdx =
+      curIdx < 0
+        ? pool.length - 1
+        : direction === "up"
+          ? Math.min(pool.length - 1, curIdx + 1)
+          : Math.max(0, curIdx - 1);
+    const target = pool[nextIdx];
+    if (target && target.id !== doc.activeLayerId) {
+      get().setActiveLayer(target.id);
+    }
+  },
 
   toggleLayerLocked: (layerId) =>
     get().commitDocMutation((d) => {
@@ -2597,15 +2981,35 @@ export const useDocumentStore = create<DocumentStoreState>((set, get) => ({
       if (l) l.blendMode = mode;
     }),
 
-  reorderLayer: (layerId, direction) =>
+  reorderLayer: (layerId, direction) => {
+    const activeDoc = get().getActiveDoc();
+    const curIdx = activeDoc.layers.findIndex((l) => l.id === layerId);
+    if (curIdx < 0) return;
+    const curLevelId = activeDoc.layers[curIdx].levelId;
+    const step = direction === "up" ? 1 : -1;
+    let targetIdx = -1;
+    for (let i = curIdx + step; i >= 0 && i < activeDoc.layers.length; i += step) {
+      if (activeDoc.layers[i].levelId === curLevelId) {
+        targetIdx = i;
+        break;
+      }
+    }
+    if (targetIdx < 0) return;
     get().commitDocMutation((d) => {
       const idx = d.layers.findIndex((l) => l.id === layerId);
       if (idx < 0) return;
-      const target = direction === "up" ? idx + 1 : idx - 1;
-      if (target < 0 || target >= d.layers.length) return;
+      let dest = -1;
+      for (let i = idx + step; i >= 0 && i < d.layers.length; i += step) {
+        if (d.layers[i].levelId === d.layers[idx].levelId) {
+          dest = i;
+          break;
+        }
+      }
+      if (dest < 0) return;
       const [item] = d.layers.splice(idx, 1);
-      d.layers.splice(target, 0, item);
-    }),
+      d.layers.splice(dest, 0, item);
+    });
+  },
 
   moveLayerRelative: (sourceLayerId, targetLayerId, placement) => {
     if (sourceLayerId === targetLayerId) return;
@@ -2613,10 +3017,17 @@ export const useDocumentStore = create<DocumentStoreState>((set, get) => ({
     const origIdx = activeDoc.layers.findIndex((l) => l.id === sourceLayerId);
     const origTargetIdx = activeDoc.layers.findIndex((l) => l.id === targetLayerId);
     if (origIdx < 0 || origTargetIdx < 0) return;
-    // Preview final insertion index after removing source so no-op drops skip history
+    const origSource = activeDoc.layers[origIdx];
+    const origTarget = activeDoc.layers[origTargetIdx];
+    const crossesFloor = origSource.levelId !== origTarget.levelId;
+    // Preview final insertion index after removing source so true no-op drops skip history
     const adjustedTarget = origTargetIdx > origIdx ? origTargetIdx - 1 : origTargetIdx;
     const finalIdx = placement === "above" ? adjustedTarget + 1 : adjustedTarget;
-    if (finalIdx === origIdx) return;
+    if (finalIdx === origIdx && !crossesFloor) return;
+
+    const destLevel = crossesFloor
+      ? activeDoc.levels.find((lv) => lv.id === origTarget.levelId)
+      : null;
 
     get().commitDocMutation((d) => {
       const sIdx = d.layers.findIndex((l) => l.id === sourceLayerId);
@@ -2627,9 +3038,19 @@ export const useDocumentStore = create<DocumentStoreState>((set, get) => ({
         d.layers.splice(sIdx, 0, moved);
         return;
       }
+      const targetLayer = d.layers[tIdx];
+      if (moved.levelId !== targetLayer.levelId) {
+        moved.levelId = targetLayer.levelId;
+        const lv = d.levels.find((x) => x.id === targetLayer.levelId);
+        if (lv) moved.visible = lv.visible;
+      }
       const insertAt = placement === "above" ? tIdx + 1 : tIdx;
       d.layers.splice(insertAt, 0, moved);
     });
+
+    if (crossesFloor && destLevel) {
+      get().pushToast(`Moved "${origSource.name}" to ${destLevel.shortCode}`, "success");
+    }
   },
 
   setGridSettings: (partial) =>
@@ -2637,10 +3058,22 @@ export const useDocumentStore = create<DocumentStoreState>((set, get) => ({
       d.canvas.grid = { ...d.canvas.grid, ...partial };
     }, false),
 
-  setBaseTerrainAsset: (assetId) =>
+  setBaseTerrainAsset: (assetId) => {
+    const cleanId = sanitizeTerrainAssetId(assetId);
     get().commitDocMutation((d) => {
-      d.canvas.baseTerrainAssetId = assetId;
-    }),
+      d.canvas.baseTerrainAssetId = cleanId;
+      d.canvas.baseTerrainTransparent = false;
+    });
+    set((s) => ({
+      recentTerrainAssetIds: pushRecentTerrain(s.recentTerrainAssetIds, cleanId),
+    }));
+  },
+
+  setBaseTerrainTransparent: (transparent) => {
+    get().commitDocMutation((d) => {
+      d.canvas.baseTerrainTransparent = transparent;
+    });
+  },
 
   setLightingSettings: (partial) =>
     get().commitDocMutation((d) => {
@@ -2656,11 +3089,243 @@ export const useDocumentStore = create<DocumentStoreState>((set, get) => ({
       d.lighting.ambientIntensity = p.ambientIntensity;
     }),
 
-  addTerrainStroke: (stroke) =>
+  addTerrainStroke: (stroke, opts) => {
     get().commitDocMutation((d) => {
       const layer = findOrEnsureLayer(d, "terrain");
-      layer.terrainStrokes = [...(layer.terrainStrokes ?? []), stroke];
-    }),
+      let prev = layer.terrainStrokes ?? [];
+      if (
+        opts?.pruneContained &&
+        !stroke.erase &&
+        stroke.shape === "polygon" &&
+        stroke.points.length >= 3
+      ) {
+        prev = prev.filter(
+          (existing) =>
+            !isTerrainStrokeCoveredByFlood(existing, stroke.points, stroke.holes ?? []),
+        );
+      }
+      layer.terrainStrokes = [...prev, stroke];
+    });
+    if (!stroke.erase && stroke.assetId) {
+      set((s) => ({
+        recentTerrainAssetIds: pushRecentTerrain(s.recentTerrainAssetIds, stroke.assetId),
+      }));
+    }
+  },
+
+  replaceTerrainStroke: (layerId, strokeId, nextAssetId, applyStyle = false) => {
+    const st = get();
+    const cleanId = sanitizeTerrainAssetId(nextAssetId);
+    let updated = false;
+    st.commitDocMutation((d) => {
+      const layer = d.layers.find((l) => l.id === layerId && l.kind === "terrain" && !l.locked);
+      if (!layer?.terrainStrokes) return;
+      layer.terrainStrokes = layer.terrainStrokes.map((s) => {
+        if (s.id !== strokeId || s.erase) return s;
+        updated = true;
+        return {
+          ...s,
+          assetId: cleanId,
+          ...(applyStyle
+            ? {
+                opacity: st.brushOpacity,
+                softness: s.shape === "polygon" ? st.terrainFillSoftness : st.brushSoftness,
+                rotationDeg: st.terrainRotationDeg || undefined,
+                slopeShade: st.terrainSlopeShade > 0.02 ? st.terrainSlopeShade : undefined,
+                textureScale:
+                  Math.abs(st.terrainTextureScale - 1) > 0.01 ? st.terrainTextureScale : undefined,
+                recolor: st.toolRecolors.terrain.enabled ? { ...st.toolRecolors.terrain } : undefined,
+              }
+            : {}),
+        };
+      });
+    });
+    if (updated) {
+      set((s) => ({
+        recentTerrainAssetIds: pushRecentTerrain(s.recentTerrainAssetIds, cleanId),
+      }));
+    }
+    return updated;
+  },
+
+  replaceTerrainMaterial: (sourceAssetId, targetAssetId, scope, applyStyle = false, explicitLayerId) => {
+    const st = get();
+    const cleanTarget = sanitizeTerrainAssetId(targetAssetId);
+    let count = 0;
+    st.commitDocMutation((d) => {
+      const activeLevel = d.levels.find((lv) => lv.id === d.activeLevelId);
+      const targetLayer =
+        scope === "layer"
+          ? explicitLayerId
+            ? d.layers.find((l) => l.id === explicitLayerId && l.kind === "terrain" && !l.locked)
+            : findPreferredLayerForKind(d, "terrain")
+          : null;
+
+      for (const layer of d.layers) {
+        if (layer.kind !== "terrain" || layer.locked) continue;
+        if (scope === "layer" && (!targetLayer || layer.id !== targetLayer.id)) continue;
+        if (scope === "floor" && layer.levelId !== d.activeLevelId) continue;
+        if (!layer.terrainStrokes?.length) continue;
+        layer.terrainStrokes = layer.terrainStrokes.map((s) => {
+          if (s.erase || s.assetId !== sourceAssetId) return s;
+          count++;
+          return {
+            ...s,
+            assetId: cleanTarget,
+            ...(applyStyle
+              ? {
+                  opacity: st.brushOpacity,
+                  softness: s.shape === "polygon" ? st.terrainFillSoftness : st.brushSoftness,
+                  rotationDeg: st.terrainRotationDeg || undefined,
+                  slopeShade: st.terrainSlopeShade > 0.02 ? st.terrainSlopeShade : undefined,
+                  textureScale:
+                    Math.abs(st.terrainTextureScale - 1) > 0.01 ? st.terrainTextureScale : undefined,
+                  recolor: st.toolRecolors.terrain.enabled ? { ...st.toolRecolors.terrain } : undefined,
+                }
+              : {}),
+          };
+        });
+      }
+
+      const includeBase =
+        scope === "map" ||
+        (scope === "floor" && (!activeLevel || activeLevel.kind === "ground"));
+      if (includeBase && !d.canvas.baseTerrainTransparent && d.canvas.baseTerrainAssetId === sourceAssetId) {
+        d.canvas.baseTerrainAssetId = cleanTarget;
+        count++;
+      }
+    });
+    if (count > 0) {
+      set((s) => ({
+        recentTerrainAssetIds: pushRecentTerrain(s.recentTerrainAssetIds, cleanTarget),
+      }));
+    }
+    return count;
+  },
+
+  replaceAllTerrainOnScope: (targetAssetId, scope, applyStyle = false, explicitLayerId) => {
+    const st = get();
+    const cleanTarget = sanitizeTerrainAssetId(targetAssetId);
+    let count = 0;
+    st.commitDocMutation((d) => {
+      const activeLevel = d.levels.find((lv) => lv.id === d.activeLevelId);
+      const targetLayer =
+        scope === "layer"
+          ? explicitLayerId
+            ? d.layers.find((l) => l.id === explicitLayerId && l.kind === "terrain" && !l.locked)
+            : findPreferredLayerForKind(d, "terrain")
+          : null;
+
+      for (const layer of d.layers) {
+        if (layer.kind !== "terrain" || layer.locked) continue;
+        if (scope === "layer" && (!targetLayer || layer.id !== targetLayer.id)) continue;
+        if (scope === "floor" && layer.levelId !== d.activeLevelId) continue;
+        if (!layer.terrainStrokes?.length) continue;
+        layer.terrainStrokes = layer.terrainStrokes.map((s) => {
+          if (s.erase) return s;
+          count++;
+          return {
+            ...s,
+            assetId: cleanTarget,
+            ...(applyStyle
+              ? {
+                  opacity: st.brushOpacity,
+                  softness: s.shape === "polygon" ? st.terrainFillSoftness : st.brushSoftness,
+                  rotationDeg: st.terrainRotationDeg || undefined,
+                  slopeShade: st.terrainSlopeShade > 0.02 ? st.terrainSlopeShade : undefined,
+                  textureScale:
+                    Math.abs(st.terrainTextureScale - 1) > 0.01 ? st.terrainTextureScale : undefined,
+                  recolor: st.toolRecolors.terrain.enabled ? { ...st.toolRecolors.terrain } : undefined,
+                }
+              : {}),
+          };
+        });
+      }
+
+      if (scope === "floor" && (!activeLevel || activeLevel.kind === "ground") && !d.canvas.baseTerrainTransparent) {
+        d.canvas.baseTerrainAssetId = cleanTarget;
+        count++;
+      }
+    });
+    if (count > 0) {
+      set((s) => ({
+        recentTerrainAssetIds: pushRecentTerrain(s.recentTerrainAssetIds, cleanTarget),
+      }));
+    }
+    return count;
+  },
+
+  fillWholeLayerTerrain: (targetAssetId, explicitLayerId) => {
+    const st = get();
+    const cleanTarget = sanitizeTerrainAssetId(targetAssetId);
+    st.commitDocMutation((d) => {
+      const layer = explicitLayerId
+        ? d.layers.find((l) => l.id === explicitLayerId && l.kind === "terrain" && !l.locked) ??
+          findOrEnsureLayer(d, "terrain")
+        : findOrEnsureLayer(d, "terrain");
+      layer.terrainStrokes = [
+        {
+          id: `tfill-layer-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`,
+          assetId: cleanTarget,
+          points: makeRectPolygon(
+            { x: 0, y: 0 },
+            { x: d.canvas.widthCells, y: d.canvas.heightCells },
+          ),
+          radiusCells: 0,
+          opacity: st.brushOpacity,
+          softness: 0,
+          shape: "polygon",
+          rotationDeg: st.terrainRotationDeg || undefined,
+          slopeShade: st.terrainSlopeShade > 0.02 ? st.terrainSlopeShade : undefined,
+          textureScale:
+            Math.abs(st.terrainTextureScale - 1) > 0.01 ? st.terrainTextureScale : undefined,
+          recolor: st.toolRecolors.terrain.enabled ? { ...st.toolRecolors.terrain } : undefined,
+        },
+      ];
+    });
+    set((s) => ({
+      recentTerrainAssetIds: pushRecentTerrain(s.recentTerrainAssetIds, cleanTarget),
+    }));
+  },
+
+  deleteTerrainStroke: (layerId, strokeId) => {
+    let removed = false;
+    get().commitDocMutation((d) => {
+      const layer = d.layers.find((l) => l.id === layerId && l.kind === "terrain" && !l.locked);
+      if (!layer?.terrainStrokes) return;
+      const before = layer.terrainStrokes.length;
+      layer.terrainStrokes = layer.terrainStrokes.filter((s) => s.id !== strokeId);
+      removed = layer.terrainStrokes.length < before;
+    });
+    return removed;
+  },
+
+  clearTerrainLayer: (layerId) => {
+    let cleared = 0;
+    get().commitDocMutation((d) => {
+      const target = layerId
+        ? d.layers.find((l) => l.id === layerId && l.kind === "terrain" && !l.locked)
+        : findPreferredLayerForKind(d, "terrain");
+      if (!target || target.locked || !target.terrainStrokes?.length) return;
+      cleared = target.terrainStrokes.length;
+      target.terrainStrokes = [];
+    });
+    return cleared;
+  },
+
+  clearTerrainFloor: (levelId) => {
+    let cleared = 0;
+    get().commitDocMutation((d) => {
+      const targetLvl = levelId ?? d.activeLevelId;
+      for (const layer of d.layers) {
+        if (layer.kind !== "terrain" || layer.locked || layer.levelId !== targetLvl) continue;
+        if (!layer.terrainStrokes?.length) continue;
+        cleared += layer.terrainStrokes.length;
+        layer.terrainStrokes = [];
+      }
+    });
+    return cleared;
+  },
 
   applyCaveTheme: (themeId) => {
     const p = getCaveThemePreset(themeId);
@@ -2891,7 +3556,7 @@ export const useDocumentStore = create<DocumentStoreState>((set, get) => ({
     return true;
   },
 
-  fillWallInterior: (layerId, wallId) => {
+  fillWallInterior: (layerId, wallId, terrainAssetIdOverride) => {
     const st = get();
     const doc = st.getActiveDoc();
     const wallLayer = doc.layers.find((l) => l.id === layerId);
@@ -2899,26 +3564,48 @@ export const useDocumentStore = create<DocumentStoreState>((set, get) => ({
     if (!wall || wall.points.length < 3) return false;
     const poly = makeClosedWallPolygon(wall);
     if (poly.length < 3) return false;
-    const terrainAsset = st.activeTerrainAssetId || "terrain/parlor_herringbone.png";
+    const terrainAsset = sanitizeTerrainAssetId(
+      terrainAssetIdOverride || st.activeTerrainAssetId || "terrain/herringbone_parquet.png",
+    );
     st.commitDocMutation((d) => {
       const prevLevel = d.activeLevelId;
       if (wallLayer?.levelId) d.activeLevelId = wallLayer.levelId;
       const tLayer = findOrEnsureLayer(d, "terrain");
       d.activeLevelId = prevLevel;
-      tLayer.terrainStrokes = [
-        ...(tLayer.terrainStrokes ?? []),
-        {
-          id: `tfill-wall-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`,
-          assetId: terrainAsset,
-          points: poly,
-          radiusCells: 0,
-          opacity: st.brushOpacity,
-          softness: st.terrainFillSoftness,
-          shape: "polygon",
-          recolor: st.toolRecolors.terrain.enabled ? { ...st.toolRecolors.terrain } : undefined,
-        },
-      ];
+      const nextStroke: TerrainStroke = {
+        id: `tfill-wall-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`,
+        assetId: terrainAsset,
+        points: poly,
+        radiusCells: 0,
+        opacity: st.brushOpacity,
+        softness: st.terrainFillSoftness,
+        shape: "polygon",
+        sourceWallId: wall.id,
+        rotationDeg: st.terrainRotationDeg || undefined,
+        slopeShade: st.terrainSlopeShade > 0.02 ? st.terrainSlopeShade : undefined,
+        textureScale:
+          Math.abs(st.terrainTextureScale - 1) > 0.01 ? st.terrainTextureScale : undefined,
+        recolor: st.toolRecolors.terrain.enabled ? { ...st.toolRecolors.terrain } : undefined,
+      };
+      const existingIdx = (tLayer.terrainStrokes ?? []).findIndex(
+        (s) => s.sourceWallId === wall.id && !s.erase,
+      );
+      if (existingIdx >= 0) {
+        const copy = [...(tLayer.terrainStrokes ?? [])];
+        copy[existingIdx] = nextStroke;
+        tLayer.terrainStrokes = copy;
+      } else {
+        // Also prune any stale non-linked strokes completely buried inside this room
+        const pruned = (tLayer.terrainStrokes ?? []).filter(
+          (s) => !isTerrainStrokeCoveredByFlood(s, poly, []),
+        );
+        tLayer.terrainStrokes = [...pruned, nextStroke];
+      }
     });
+    set((s) => ({
+      activeTerrainAssetId: terrainAsset,
+      recentTerrainAssetIds: pushRecentTerrain(s.recentTerrainAssetIds, terrainAsset),
+    }));
     return true;
   },
 
@@ -3203,10 +3890,24 @@ export const useDocumentStore = create<DocumentStoreState>((set, get) => ({
   },
 
   updateWaterRegion: (layerId, regionId, partial, recordHistory = false) =>
-    get().patchActiveDoc(
-      (d) => patchLayerItemInDoc(d, layerId, "waterRegions", regionId, partial),
-      recordHistory,
-    ),
+    get().patchActiveDoc((d) => {
+      const layer = d.layers.find((l) => l.id === layerId);
+      const existing = layer?.waterRegions?.find((w) => w.id === regionId);
+      if (!existing) return null;
+      const merged: Partial<WaterRegion> = { ...partial };
+      if (partial.curved !== undefined && partial.segmentCurves === undefined) {
+        merged.segmentCurves = undefined;
+      } else if (
+        (partial.points !== undefined || partial.shape !== undefined) &&
+        partial.segmentCurves === undefined &&
+        existing.segmentCurves
+      ) {
+        const nextPtsLen = (partial.points ?? existing.points).length;
+        const nextClosed = (partial.shape ?? existing.shape) !== "river";
+        merged.segmentCurves = normalizeWallSegmentCurves(nextPtsLen, nextClosed, existing.segmentCurves);
+      }
+      return patchLayerItemInDoc(d, layerId, "waterRegions", regionId, merged);
+    }, recordHistory),
 
   applyWaterPreset: (presetId) => {
     const preset = getWaterPreset(presetId);
@@ -3305,8 +4006,58 @@ export const useDocumentStore = create<DocumentStoreState>((set, get) => ({
           ...(tLayer.terrainStrokes ?? []),
           {
             id: `tfill-auto-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`,
-            assetId: st.activeTerrainAssetId || "terrain/parlor_herringbone.png",
+            assetId: sanitizeTerrainAssetId(st.activeTerrainAssetId || "terrain/herringbone_parquet.png"),
             points: fillPoly,
+            radiusCells: 0,
+            opacity: st.brushOpacity,
+            softness: st.terrainFillSoftness,
+            shape: "polygon",
+            sourceWallId: wall.id,
+            rotationDeg: st.terrainRotationDeg || undefined,
+            slopeShade: st.terrainSlopeShade > 0.02 ? st.terrainSlopeShade : undefined,
+            textureScale:
+              Math.abs(st.terrainTextureScale - 1) > 0.01 ? st.terrainTextureScale : undefined,
+            recolor: st.toolRecolors.terrain.enabled ? { ...st.toolRecolors.terrain } : undefined,
+          },
+        ];
+      }
+      const layer = findOrEnsureLayer(d, "walls");
+      targetLayerId = layer.id;
+      layer.walls = [...(layer.walls ?? []), wall];
+    });
+    set((s) => ({
+      // Keep Wall Tool & Style dock active while rapidly building multiple rooms/walls; select cleanly in Select mode!
+      selection:
+        s.activeTool !== "wall"
+          ? { kind: "wall", layerId: targetLayerId, id: wall.id }
+          : null,
+      selectedWallSegmentIndex: null,
+      ...(shouldAutoFill && fillPoly.length >= 3
+        ? {
+            recentTerrainAssetIds: pushRecentTerrain(
+              s.recentTerrainAssetIds,
+              st.activeTerrainAssetId || "terrain/herringbone_parquet.png",
+            ),
+          }
+        : {}),
+    }));
+  },
+
+  addWallsBatch: (walls, autoFloorPolygon) => {
+    if (walls.length === 0) return;
+    let targetLayerId = "";
+    const st = get();
+    const shouldAutoFill =
+      st.wallAutoFillClosed && Boolean(autoFloorPolygon && autoFloorPolygon.length >= 3);
+    st.commitDocMutation((d) => {
+      if (shouldAutoFill && autoFloorPolygon && autoFloorPolygon.length >= 3) {
+        const tLayer = findOrEnsureLayer(d, "terrain");
+        tLayer.terrainStrokes = [
+          ...(tLayer.terrainStrokes ?? []),
+          {
+            id: `tfill-corridor-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`,
+            assetId: sanitizeTerrainAssetId(st.activeTerrainAssetId || "terrain/herringbone_parquet.png"),
+            points: autoFloorPolygon.map((p) => ({ ...p })),
             radiusCells: 0,
             opacity: st.brushOpacity,
             softness: st.terrainFillSoftness,
@@ -3317,16 +4068,363 @@ export const useDocumentStore = create<DocumentStoreState>((set, get) => ({
       }
       const layer = findOrEnsureLayer(d, "walls");
       targetLayerId = layer.id;
-      layer.walls = [...(layer.walls ?? []), wall];
+      layer.walls = [...(layer.walls ?? []), ...walls];
     });
-    set({ selection: { kind: "wall", layerId: targetLayerId, id: wall.id } });
+    const lastWall = walls[walls.length - 1];
+    set((s) => ({
+      selection:
+        s.activeTool !== "wall"
+          ? { kind: "wall", layerId: targetLayerId, id: lastWall.id }
+          : null,
+      selectedWallSegmentIndex: null,
+      ...(shouldAutoFill
+        ? {
+            recentTerrainAssetIds: pushRecentTerrain(
+              s.recentTerrainAssetIds,
+              st.activeTerrainAssetId || "terrain/herringbone_parquet.png",
+            ),
+          }
+        : {}),
+    }));
   },
 
   updateWall: (layerId, wallId, partial, recordHistory = false) =>
-    get().patchActiveDoc(
-      (d) => patchLayerItemInDoc(d, layerId, "walls", wallId, partial),
+    get().patchActiveDoc((d) => {
+      const layer = d.layers.find((l) => l.id === layerId);
+      const existing = layer?.walls?.find((w) => w.id === wallId);
+      if (!existing) return null;
+      const mergedPartial: Partial<WallSegment> = { ...partial };
+      if (partial.curved === false && partial.segmentCurves === undefined) {
+        mergedPartial.segmentCurves = undefined;
+      } else if (
+        (partial.closed !== undefined || partial.points !== undefined) &&
+        partial.segmentCurves === undefined &&
+        existing.segmentCurves
+      ) {
+        const nextPtsLen = (partial.points ?? existing.points).length;
+        const nextClosed = partial.closed ?? existing.closed;
+        mergedPartial.segmentCurves = normalizeWallSegmentCurves(
+          nextPtsLen,
+          nextClosed,
+          existing.segmentCurves,
+        );
+      }
+      const nextDoc = patchLayerItemInDoc(d, layerId, "walls", wallId, mergedPartial);
+      if (!nextDoc) return null;
+      if (
+        partial.points !== undefined ||
+        partial.closed !== undefined ||
+        partial.curved !== undefined ||
+        partial.segmentCurves !== undefined
+      ) {
+        const updatedWall = nextDoc.layers
+          .find((l) => l.id === layerId)
+          ?.walls?.find((w) => w.id === wallId);
+        if (updatedWall) {
+          return syncLinkedWallFloorFills(nextDoc, wallId, updatedWall);
+        }
+      }
+      return nextDoc;
+    }, recordHistory),
+
+  setWallSegmentCurve: (layerId, wallId, segIdx, sagitta, recordHistory = true) =>
+    get().setEntitySegmentCurve(
+      { kind: "wall", layerId, id: wallId },
+      segIdx,
+      sagitta,
       recordHistory,
     ),
+
+  toggleWallSegmentCurve: (layerId, wallId, segIdx, preset = "90") =>
+    get().toggleEntitySegmentCurve({ kind: "wall", layerId, id: wallId }, segIdx, preset),
+
+  flipWallSegmentCurve: (layerId, wallId, segIdx) =>
+    get().flipEntitySegmentCurve({ kind: "wall", layerId, id: wallId }, segIdx),
+
+  setEntitySegmentCurve: (sel, segIdx, sagitta, recordHistory = true) => {
+    get().patchActiveDoc((d) => {
+      let shape:
+        | { points: Point2D[]; closed: boolean; curved: boolean; segmentCurves?: Array<number | null> }
+        | null = null;
+      if (sel.kind === "wall") {
+        const w = d.layers.find((l) => l.id === sel.layerId)?.walls?.find((x) => x.id === sel.id);
+        if (w) shape = { points: w.points, closed: w.closed, curved: w.curved, segmentCurves: w.segmentCurves };
+      } else if (sel.kind === "path") {
+        const p = d.layers.find((l) => l.id === sel.layerId)?.paths?.find((x) => x.id === sel.id);
+        if (p) shape = { points: p.points, closed: false, curved: p.curved !== false, segmentCurves: p.segmentCurves };
+      } else if (sel.kind === "roof") {
+        const rf = d.layers.find((l) => l.id === sel.layerId)?.roofs?.find((x) => x.id === sel.id);
+        if (rf && rf.style !== "cone") {
+          shape = { points: rf.points, closed: false, curved: Boolean(rf.curved), segmentCurves: rf.segmentCurves };
+        }
+      } else if (sel.kind === "water") {
+        const wr = d.layers.find((l) => l.id === sel.layerId)?.waterRegions?.find((x) => x.id === sel.id);
+        if (wr) {
+          shape = {
+            points: wr.points,
+            closed: wr.shape !== "river",
+            curved: wr.curved ?? wr.kind !== "chasm",
+            segmentCurves: wr.segmentCurves,
+          };
+        }
+      } else if (sel.kind === "world_river" && d.world) {
+        const rv = d.world.rivers.find((x) => x.id === sel.id);
+        if (rv) shape = { points: rv.points, closed: false, curved: rv.curved, segmentCurves: rv.segmentCurves };
+      } else if (sel.kind === "world_trail" && d.world) {
+        const tr = d.world.trails.find((x) => x.id === sel.id);
+        if (tr) shape = { points: tr.points, closed: false, curved: tr.curved, segmentCurves: tr.segmentCurves };
+      } else if (sel.kind === "world_region" && d.world) {
+        const reg = d.world.regions.find((x) => x.id === sel.id);
+        if (reg) shape = { points: reg.polygon, closed: true, curved: reg.curved, segmentCurves: reg.segmentCurves };
+      }
+      if (!shape) return null;
+      const segCount = getWallSegmentCount(shape.points, shape.closed);
+      if (segIdx < 0 || segIdx >= segCount) return null;
+      const baseCurves = convertLegacyWallCurveToSegments(shape);
+      baseCurves[segIdx] =
+        typeof sagitta === "number" && Number.isFinite(sagitta) && Math.abs(sagitta) >= 0.04
+          ? Math.round(sagitta * 1000) / 1000
+          : null;
+      const normalized = normalizeWallSegmentCurves(shape.points.length, shape.closed, baseCurves);
+      const patch = { curved: false, segmentCurves: normalized };
+
+      if (sel.kind === "wall") {
+        const nextDoc = patchLayerItemInDoc(d, sel.layerId, "walls", sel.id, patch);
+        if (!nextDoc) return null;
+        const updatedWall = nextDoc.layers
+          .find((l) => l.id === sel.layerId)
+          ?.walls?.find((w) => w.id === sel.id);
+        return updatedWall ? syncLinkedWallFloorFills(nextDoc, sel.id, updatedWall) : nextDoc;
+      }
+      if (sel.kind === "path") return patchLayerItemInDoc(d, sel.layerId, "paths", sel.id, patch);
+      if (sel.kind === "roof") return patchLayerItemInDoc(d, sel.layerId, "roofs", sel.id, patch);
+      if (sel.kind === "water") return patchLayerItemInDoc(d, sel.layerId, "waterRegions", sel.id, patch);
+      if (sel.kind === "world_river") return patchWorldItemInDoc(d, "rivers", sel.id, patch);
+      if (sel.kind === "world_trail") return patchWorldItemInDoc(d, "trails", sel.id, patch);
+      if (sel.kind === "world_region") return patchWorldItemInDoc(d, "regions", sel.id, patch);
+      return null;
+    }, recordHistory);
+  },
+
+  toggleEntitySegmentCurve: (sel, segIdx, preset = "90") => {
+    const st = get();
+    const d = st.getActiveDoc();
+    let shape:
+      | { points: Point2D[]; closed: boolean; curved: boolean; segmentCurves?: Array<number | null> }
+      | null = null;
+    if (sel.kind === "wall") {
+      const w = d.layers.find((l) => l.id === sel.layerId)?.walls?.find((x) => x.id === sel.id);
+      if (w) shape = { points: w.points, closed: w.closed, curved: w.curved, segmentCurves: w.segmentCurves };
+    } else if (sel.kind === "path") {
+      const p = d.layers.find((l) => l.id === sel.layerId)?.paths?.find((x) => x.id === sel.id);
+      if (p) shape = { points: p.points, closed: false, curved: p.curved !== false, segmentCurves: p.segmentCurves };
+    } else if (sel.kind === "roof") {
+      const rf = d.layers.find((l) => l.id === sel.layerId)?.roofs?.find((x) => x.id === sel.id);
+      if (rf && rf.style !== "cone") {
+        shape = { points: rf.points, closed: false, curved: Boolean(rf.curved), segmentCurves: rf.segmentCurves };
+      }
+    } else if (sel.kind === "water") {
+      const wr = d.layers.find((l) => l.id === sel.layerId)?.waterRegions?.find((x) => x.id === sel.id);
+      if (wr) {
+        shape = {
+          points: wr.points,
+          closed: wr.shape !== "river",
+          curved: wr.curved ?? wr.kind !== "chasm",
+          segmentCurves: wr.segmentCurves,
+        };
+      }
+    } else if (sel.kind === "world_river" && d.world) {
+      const rv = d.world.rivers.find((x) => x.id === sel.id);
+      if (rv) shape = { points: rv.points, closed: false, curved: rv.curved, segmentCurves: rv.segmentCurves };
+    } else if (sel.kind === "world_trail" && d.world) {
+      const tr = d.world.trails.find((x) => x.id === sel.id);
+      if (tr) shape = { points: tr.points, closed: false, curved: tr.curved, segmentCurves: tr.segmentCurves };
+    } else if (sel.kind === "world_region" && d.world) {
+      const reg = d.world.regions.find((x) => x.id === sel.id);
+      if (reg) shape = { points: reg.polygon, closed: true, curved: reg.curved, segmentCurves: reg.segmentCurves };
+    }
+    if (!shape) return false;
+    const segCount = getWallSegmentCount(shape.points, shape.closed);
+    if (segIdx < 0 || segIdx >= segCount) return false;
+    const baseCurves = convertLegacyWallCurveToSegments(shape);
+    const curVal = baseCurves[segIdx] ?? 0;
+    const isCurrentlyCurved = Math.abs(curVal) >= 0.04;
+    const nextSagitta = isCurrentlyCurved
+      ? null
+      : computeDefaultWallEdgeBulge(shape, segIdx, preset);
+    st.setEntitySegmentCurve(sel, segIdx, nextSagitta, true);
+    return !isCurrentlyCurved;
+  },
+
+  flipEntitySegmentCurve: (sel, segIdx) => {
+    const st = get();
+    const d = st.getActiveDoc();
+    let shape:
+      | { points: Point2D[]; closed: boolean; curved: boolean; segmentCurves?: Array<number | null> }
+      | null = null;
+    if (sel.kind === "wall") {
+      const w = d.layers.find((l) => l.id === sel.layerId)?.walls?.find((x) => x.id === sel.id);
+      if (w) shape = { points: w.points, closed: w.closed, curved: w.curved, segmentCurves: w.segmentCurves };
+    } else if (sel.kind === "path") {
+      const p = d.layers.find((l) => l.id === sel.layerId)?.paths?.find((x) => x.id === sel.id);
+      if (p) shape = { points: p.points, closed: false, curved: p.curved !== false, segmentCurves: p.segmentCurves };
+    } else if (sel.kind === "roof") {
+      const rf = d.layers.find((l) => l.id === sel.layerId)?.roofs?.find((x) => x.id === sel.id);
+      if (rf && rf.style !== "cone") {
+        shape = { points: rf.points, closed: false, curved: Boolean(rf.curved), segmentCurves: rf.segmentCurves };
+      }
+    } else if (sel.kind === "water") {
+      const wr = d.layers.find((l) => l.id === sel.layerId)?.waterRegions?.find((x) => x.id === sel.id);
+      if (wr) {
+        shape = {
+          points: wr.points,
+          closed: wr.shape !== "river",
+          curved: wr.curved ?? wr.kind !== "chasm",
+          segmentCurves: wr.segmentCurves,
+        };
+      }
+    } else if (sel.kind === "world_river" && d.world) {
+      const rv = d.world.rivers.find((x) => x.id === sel.id);
+      if (rv) shape = { points: rv.points, closed: false, curved: rv.curved, segmentCurves: rv.segmentCurves };
+    } else if (sel.kind === "world_trail" && d.world) {
+      const tr = d.world.trails.find((x) => x.id === sel.id);
+      if (tr) shape = { points: tr.points, closed: false, curved: tr.curved, segmentCurves: tr.segmentCurves };
+    } else if (sel.kind === "world_region" && d.world) {
+      const reg = d.world.regions.find((x) => x.id === sel.id);
+      if (reg) shape = { points: reg.polygon, closed: true, curved: reg.curved, segmentCurves: reg.segmentCurves };
+    }
+    if (!shape) return;
+    const baseCurves = convertLegacyWallCurveToSegments(shape);
+    const curVal = baseCurves[segIdx] ?? 0;
+    if (Math.abs(curVal) < 0.04) return;
+    st.setEntitySegmentCurve(sel, segIdx, -curVal, true);
+  },
+
+  flattenEntityCurves: (sel) => {
+    const st = get();
+    if (sel.kind === "wall") {
+      st.updateWall(sel.layerId, sel.id, { curved: false, segmentCurves: undefined }, true);
+    } else if (sel.kind === "path") {
+      st.updatePath(sel.layerId, sel.id, { curved: false, segmentCurves: undefined }, true);
+    } else if (sel.kind === "roof") {
+      st.updateRoof(sel.layerId, sel.id, { curved: false, segmentCurves: undefined }, true);
+    } else if (sel.kind === "water") {
+      st.updateWaterRegion(sel.layerId, sel.id, { curved: false, segmentCurves: undefined }, true);
+    } else if (sel.kind === "world_river") {
+      st.updateWorldRiver(sel.id, { curved: false, segmentCurves: undefined }, true);
+    } else if (sel.kind === "world_trail") {
+      st.updateWorldTrail(sel.id, { curved: false, segmentCurves: undefined }, true);
+    } else if (sel.kind === "world_region") {
+      st.updateWorldRegion(sel.id, { curved: false, segmentCurves: undefined }, true);
+    }
+  },
+
+  splitWallAt: (layerId, wallId, arcLength) => {
+    const st = get();
+    const doc = st.getActiveDoc();
+    const layer = doc.layers.find((l) => l.id === layerId);
+    const target = layer?.walls?.find((w) => w.id === wallId);
+    if (!layer || !target) return false;
+    const wasClosed = target.closed;
+    const stamp = Date.now().toString(36);
+    const replacement = splitWallAtArcLength(target, arcLength, `ws-${stamp}`);
+    if (
+      replacement.length === 1 &&
+      replacement[0] === target
+    ) {
+      return false;
+    }
+    st.commitDocMutation((d) => {
+      const lyr = d.layers.find((l) => l.id === layerId);
+      if (!lyr?.walls) return;
+      const idx = lyr.walls.findIndex((w) => w.id === wallId);
+      if (idx < 0) return;
+      lyr.walls.splice(idx, 1, ...replacement);
+    });
+    set({ selection: null });
+    st.pushToast(
+      wasClosed
+        ? "Opened closed room seam — click another point to split off a wall section"
+        : "Split wall cleanly into 2 independent segments",
+      "success",
+    );
+    return true;
+  },
+
+  breachWallAt: (layerId, wallId, arcLength, widthCells) => {
+    const st = get();
+    const doc = st.getActiveDoc();
+    const layer = doc.layers.find((l) => l.id === layerId);
+    const target = layer?.walls?.find((w) => w.id === wallId);
+    if (!layer || !target) return false;
+    const w = widthCells ?? st.wallBreachWidthCells;
+    const stamp = Date.now().toString(36);
+    const replacement = carveWallBreachAtArcLength(target, arcLength, w, `wb-${stamp}`);
+    st.commitDocMutation((d) => {
+      const lyr = d.layers.find((l) => l.id === layerId);
+      if (!lyr?.walls) return;
+      const idx = lyr.walls.findIndex((w) => w.id === wallId);
+      if (idx < 0) return;
+      lyr.walls.splice(idx, 1, ...replacement);
+    });
+    set({ selection: null });
+    st.pushToast(`Carved ${w.toFixed(1)} sq open breach / archway`, "success");
+    return true;
+  },
+
+  copyWallsFromLevelBelow: () => {
+    const st = get();
+    const doc = st.getActiveDoc();
+    const activeLv = doc.levels.find((lv) => lv.id === doc.activeLevelId);
+    if (!activeLv) return 0;
+    const refLv = getOnionSkinReferenceLevel(doc);
+    if (!refLv) {
+      st.pushToast("No adjacent reference floor found to copy walls from", "info");
+      return 0;
+    }
+    const sourceWalls = doc.layers
+      .filter((l) => l.levelId === refLv.id && (l.walls?.length ?? 0) > 0)
+      .flatMap((l) => l.walls ?? []);
+    if (sourceWalls.length === 0) {
+      st.pushToast(`No walls found on ${refLv.shortCode} to copy`, "info");
+      return 0;
+    }
+
+    const existingSigs = new Set(
+      doc.layers
+        .filter((l) => l.levelId === activeLv.id)
+        .flatMap((l) => l.walls ?? [])
+        .map((w) =>
+          `${w.closed ? "C" : "O"}|${w.points.map((p) => `${Math.round(p.x * 20)},${Math.round(p.y * 20)}`).join(";")}`,
+        ),
+    );
+    const stamp = Date.now().toString(36);
+    const cloned: WallSegment[] = [];
+    sourceWalls.forEach((w, idx) => {
+      const sig = `${w.closed ? "C" : "O"}|${w.points.map((p) => `${Math.round(p.x * 20)},${Math.round(p.y * 20)}`).join(";")}`;
+      if (existingSigs.has(sig)) return;
+      existingSigs.add(sig);
+      cloned.push({
+        ...structuredClone(w),
+        id: `wcopy-${stamp}-${idx}`,
+      });
+    });
+
+    if (cloned.length === 0) {
+      st.pushToast(`${activeLv.shortCode} already has matching walls from ${refLv.shortCode}`, "info");
+      return 0;
+    }
+
+    st.commitDocMutation((d) => {
+      const targetLayer = findOrEnsureLayer(d, "walls");
+      targetLayer.walls = [...(targetLayer.walls ?? []), ...cloned];
+    });
+    st.pushToast(
+      `Copied ${cloned.length} wall footprint${cloned.length === 1 ? "" : "s"} from ${refLv.shortCode} to ${activeLv.shortCode}`,
+      "success",
+    );
+    return cloned.length;
+  },
 
   addPortal: (portal) =>
     get().commitDocMutation((d) => {
@@ -3358,10 +4456,17 @@ export const useDocumentStore = create<DocumentStoreState>((set, get) => ({
   },
 
   updatePath: (layerId, pathId, partial, recordHistory = false) =>
-    get().patchActiveDoc(
-      (d) => patchLayerItemInDoc(d, layerId, "paths", pathId, partial),
-      recordHistory,
-    ),
+    get().patchActiveDoc((d) => {
+      const existing = d.layers.find((l) => l.id === layerId)?.paths?.find((p) => p.id === pathId);
+      if (!existing) return null;
+      const merged: Partial<SplinePath> = { ...partial };
+      if (partial.curved !== undefined && partial.segmentCurves === undefined) {
+        merged.segmentCurves = undefined;
+      } else if (partial.points !== undefined && partial.segmentCurves === undefined && existing.segmentCurves) {
+        merged.segmentCurves = normalizeWallSegmentCurves(partial.points.length, false, existing.segmentCurves);
+      }
+      return patchLayerItemInDoc(d, layerId, "paths", pathId, merged);
+    }, recordHistory),
 
   addRoof: (roof) => {
     let targetLayerId = "";
@@ -3374,10 +4479,17 @@ export const useDocumentStore = create<DocumentStoreState>((set, get) => ({
   },
 
   updateRoof: (layerId, roofId, partial, recordHistory = false) =>
-    get().patchActiveDoc(
-      (d) => patchLayerItemInDoc(d, layerId, "roofs", roofId, partial),
-      recordHistory,
-    ),
+    get().patchActiveDoc((d) => {
+      const existing = d.layers.find((l) => l.id === layerId)?.roofs?.find((r) => r.id === roofId);
+      if (!existing) return null;
+      const merged: Partial<RoofStructure> = { ...partial };
+      if (partial.curved !== undefined && partial.segmentCurves === undefined) {
+        merged.segmentCurves = undefined;
+      } else if (partial.points !== undefined && partial.segmentCurves === undefined && existing.segmentCurves) {
+        merged.segmentCurves = normalizeWallSegmentCurves(partial.points.length, false, existing.segmentCurves);
+      }
+      return patchLayerItemInDoc(d, layerId, "roofs", roofId, merged);
+    }, recordHistory),
 
   applyRoofPreset: (presetId) => {
     const preset = getRoofPreset(presetId);
@@ -3698,10 +4810,17 @@ export const useDocumentStore = create<DocumentStoreState>((set, get) => ({
   },
 
   updateWorldRiver: (riverId, partial, recordHistory = false) =>
-    get().patchActiveDoc(
-      (d) => patchWorldItemInDoc(d, "rivers", riverId, partial),
-      recordHistory,
-    ),
+    get().patchActiveDoc((d) => {
+      const existing = d.world?.rivers.find((r) => r.id === riverId);
+      if (!existing) return null;
+      const merged: Partial<WorldRiver> = { ...partial };
+      if (partial.curved !== undefined && partial.segmentCurves === undefined) {
+        merged.segmentCurves = undefined;
+      } else if (partial.points !== undefined && partial.segmentCurves === undefined && existing.segmentCurves) {
+        merged.segmentCurves = normalizeWallSegmentCurves(partial.points.length, false, existing.segmentCurves);
+      }
+      return patchWorldItemInDoc(d, "rivers", riverId, merged);
+    }, recordHistory),
 
   addWorldTrail: (trail) => {
     get().patchActiveDoc((d) => {
@@ -3715,10 +4834,17 @@ export const useDocumentStore = create<DocumentStoreState>((set, get) => ({
   },
 
   updateWorldTrail: (trailId, partial, recordHistory = false) =>
-    get().patchActiveDoc(
-      (d) => patchWorldItemInDoc(d, "trails", trailId, partial),
-      recordHistory,
-    ),
+    get().patchActiveDoc((d) => {
+      const existing = d.world?.trails.find((t) => t.id === trailId);
+      if (!existing) return null;
+      const merged: Partial<WorldTrail> = { ...partial };
+      if (partial.curved !== undefined && partial.segmentCurves === undefined) {
+        merged.segmentCurves = undefined;
+      } else if (partial.points !== undefined && partial.segmentCurves === undefined && existing.segmentCurves) {
+        merged.segmentCurves = normalizeWallSegmentCurves(partial.points.length, false, existing.segmentCurves);
+      }
+      return patchWorldItemInDoc(d, "trails", trailId, merged);
+    }, recordHistory),
 
   addWorldRegion: (region) => {
     get().patchActiveDoc((d) => {
@@ -3732,10 +4858,17 @@ export const useDocumentStore = create<DocumentStoreState>((set, get) => ({
   },
 
   updateWorldRegion: (regionId, partial, recordHistory = false) =>
-    get().patchActiveDoc(
-      (d) => patchWorldItemInDoc(d, "regions", regionId, partial),
-      recordHistory,
-    ),
+    get().patchActiveDoc((d) => {
+      const existing = d.world?.regions.find((rg) => rg.id === regionId);
+      if (!existing) return null;
+      const merged: Partial<WorldRegion> = { ...partial };
+      if (partial.curved !== undefined && partial.segmentCurves === undefined) {
+        merged.segmentCurves = undefined;
+      } else if (partial.polygon !== undefined && partial.segmentCurves === undefined && existing.segmentCurves) {
+        merged.segmentCurves = normalizeWallSegmentCurves(partial.polygon.length, true, existing.segmentCurves);
+      }
+      return patchWorldItemInDoc(d, "regions", regionId, merged);
+    }, recordHistory),
 
   addWorldLabel: (label) => {
     get().patchActiveDoc((d) => {
@@ -4064,64 +5197,98 @@ export const useDocumentStore = create<DocumentStoreState>((set, get) => ({
 
   bendSelectedIntoCurve: () => {
     const sel = get().selection;
-    if (!sel || (sel.kind !== "wall" && sel.kind !== "path" && sel.kind !== "roof")) return;
+    if (
+      !sel ||
+      (sel.kind !== "wall" &&
+        sel.kind !== "path" &&
+        sel.kind !== "roof" &&
+        sel.kind !== "water" &&
+        sel.kind !== "world_river" &&
+        sel.kind !== "world_trail" &&
+        sel.kind !== "world_region")
+    ) {
+      return;
+    }
+    const bend2Pt = (pts: Point2D[]): Point2D[] => {
+      if (pts.length !== 2) return pts;
+      const [a, b] = pts;
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const len = Math.max(0.1, Math.hypot(dx, dy));
+      const nx = -dy / len;
+      const ny = dx / len;
+      const bulge = Math.min(1.4, len * 0.2);
+      return [
+        a,
+        { x: (a.x + b.x) * 0.5 + nx * bulge, y: (a.y + b.y) * 0.5 + ny * bulge },
+        b,
+      ];
+    };
     get().commitDocMutation((d) => {
+      if (sel.kind === "world_river" && d.world) {
+        const rv = d.world.rivers.find((x) => x.id === sel.id);
+        if (!rv || rv.points.length < 2) return;
+        rv.points = bend2Pt(rv.points);
+        rv.segmentCurves = undefined;
+        rv.curved = true;
+        return;
+      }
+      if (sel.kind === "world_trail" && d.world) {
+        const tr = d.world.trails.find((x) => x.id === sel.id);
+        if (!tr || tr.points.length < 2) return;
+        tr.points = bend2Pt(tr.points);
+        tr.segmentCurves = undefined;
+        tr.curved = true;
+        return;
+      }
+      if (sel.kind === "world_region" && d.world) {
+        const reg = d.world.regions.find((x) => x.id === sel.id);
+        if (!reg || reg.polygon.length < 3) return;
+        reg.segmentCurves = undefined;
+        reg.curved = true;
+        return;
+      }
       const layer = d.layers.find((l) => l.id === sel.layerId);
       if (!layer) return;
       if (sel.kind === "wall") {
         const w = layer.walls?.find((x) => x.id === sel.id);
         if (!w || w.points.length < 2) return;
-        if (w.points.length === 2) {
-          const [a, b] = w.points;
-          const dx = b.x - a.x;
-          const dy = b.y - a.y;
-          const len = Math.max(0.1, Math.hypot(dx, dy));
-          const nx = -dy / len;
-          const ny = dx / len;
-          const bulge = Math.min(1.4, len * 0.2);
-          w.points = [
-            a,
-            { x: (a.x + b.x) * 0.5 + nx * bulge, y: (a.y + b.y) * 0.5 + ny * bulge },
-            b,
-          ];
-        }
+        w.points = bend2Pt(w.points);
+        w.segmentCurves = undefined;
         w.curved = true;
+        if (w.points.length >= 3) {
+          const nextPoly = makeClosedWallPolygon(w);
+          if (nextPoly.length >= 3) {
+            for (const lyr of d.layers) {
+              if (lyr.kind !== "terrain" || !lyr.terrainStrokes) continue;
+              for (const s of lyr.terrainStrokes) {
+                if (s.sourceWallId === w.id && !s.erase) {
+                  s.points = nextPoly.map((p) => ({ ...p }));
+                  s.holes = undefined;
+                  s.segmentCurves = undefined;
+                }
+              }
+            }
+          }
+        }
       } else if (sel.kind === "path") {
         const p = layer.paths?.find((x) => x.id === sel.id);
         if (!p || p.points.length < 2) return;
-        if (p.points.length === 2) {
-          const [a, b] = p.points;
-          const dx = b.x - a.x;
-          const dy = b.y - a.y;
-          const len = Math.max(0.1, Math.hypot(dx, dy));
-          const nx = -dy / len;
-          const ny = dx / len;
-          const bulge = Math.min(1.4, len * 0.2);
-          p.points = [
-            a,
-            { x: (a.x + b.x) * 0.5 + nx * bulge, y: (a.y + b.y) * 0.5 + ny * bulge },
-            b,
-          ];
-        }
+        p.points = bend2Pt(p.points);
+        p.segmentCurves = undefined;
         p.curved = true;
       } else if (sel.kind === "roof") {
         const rf = layer.roofs?.find((x) => x.id === sel.id);
         if (!rf || rf.style === "cone" || rf.points.length < 2) return;
-        if (rf.points.length === 2) {
-          const [a, b] = rf.points;
-          const dx = b.x - a.x;
-          const dy = b.y - a.y;
-          const len = Math.max(0.1, Math.hypot(dx, dy));
-          const nx = -dy / len;
-          const ny = dx / len;
-          const bulge = Math.min(1.4, len * 0.2);
-          rf.points = [
-            a,
-            { x: (a.x + b.x) * 0.5 + nx * bulge, y: (a.y + b.y) * 0.5 + ny * bulge },
-            b,
-          ];
-        }
+        rf.points = bend2Pt(rf.points);
+        rf.segmentCurves = undefined;
         rf.curved = true;
+      } else if (sel.kind === "water") {
+        const wr = layer.waterRegions?.find((x) => x.id === sel.id);
+        if (!wr || wr.points.length < 2) return;
+        if (wr.shape === "river") wr.points = bend2Pt(wr.points);
+        wr.segmentCurves = undefined;
+        wr.curved = true;
       }
     });
     get().pushToast("Converted to smooth curve — drag gold dots to bend!", "success");

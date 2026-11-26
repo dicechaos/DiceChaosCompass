@@ -1,4 +1,6 @@
 import React, { Suspense, lazy, useCallback, useEffect, useMemo, useState } from "react";
+import { hasWallSegmentCurves } from "@/engine/geometry";
+import { getOnionSkinDirection, getOnionSkinReferenceLevel } from "@/engine/layerMeta";
 import { describeSelection } from "@/engine/selectionInfo";
 import { useDocumentStore } from "@/store/documentStore";
 import { useVaultStore } from "@/store/vaultStore";
@@ -322,6 +324,41 @@ export const App: React.FC = () => {
         st.toggleSnapEnabled();
         return;
       }
+      if (e.shiftKey && lower === "g") {
+        e.preventDefault();
+        const next = !st.showOnionSkin;
+        st.setShowOnionSkin(next);
+        const curDoc = st.getActiveDoc();
+        const activeLv = curDoc.levels.find((lv) => lv.id === curDoc.activeLevelId);
+        const refLv = getOnionSkinReferenceLevel(curDoc);
+        const dir = activeLv && refLv ? getOnionSkinDirection(activeLv, refLv) : null;
+        st.pushToast(
+          next
+            ? refLv
+              ? `Ghost Blueprint ON (${refLv.shortCode} ${dir === "up" ? "above" : "below"})`
+              : "Ghost Blueprint ON"
+            : "Ghost Blueprint OFF",
+        );
+        return;
+      }
+      if (e.shiftKey && lower === "i") {
+        e.preventDefault();
+        const next = !st.isolateActiveFloor;
+        st.setIsolateActiveFloor(next);
+        const curDoc = st.getActiveDoc();
+        const activeLv = curDoc.levels.find((lv) => lv.id === curDoc.activeLevelId);
+        st.pushToast(
+          next
+            ? `Solo Floor ON — Isolating ${activeLv?.shortCode ?? "active floor"}`
+            : `Stack View ON — Showing lower floors beneath ${activeLv?.shortCode ?? "active floor"}`,
+        );
+        return;
+      }
+      if (e.altKey && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
+        e.preventDefault();
+        st.stepActiveLayer(e.key === "ArrowUp" ? "up" : "down");
+        return;
+      }
 
       if (e.key === "F2") {
         e.preventDefault();
@@ -360,7 +397,14 @@ export const App: React.FC = () => {
       }
       if (lower === "q") {
         if (st.selection?.kind === "object") st.transformSelectedObject("rotCCW");
-        else if (st.activeTool === "roof" && st.roofDrawMode === "box") {
+        else if (
+          st.activeTool === "wall" &&
+          (st.wallDrawMode === "box" || st.wallDrawMode === "circle")
+        ) {
+          const nextDeg = (st.wallBoxRotationDeg + 345) % 360;
+          st.setBrushParams({ wallBoxRotationDeg: nextDeg });
+          st.pushToast(`Wall Angle: ${nextDeg}°`);
+        } else if (st.activeTool === "roof" && st.roofDrawMode === "box") {
           st.setBrushParams({ roofRotateBoxRidge: !st.roofRotateBoxRidge });
           st.pushToast("Rotated Box Roof Ridge 90°");
         } else if (st.activeTool === "roof") {
@@ -375,6 +419,13 @@ export const App: React.FC = () => {
       if (lower === "e") {
         if (st.selection?.kind === "object") {
           st.transformSelectedObject("rotCW");
+        } else if (
+          st.activeTool === "wall" &&
+          (st.wallDrawMode === "box" || st.wallDrawMode === "circle")
+        ) {
+          const nextDeg = (st.wallBoxRotationDeg + 15) % 360;
+          st.setBrushParams({ wallBoxRotationDeg: nextDeg });
+          st.pushToast(`Wall Angle: ${nextDeg}°`);
         } else if (st.activeTool === "roof" && st.roofDrawMode === "box") {
           st.setBrushParams({ roofRotateBoxRidge: !st.roofRotateBoxRidge });
           st.pushToast("Rotated Box Roof Ridge 90°");
@@ -386,6 +437,9 @@ export const App: React.FC = () => {
         } else if (st.activeTool === "water") {
           const nextMode = st.waterDrawMode === "erase" ? "lake_brush" : "erase";
           st.setBrushParams({ waterDrawMode: nextMode });
+        } else if (st.activeTool === "terrain") {
+          const nextMode = st.terrainMode === "erase" ? "flood" : "erase";
+          st.setBrushParams({ terrainMode: nextMode });
         } else if (st.activeTool === "template") {
           st.setTemplateTransform({ rotationRad: st.templateRotationRad + Math.PI / 12 });
         } else {
@@ -394,45 +448,55 @@ export const App: React.FC = () => {
         return;
       }
       if (lower === "c") {
-        if (st.selection?.kind === "wall") {
-          const w = st
-            .getActiveDoc()
-            .layers.find((l) => l.id === st.selection!.layerId)
-            ?.walls?.find((x) => x.id === st.selection!.id);
-          if (w) {
-            if (w.curved) {
-              st.updateWall(st.selection.layerId, w.id, { curved: false }, true);
-              st.pushToast("Switched wall to Straight segments");
-            } else {
-              st.bendSelectedIntoCurve();
-            }
+        const sel = st.selection;
+        if (
+          sel &&
+          (sel.kind === "wall" ||
+            sel.kind === "path" ||
+            sel.kind === "roof" ||
+            sel.kind === "water" ||
+            sel.kind === "world_river" ||
+            sel.kind === "world_trail" ||
+            sel.kind === "world_region")
+        ) {
+          const curDoc = st.getActiveDoc();
+          const layer = curDoc.layers.find((l) => l.id === sel.layerId);
+          let shape: { points: { x: number; y: number }[]; closed: boolean; curved: boolean; segmentCurves?: Array<number | null> } | null = null;
+          let noun = "section";
+          if (sel.kind === "wall") {
+            const w = layer?.walls?.find((x) => x.id === sel.id);
+            if (w) { shape = w; noun = "wall section"; }
+          } else if (sel.kind === "path") {
+            const p = layer?.paths?.find((x) => x.id === sel.id);
+            if (p) { shape = { points: p.points, closed: false, curved: p.curved !== false, segmentCurves: p.segmentCurves }; noun = "line section"; }
+          } else if (sel.kind === "roof") {
+            const rf = layer?.roofs?.find((x) => x.id === sel.id);
+            if (rf && rf.style !== "cone") { shape = { points: rf.points, closed: false, curved: Boolean(rf.curved), segmentCurves: rf.segmentCurves }; noun = "roof ridge"; }
+          } else if (sel.kind === "water") {
+            const wr = layer?.waterRegions?.find((x) => x.id === sel.id);
+            if (wr) { shape = { points: wr.points, closed: wr.shape !== "river", curved: wr.curved ?? wr.kind !== "chasm", segmentCurves: wr.segmentCurves }; noun = wr.shape === "river" ? "channel section" : "shore section"; }
+          } else if (sel.kind === "world_river") {
+            const r = curDoc.world?.rivers.find((x) => x.id === sel.id);
+            if (r) { shape = { points: r.points, closed: false, curved: r.curved, segmentCurves: r.segmentCurves }; noun = "river span"; }
+          } else if (sel.kind === "world_trail") {
+            const t = curDoc.world?.trails.find((x) => x.id === sel.id);
+            if (t) { shape = { points: t.points, closed: false, curved: t.curved, segmentCurves: t.segmentCurves }; noun = "route segment"; }
+          } else if (sel.kind === "world_region") {
+            const reg = curDoc.world?.regions.find((x) => x.id === sel.id);
+            if (reg) { shape = { points: reg.polygon, closed: true, curved: Boolean(reg.curved), segmentCurves: reg.segmentCurves }; noun = "realm border"; }
           }
-          return;
-        }
-        if (st.selection?.kind === "path") {
-          const p = st
-            .getActiveDoc()
-            .layers.find((l) => l.id === st.selection!.layerId)
-            ?.paths?.find((x) => x.id === st.selection!.id);
-          if (p) {
-            if (p.curved !== false) {
-              st.updatePath(st.selection.layerId, p.id, { curved: false }, true);
-              st.pushToast("Switched line to Straight polyline");
-            } else {
-              st.bendSelectedIntoCurve();
-            }
-          }
-          return;
-        }
-        if (st.selection?.kind === "roof") {
-          const rf = st
-            .getActiveDoc()
-            .layers.find((l) => l.id === st.selection!.layerId)
-            ?.roofs?.find((x) => x.id === st.selection!.id);
-          if (rf && rf.style !== "cone") {
-            if (rf.curved) {
-              st.updateRoof(st.selection.layerId, rf.id, { curved: false }, true);
-              st.pushToast("Switched roof ridge to Straight");
+          if (shape) {
+            if (st.selectedWallSegmentIndex !== null) {
+              const segIdx = st.selectedWallSegmentIndex;
+              const nowCurved = st.toggleEntitySegmentCurve(sel, segIdx, "90");
+              st.pushToast(
+                nowCurved
+                  ? `Curved ${noun} #${segIdx + 1} (90° arch)`
+                  : `Straightened ${noun} #${segIdx + 1}`,
+              );
+            } else if (shape.curved || hasWallSegmentCurves(shape)) {
+              st.flattenEntityCurves(sel);
+              st.pushToast(`Straightened all ${noun}s`);
             } else {
               st.bendSelectedIntoCurve();
             }
@@ -440,18 +504,57 @@ export const App: React.FC = () => {
           return;
         }
         if (st.activeTool === "wall") {
-          st.setBrushParams({ wallCurved: !st.wallCurved });
-          st.pushToast(st.wallCurved ? "Wall Tool: Straight Walls" : "Wall Tool: Curved Walls");
+          const nextCurved = !st.wallCurved;
+          st.setBrushParams({ wallCurved: nextCurved });
+          st.pushToast(
+            st.wallDrawMode === "free"
+              ? nextCurved
+                ? "Next Wall Section: Curved Arc (click end, then pull bow)"
+                : "Next Wall Section: Straight"
+              : nextCurved
+                ? "Wall Tool: Curved Walls"
+                : "Wall Tool: Straight Walls",
+          );
           return;
         }
         if (st.activeTool === "path") {
-          st.setBrushParams({ pathCurved: !st.pathCurved });
-          st.pushToast(st.pathCurved ? "Line Tool: Straight Polylines" : "Line Tool: Curved Splines");
+          const nextCurved = !st.pathCurved;
+          st.setBrushParams({ pathCurved: nextCurved });
+          st.pushToast(
+            nextCurved
+              ? "Next Line Section: Curved Arc (click end, then pull bow)"
+              : "Next Line Section: Straight",
+          );
           return;
         }
         if (st.activeTool === "roof") {
           st.setBrushParams({ roofCurved: !st.roofCurved });
           st.pushToast(st.roofCurved ? "Roof Ridge: Straight" : "Roof Ridge: Curved");
+          return;
+        }
+        if (st.activeTool === "water") {
+          st.setBrushParams({ waterCurved: !st.waterCurved });
+          st.pushToast(st.waterCurved ? "Water Edges: Straight" : "Water Edges: Smooth");
+          return;
+        }
+        if (st.activeTool === "world_river") {
+          st.setBrushParams({ worldRiverCurved: !st.worldRiverCurved });
+          st.pushToast(st.worldRiverCurved ? "World River: Straight" : "World River: Curved");
+          return;
+        }
+        if (st.activeTool === "terrain" && st.terrainMode === "polygon") {
+          const nextCurved = !st.terrainPolygonCurved;
+          st.setBrushParams({ terrainPolygonCurved: nextCurved });
+          st.pushToast(
+            nextCurved
+              ? "Next Polygon Edge: Curved Arc (click end, then pull bow)"
+              : "Next Polygon Edge: Straight",
+          );
+          return;
+        }
+        if (st.activeTool === "world_trail") {
+          st.setBrushParams({ worldTrailCurved: !st.worldTrailCurved });
+          st.pushToast(st.worldTrailCurved ? "World Route: Straight" : "World Route: Curved");
           return;
         }
       }
@@ -468,7 +571,28 @@ export const App: React.FC = () => {
         } else if (st.activeTool === "terrain") {
           st.setBrushParams({ brushRadiusCells: Math.max(0.5, Math.min(8, st.brushRadiusCells + dir * 0.25)) });
         } else if (st.activeTool === "wall") {
-          st.setBrushParams({ wallThicknessCells: Math.max(0.16, Math.min(0.85, Math.round((st.wallThicknessCells + dir * 0.04) * 100) / 100)) });
+          if (st.wallDrawMode === "split" && st.wallSplitSubMode === "breach") {
+            st.setBrushParams({
+              wallBreachWidthCells: Math.max(
+                0.6,
+                Math.min(6.0, Math.round((st.wallBreachWidthCells + dir * 0.25) * 100) / 100),
+              ),
+            });
+          } else if (st.wallDrawMode === "corridor") {
+            st.setBrushParams({
+              wallCorridorWidthCells: Math.max(
+                1.0,
+                Math.min(6.0, Math.round((st.wallCorridorWidthCells + dir * 0.25) * 100) / 100),
+              ),
+            });
+          } else {
+            st.setBrushParams({
+              wallThicknessCells: Math.max(
+                0.16,
+                Math.min(0.85, Math.round((st.wallThicknessCells + dir * 0.04) * 100) / 100),
+              ),
+            });
+          }
         } else if (st.activeTool === "path") {
           st.setBrushParams({ pathWidthCells: Math.max(0.3, Math.min(4, Math.round((st.pathWidthCells + dir * 0.15) * 100) / 100)) });
         } else if (st.activeTool === "roof") {
@@ -540,6 +664,20 @@ export const App: React.FC = () => {
           return;
         }
       }
+      if (st.activeTool === "wall" && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        const wallModes: Record<string, "free" | "box" | "circle" | "arc" | "split" | "corridor"> = {
+          "1": "free",
+          "2": "box",
+          "3": "circle",
+          "4": "arc",
+          "5": "split",
+          "6": "corridor",
+        };
+        if (wallModes[e.key]) {
+          st.setBrushParams({ wallDrawMode: wallModes[e.key] });
+          return;
+        }
+      }
       if (st.activeTool === "roof" && !e.ctrlKey && !e.metaKey && !e.altKey) {
         const roofModes: Record<string, "ridge_path" | "box" | "cone" | "auto_room"> = {
           "1": "ridge_path",
@@ -561,6 +699,20 @@ export const App: React.FC = () => {
         };
         if (waterModes[e.key]) {
           st.setBrushParams({ waterDrawMode: waterModes[e.key] });
+          return;
+        }
+      }
+      if (st.activeTool === "terrain" && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        const tModes: Record<string, "brush" | "flood" | "replace" | "rect" | "polygon" | "erase"> = {
+          "1": "brush",
+          "2": "flood",
+          "3": "replace",
+          "4": "rect",
+          "5": "polygon",
+          "6": "erase",
+        };
+        if (tModes[e.key]) {
+          st.setBrushParams({ terrainMode: tModes[e.key] });
           return;
         }
       }
@@ -616,7 +768,7 @@ export const App: React.FC = () => {
       }
 
       if (lower === "k" && activeDocMode === "battlemap") {
-        st.setBrushParams({ terrainMode: "flood" });
+        st.setBrushParams({ terrainMode: e.shiftKey ? "replace" : "flood" });
         st.setActiveTool("terrain");
         return;
       }

@@ -183,6 +183,437 @@ export function sampleCatmullRom(
   return out;
 }
 
+export interface WallSegmentArcInfo {
+  curved: boolean;
+  sagitta: number;
+  chord: number;
+  chordMid: Point2D;
+  normal: Point2D;
+  apex: Point2D;
+  center: Point2D;
+  radius: number;
+  angStart: number;
+  sweepRad: number;
+  sweepDeg: number;
+}
+
+export function getWallSegmentCount(points: Point2D[], closed: boolean): number {
+  if (points.length < 2) return 0;
+  return closed ? points.length : points.length - 1;
+}
+
+export function hasWallSegmentCurves(
+  wall: Pick<WallSegment, "segmentCurves"> | null | undefined,
+): boolean {
+  return Boolean(
+    wall?.segmentCurves &&
+      wall.segmentCurves.some((v) => typeof v === "number" && Number.isFinite(v) && Math.abs(v) >= 0.04),
+  );
+}
+
+/**
+ * Normalizes a wall's per-edge `segmentCurves` array so its length matches the
+ * exact edge count and returns `undefined` when every edge is razor-straight.
+ */
+export function normalizeWallSegmentCurves(
+  pointsLength: number,
+  closed: boolean,
+  curves?: Array<number | null> | null,
+): Array<number | null> | undefined {
+  if (!curves || curves.length === 0) return undefined;
+  const segCount = pointsLength < 2 ? 0 : closed ? pointsLength : pointsLength - 1;
+  if (segCount === 0) return undefined;
+  let anyCurved = false;
+  const out: Array<number | null> = new Array(segCount).fill(null);
+  for (let i = 0; i < segCount; i++) {
+    const v = curves[i];
+    if (typeof v === "number" && Number.isFinite(v) && Math.abs(v) >= 0.04) {
+      out[i] = Math.round(v * 1000) / 1000;
+      anyCurved = true;
+    }
+  }
+  return anyCurved ? out : undefined;
+}
+
+/**
+ * Computes exact circular-arc geometry for a single wall section `a -> b` with
+ * signed perpendicular sagitta (bulge in grid cells along the left normal).
+ */
+export function getWallSegmentArcInfo(
+  a: Point2D,
+  b: Point2D,
+  sagittaRaw: number | null | undefined,
+): WallSegmentArcInfo {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const chord = Math.hypot(dx, dy);
+  const chordMid: Point2D = { x: (a.x + b.x) * 0.5, y: (a.y + b.y) * 0.5 };
+  const nx = chord > 1e-6 ? -dy / chord : 0;
+  const ny = chord > 1e-6 ? dx / chord : -1;
+
+  const raw = typeof sagittaRaw === "number" && Number.isFinite(sagittaRaw) ? sagittaRaw : 0;
+  const maxSagitta = chord * 1.15;
+  const clamped = Math.max(-maxSagitta, Math.min(maxSagitta, raw));
+
+  if (chord < 1e-4 || Math.abs(clamped) < 0.04) {
+    return {
+      curved: false,
+      sagitta: 0,
+      chord,
+      chordMid,
+      normal: { x: nx, y: ny },
+      apex: chordMid,
+      center: chordMid,
+      radius: Infinity,
+      angStart: 0,
+      sweepRad: 0,
+      sweepDeg: 0,
+    };
+  }
+
+  const absS = Math.abs(clamped);
+  const sign = clamped >= 0 ? 1 : -1;
+  const halfChord = chord * 0.5;
+  const radius = (absS * absS + halfChord * halfChord) / (2 * absS);
+  const centerDist = radius - absS;
+  const cx = chordMid.x - nx * sign * centerDist;
+  const cy = chordMid.y - ny * sign * centerDist;
+
+  const apex: Point2D = {
+    x: chordMid.x + nx * clamped,
+    y: chordMid.y + ny * clamped,
+  };
+  const angStart = Math.atan2(a.y - cy, a.x - cx);
+  const angEnd = Math.atan2(b.y - cy, b.x - cx);
+  const angApex = Math.atan2(apex.y - cy, apex.x - cx);
+
+  const normPos = (ang: number) => ((ang % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+  const ccwEnd = normPos(angEnd - angStart);
+  const ccwApex = normPos(angApex - angStart);
+  const sweepRad = ccwApex <= ccwEnd ? ccwEnd : -(Math.PI * 2 - ccwEnd);
+
+  return {
+    curved: true,
+    sagitta: clamped,
+    chord,
+    chordMid,
+    normal: { x: nx, y: ny },
+    apex,
+    center: { x: cx, y: cy },
+    radius,
+    angStart,
+    sweepRad,
+    sweepDeg: Math.round((Math.abs(sweepRad) * 180) / Math.PI),
+  };
+}
+
+/**
+ * Samples a single wall edge `a -> b` as either 2 endpoints (straight) or a smooth
+ * exact circular arc passing through `a`, the bulge apex, and `b`.
+ */
+export function sampleWallSegmentArc(
+  a: Point2D,
+  b: Point2D,
+  sagittaRaw: number | null | undefined,
+  subdivisionsPerQuarter = 8,
+): Point2D[] {
+  const info = getWallSegmentArcInfo(a, b, sagittaRaw);
+  if (!info.curved) return [a, b];
+
+  const steps = Math.max(
+    4,
+    Math.min(28, Math.ceil((Math.abs(info.sweepRad) / (Math.PI * 0.5)) * subdivisionsPerQuarter)),
+  );
+  const out: Point2D[] = [a];
+  for (let i = 1; i < steps; i++) {
+    const t = i / steps;
+    const ang = info.angStart + info.sweepRad * t;
+    out.push({
+      x: info.center.x + Math.cos(ang) * info.radius,
+      y: info.center.y + Math.sin(ang) * info.radius,
+    });
+  }
+  out.push(b);
+  return out;
+}
+
+/**
+ * Canonical wall polyline sampler used across rendering, portal snapping/carving,
+ * 2D lighting/VTT occluders, flood-fill room barriers, hit-testing, and wall splitting.
+ * - Evaluates edge-by-edge whenever `wall.segmentCurves` has any curved section
+ *   (keeping straight sections razor-straight with crisp corners!).
+ * - Preserves 100% backward compatibility with legacy whole-wall `curved: true` splines.
+ */
+export function sampleWallPoints(
+  wall: Pick<WallSegment, "points" | "closed" | "curved" | "segmentCurves">,
+  subdivisions = 8,
+): Point2D[] {
+  const pts = wall.points;
+  if (pts.length < 2) return [...pts];
+
+  if (hasWallSegmentCurves(wall)) {
+    const segCount = getWallSegmentCount(pts, wall.closed);
+    const out: Point2D[] = [];
+    for (let i = 0; i < segCount; i++) {
+      const a = pts[i];
+      const b = pts[(i + 1) % pts.length];
+      const segPts = sampleWallSegmentArc(a, b, wall.segmentCurves?.[i], subdivisions);
+      for (let k = 0; k < segPts.length - 1; k++) {
+        out.push(segPts[k]);
+      }
+    }
+    if (!wall.closed) {
+      out.push(pts[pts.length - 1]);
+    }
+    return out;
+  }
+
+  if (wall.curved && pts.length >= 3) {
+    return sampleCatmullRom(pts, subdivisions, wall.closed);
+  }
+
+  return pts;
+}
+
+/**
+ * Computes an intelligent default outward sagitta for curving a wall edge
+ * (always bowing outward on closed rooms regardless of CW/CCW vertex order).
+ */
+export function computeDefaultWallEdgeBulge(
+  wall: Pick<WallSegment, "points" | "closed">,
+  segIdx: number,
+  preset: "90" | "180" = "90",
+): number {
+  const pts = wall.points;
+  const segCount = getWallSegmentCount(pts, wall.closed);
+  if (segIdx < 0 || segIdx >= segCount) return 0;
+  const a = pts[segIdx];
+  const b = pts[(segIdx + 1) % pts.length];
+  const chord = Math.hypot(b.x - a.x, b.y - a.y);
+  if (chord < 0.1) return 0;
+
+  // Determine outward sign using signed polygon area when closed (or 3+ points)
+  let sign = 1;
+  if (wall.closed && pts.length >= 3) {
+    let area2 = 0;
+    for (let i = 0; i < pts.length; i++) {
+      const p0 = pts[i];
+      const p1 = pts[(i + 1) % pts.length];
+      area2 += p0.x * p1.y - p1.x * p0.y;
+    }
+    // Left normal (-dy, dx) points INSIDE for CCW (area2 > 0 in screen coords +Y down: CW has area2 > 0!)
+    // Wait: screen coords (+X right, +Y down):
+    // Square (0,0)->(4,0)->(4,4)->(0,4): area2 = (0-0)+(16-0)+(16-0)+(0-0) = +32 > 0.
+    // Edge 0 (0,0)->(4,0): dx=4, dy=0 -> left normal (-dy, dx) = (0, +4) which points DOWN (INSIDE!).
+    // So when area2 > 0, outward is -normal (sign = -1); when area2 < 0, outward is +normal (sign = +1).
+    if (Math.abs(area2) > 1e-4) {
+      sign = area2 > 0 ? -1 : 1;
+    }
+  }
+  const ratio = preset === "180" ? 0.5 : 0.20710678;
+  return Math.round(sign * chord * ratio * 1000) / 1000;
+}
+
+/**
+ * Clamps and optionally snaps a user-dragged sagitta to flat straight (0),
+ * exact 90° quarter-arch, or exact 180° semicircle.
+ */
+export function snapWallSegmentSagitta(
+  chord: number,
+  rawSagitta: number,
+  snapPreset = false,
+): number {
+  if (chord < 0.1) return 0;
+  const maxSagitta = chord * 1.15;
+  let s = Math.max(-maxSagitta, Math.min(maxSagitta, rawSagitta));
+  if (snapPreset) {
+    const sign = s < 0 ? -1 : 1;
+    const absS = Math.abs(s);
+    const presets = [0, chord * 0.20710678, chord * 0.5];
+    let best = presets[0];
+    let bestDiff = Infinity;
+    for (const p of presets) {
+      const diff = Math.abs(absS - p);
+      if (diff < bestDiff) {
+        bestDiff = diff;
+        best = p;
+      }
+    }
+    s = sign * best;
+  } else if (Math.abs(s) < Math.min(0.14, chord * 0.04)) {
+    return 0;
+  }
+  return Math.round(s * 1000) / 1000;
+}
+
+/**
+ * Computes minimum distance from `p` to a WallSegment, returning the TRUE
+ * control-point edge index `segmentIndex` (`0 .. segCount - 1`) even when
+ * edges are individually curved or the wall uses a Catmull-Rom spline!
+ */
+export function distanceToWall(
+  p: Point2D,
+  wall: Pick<WallSegment, "points" | "closed" | "curved" | "segmentCurves">,
+): { dist: number; segmentIndex: number; t: number; closest: Point2D } {
+  const pts = wall.points;
+  if (pts.length === 0) {
+    return { dist: Infinity, segmentIndex: -1, t: 0, closest: { x: 0, y: 0 } };
+  }
+  if (pts.length === 1) {
+    return { dist: Math.hypot(p.x - pts[0].x, p.y - pts[0].y), segmentIndex: 0, t: 0, closest: pts[0] };
+  }
+  const segCount = getWallSegmentCount(pts, wall.closed);
+  const useSegCurves = hasWallSegmentCurves(wall);
+  const useLegacySpline = !useSegCurves && wall.curved && pts.length >= 3;
+  const splineSub = 8;
+  const legacyPts = useLegacySpline ? sampleCatmullRom(pts, splineSub, wall.closed) : null;
+
+  let bestDist = Infinity;
+  let bestSeg = 0;
+  let bestT = 0;
+  let bestClosest = pts[0];
+
+  for (let i = 0; i < segCount; i++) {
+    let subPts: Point2D[];
+    if (useSegCurves) {
+      const a = pts[i];
+      const b = pts[(i + 1) % pts.length];
+      subPts = sampleWallSegmentArc(a, b, wall.segmentCurves?.[i], 8);
+    } else if (legacyPts) {
+      const start = i * splineSub;
+      subPts = [];
+      for (let k = 0; k <= splineSub; k++) {
+        subPts.push(legacyPts[(start + k) % legacyPts.length]);
+      }
+    } else {
+      subPts = [pts[i], pts[(i + 1) % pts.length]];
+    }
+
+    const pieceCount = subPts.length - 1;
+    for (let k = 0; k < pieceCount; k++) {
+      const hit = distanceToSegment(p, subPts[k], subPts[k + 1]);
+      if (hit.dist < bestDist) {
+        bestDist = hit.dist;
+        bestSeg = i;
+        bestT = (k + hit.t) / Math.max(1, pieceCount);
+        bestClosest = hit.closest;
+      }
+    }
+  }
+  return { dist: bestDist, segmentIndex: bestSeg, t: bestT, closest: bestClosest };
+}
+
+/**
+ * Converts a legacy whole-wall `curved: true` Catmull-Rom wall into explicit
+ * per-segment `segmentCurves` by projecting each spline edge midpoint onto its chord normal.
+ * Allows straightening or re-curving a SINGLE section without disturbing the remaining edges!
+ */
+export function convertLegacyWallCurveToSegments(
+  wall: Pick<WallSegment, "points" | "closed" | "curved" | "segmentCurves">,
+): Array<number | null> {
+  const segCount = getWallSegmentCount(wall.points, wall.closed);
+  const out: Array<number | null> = new Array(segCount).fill(null);
+  if (segCount === 0) return out;
+  if (hasWallSegmentCurves(wall)) {
+    for (let i = 0; i < segCount; i++) {
+      const v = wall.segmentCurves?.[i];
+      out[i] = typeof v === "number" && Number.isFinite(v) && Math.abs(v) >= 0.04 ? v : null;
+    }
+    return out;
+  }
+  if (!wall.curved || wall.points.length < 3) return out;
+
+  const sampled = sampleCatmullRom(wall.points, 2, wall.closed);
+  for (let i = 0; i < segCount; i++) {
+    const a = wall.points[i];
+    const b = wall.points[(i + 1) % wall.points.length];
+    const cm = sampled[i * 2 + 1];
+    if (!cm) continue;
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const chord = Math.hypot(dx, dy);
+    if (chord < 0.05) continue;
+    const nx = -dy / chord;
+    const ny = dx / chord;
+    const midX = (a.x + b.x) * 0.5;
+    const midY = (a.y + b.y) * 0.5;
+    const sagitta = (cm.x - midX) * nx + (cm.y - midY) * ny;
+    if (Math.abs(sagitta) >= 0.04) {
+      out[i] = Math.round(sagitta * 1000) / 1000;
+    }
+  }
+  return out;
+}
+
+/**
+ * Inserts a new vertex along edge `edgeIndex` (`points[edgeIndex] -> points[edgeIndex + 1]`)
+ * while keeping `segmentCurves` synchronized (straightening the two newly split halves cleanly).
+ */
+export function insertWallVertexWithCurves(
+  wall: Pick<WallSegment, "points" | "closed" | "segmentCurves">,
+  edgeIndex: number,
+  newPoint: Point2D,
+): { points: Point2D[]; segmentCurves: Array<number | null> | undefined } {
+  const nextPts = wall.points.map((pt) => ({ ...pt }));
+  const insertAt = edgeIndex + 1;
+  nextPts.splice(insertAt, 0, { ...newPoint });
+  if (!hasWallSegmentCurves(wall)) {
+    return { points: nextPts, segmentCurves: undefined };
+  }
+  const oldSegCount = getWallSegmentCount(wall.points, wall.closed);
+  const nextCurves: Array<number | null> = [];
+  for (let i = 0; i < oldSegCount; i++) {
+    if (i === edgeIndex) {
+      nextCurves.push(null, null);
+    } else {
+      nextCurves.push(wall.segmentCurves?.[i] ?? null);
+    }
+  }
+  return {
+    points: nextPts,
+    segmentCurves: normalizeWallSegmentCurves(nextPts.length, wall.closed, nextCurves),
+  };
+}
+
+/**
+ * Removes vertex `vertexIndex` from a wall while keeping `segmentCurves` synchronized
+ * (the newly bridged spanning edge resets cleanly to straight).
+ */
+export function removeWallVertexWithCurves(
+  wall: Pick<WallSegment, "points" | "closed" | "segmentCurves">,
+  vertexIndex: number,
+): { points: Point2D[]; segmentCurves: Array<number | null> | undefined } {
+  const n = wall.points.length;
+  if (n <= 2 || vertexIndex < 0 || vertexIndex >= n) {
+    return { points: wall.points.map((p) => ({ ...p })), segmentCurves: wall.segmentCurves };
+  }
+  const nextPts = wall.points.filter((_, idx) => idx !== vertexIndex).map((pt) => ({ ...pt }));
+  if (!hasWallSegmentCurves(wall)) {
+    return { points: nextPts, segmentCurves: undefined };
+  }
+  const oldCurves = wall.segmentCurves ?? [];
+  const oldSegCount = getWallSegmentCount(wall.points, wall.closed);
+  const nextSegCount = getWallSegmentCount(nextPts, wall.closed);
+  const nextCurves: Array<number | null> = new Array(nextSegCount).fill(null);
+
+  for (let newEdge = 0; newEdge < nextSegCount; newEdge++) {
+    const startNewIdx = newEdge;
+    const endNewIdx = (newEdge + 1) % nextPts.length;
+    const startOldIdx = startNewIdx >= vertexIndex ? startNewIdx + 1 : startNewIdx;
+    const endOldIdx = endNewIdx >= vertexIndex ? endNewIdx + 1 : endNewIdx;
+    // If this edge existed identically in the original wall (adjacent old indices), preserve its curve!
+    if ((startOldIdx + 1) % n === endOldIdx && startOldIdx < oldSegCount) {
+      nextCurves[newEdge] = oldCurves[startOldIdx] ?? null;
+    } else {
+      nextCurves[newEdge] = null;
+    }
+  }
+  return {
+    points: nextPts,
+    segmentCurves: normalizeWallSegmentCurves(nextPts.length, wall.closed, nextCurves),
+  };
+}
+
 export interface PortalSnapResult {
   wallId: string;
   x: number;
@@ -201,7 +632,7 @@ export function findNearestWallSnap(
 ): PortalSnapResult | null {
   let best: PortalSnapResult | null = null;
   for (const wall of walls) {
-    const pts = wall.curved ? sampleCatmullRom(wall.points, 6, wall.closed) : wall.points;
+    const pts = sampleWallPoints(wall, 6);
     const count = wall.closed ? pts.length : pts.length - 1;
     for (let i = 0; i < count; i++) {
       const a = pts[i];
@@ -231,7 +662,7 @@ export function cutWallSegmentsForPortals(
   portals: PortalNode[],
 ): Array<[Point2D, Point2D]> {
   if (wall.points.length < 2) return [];
-  const pts = wall.curved ? sampleCatmullRom(wall.points, 8, wall.closed) : wall.points;
+  const pts = sampleWallPoints(wall, 8);
   const count = wall.closed ? pts.length : pts.length - 1;
   const result: Array<[Point2D, Point2D]> = [];
 
@@ -290,7 +721,7 @@ export function extractLightOccluders(
 
   for (const wall of walls) {
     if (!wall.blocksLight || wall.points.length < 2) continue;
-    const pts = wall.curved ? sampleCatmullRom(wall.points, 6, wall.closed) : wall.points;
+    const pts = sampleWallPoints(wall, 6);
     const count = wall.closed ? pts.length : pts.length - 1;
 
     for (let i = 0; i < count; i++) {
@@ -507,7 +938,7 @@ export function generateScatterPlacements(
     ? walls
         .filter((w) => w.points.length >= 2)
         .map((w) => ({
-          pts: w.curved ? sampleCatmullRom(w.points, 6, w.closed) : w.points,
+          pts: sampleWallPoints(w, 6),
           closed: w.closed,
           clearance: w.thicknessCells * 0.5 + 0.65,
         }))
@@ -521,7 +952,15 @@ export function generateScatterPlacements(
     ? paths
         .filter((path) => path.blocksScatter && path.points.length >= 2)
         .map((path) => ({
-          pts: path.curved !== false ? sampleCatmullRom(path.points, 5, false) : path.points,
+          pts: sampleWallPoints(
+            {
+              points: path.points,
+              closed: false,
+              curved: path.curved !== false,
+              segmentCurves: path.segmentCurves,
+            },
+            5,
+          ),
           clearance: path.widthCells * 0.5 + 0.55,
         }))
     : [];

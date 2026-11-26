@@ -24,11 +24,18 @@ import { buildIceCreamTrainShopAndFlat, type IceCreamBuildBundle } from "./iceCr
 import { buildMessyApartmentBuilding } from "./messyApartmentBuilder";
 import { buildNeighborhoodPark } from "./neighborhoodParkBuilder";
 import { buildDistrictStreetsAndVigilStairs } from "./districtStreetsBuilder";
+import { buildCityStreetsOverhaul } from "./cityStreetsOverhaulBuilder";
 import { buildSubterraneanDistrict } from "./subterraneanBasementsBuilder";
 import { buildWatchtowerGarrison } from "./watchtowerBuilder";
 import { buildCommunityKidTheater } from "./kidTheaterBuilder";
 import { buildAgedStreetcarLineAndWeathering } from "./streetcarLineBuilder";
 import { buildBoulevardRowhouses } from "./boulevardRowhousesBuilder";
+import { buildPostOfficeAndPublicHousing } from "./postOfficeHousingBuilder";
+import { buildSharedLivingHostel } from "./hostelBuildingBuilder";
+import { buildCrowdedMultiFamilyTenement } from "./crowdedFamilyBuildingBuilder";
+import { buildTramRotundaPavilion } from "./tramRotundaBuilder";
+import { buildBookshopAntiquariat } from "./bookshopAntiquariatBuilder";
+import { buildChevronRenovationAndShops } from "./chevronRenovationShopsBuilder";
 import {
   DEFAULT_RECOLOR,
   type DcMapDocument,
@@ -1350,11 +1357,18 @@ function main() {
   });
   const { aptPoly } = buildMessyApartmentBuilding(doc, ic1, f2.b, f3.b, f4.b);
   buildNeighborhoodPark(ic1);
+  buildCityStreetsOverhaul(doc, ic1);
   buildDistrictStreetsAndVigilStairs(ic1);
   buildAgedStreetcarLineAndWeathering(doc, ic1);
   buildCommunityKidTheater(doc, ic1);
   const { watchtowerPoly } = buildWatchtowerGarrison(doc, ic1, f2.b, f3.b, f4.b, f5.b);
   const { row1Poly, row2Poly, row3Poly, row4Poly } = buildBoulevardRowhouses(doc, ic1, f2.b, f3.b, f4.b);
+  const { postHousingPoly } = buildPostOfficeAndPublicHousing(doc, ic1, f2.b, f3.b);
+  const { hostelPoly } = buildSharedLivingHostel(doc, ic1, f2.b, f3.b);
+  const { crowdedFamilyPoly } = buildCrowdedMultiFamilyTenement(doc, ic1, f2.b);
+  const { rotundaPoly } = buildTramRotundaPavilion(doc, ic1, f2.b, f3.b);
+  const { bookshopPoly } = buildBookshopAntiquariat(doc, ic1, f2.b);
+  const { chevronPoly } = buildChevronRenovationAndShops(doc, ic1, f2.b, f3.b);
   const { b1Layers, b2Layers, b3Layers } = buildSubterraneanDistrict(doc, ic1, templePoly, shopPoly, aptPoly);
   groundTerrainLayer.terrainStrokes!.push(...ic1.terrain);
   groundPathsLayer.paths!.push(...ic1.paths);
@@ -1502,7 +1516,7 @@ function main() {
     id: "map-sovereign-temple-5f",
     meta: {
       title: "Cathedral of the Sovereign (5F)",
-      author: "Dice Chaos Maps · Dark Magipunk Edition",
+      author: "Dice Chaos Compass · Dark Magipunk Edition",
       createdAt: "2026-11-24T08:00:00.000Z",
       updatedAt: new Date().toISOString(),
     },
@@ -1559,8 +1573,8 @@ function main() {
       const inside =
         pointInPolygon(p, templePoly) ||
         pointInPolygon(p, watchtowerPoly) ||
-        (code === "2F" && (pointInPolygon(p, shopPoly) || pointInPolygon(p, patioPoly) || pointInPolygon(p, row4Poly))) ||
-        ((code === "2F" || code === "3F") && (pointInPolygon(p, row1Poly) || pointInPolygon(p, row3Poly))) ||
+        (code === "2F" && (pointInPolygon(p, shopPoly) || pointInPolygon(p, patioPoly) || pointInPolygon(p, row4Poly) || pointInPolygon(p, crowdedFamilyPoly) || pointInPolygon(p, bookshopPoly))) ||
+        ((code === "2F" || code === "3F") && (pointInPolygon(p, row1Poly) || pointInPolygon(p, row3Poly) || pointInPolygon(p, postHousingPoly) || pointInPolygon(p, hostelPoly) || pointInPolygon(p, rotundaPoly) || pointInPolygon(p, chevronPoly))) ||
         ((code === "2F" || code === "3F" || code === "4F") && (pointInPolygon(p, aptPoly) || pointInPolygon(p, row2Poly)));
       if (!inside) {
         console.warn(`WARNING: ${code} object ${o.id} (${o.assetId}) at (${o.x}, ${o.y}) is OUTSIDE building bounds!`);

@@ -4,6 +4,7 @@ import { findPreferredLayerForKind } from "@/engine/layerMeta";
 import { WATER_BIOME_PRESETS } from "@/engine/waterEngine";
 import { useDocumentStore } from "@/store/documentStore";
 import { useVaultStore } from "@/store/vaultStore";
+import { SectionCurveEditorCard } from "@/ui/workspace/SectionCurveEditorCard";
 import type { WaterBodyKind, WaterDrawMode, WaterRegion } from "@/types/map";
 
 interface WaterStudioPanelProps {
@@ -137,7 +138,7 @@ export const WaterStudioPanel: React.FC<WaterStudioPanelProps> = ({ selectedWate
                 {reg?.shape === "river" ? "Selected River Stream" : "Selected Water Basin"}
               </span>
               <span style={{ fontSize: 9.5, color: "var(--text-muted)" }}>
-                Drag gold dots to reshape · Shift+Drag cyan + to bend
+                Click edge or Shift+Drag / Double-Click + to curve 1 section · Drag + to insert
               </span>
             </div>
             <button
@@ -150,6 +151,23 @@ export const WaterStudioPanel: React.FC<WaterStudioPanelProps> = ({ selectedWate
               <Trash2 size={13} />
             </button>
           </div>
+          <SectionCurveEditorCard
+            selection={{
+              kind: "water",
+              layerId: selectedWater.layerId,
+              id: selectedWater.region.id,
+            }}
+            points={selectedWater.region.points}
+            closed={selectedWater.region.shape !== "river"}
+            curved={selectedWater.region.curved ?? selectedWater.region.kind !== "chasm"}
+            segmentCurves={selectedWater.region.segmentCurves}
+            sectionNoun={selectedWater.region.shape === "river" ? "Channel" : "Shore"}
+            wholeNoun={selectedWater.region.shape === "river" ? "Whole River" : "Whole Basin"}
+            onWholeStraight={() =>
+              patchWater({ curved: false, segmentCurves: undefined }, { waterCurved: false }, true)
+            }
+            onWholeSmooth={() => st.bendSelectedIntoCurve()}
+          />
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
             <button
               type="button"

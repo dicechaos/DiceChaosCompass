@@ -99,7 +99,7 @@ pub fn write_tiled_print_pdf(
             let draw_h_pt = ((sh as f64) / ppi) * 72.0;
             let y_pt = paper_h_pt - margin_pt - draw_h_pt;
             let col_letter = (b'A' + (c % 26) as u8) as char;
-            let label = format!("Dice Chaos Maps | Tile {col_letter}{} | 1.00 in = 1 sq", r + 1);
+            let label = format!("Dice Chaos Compass | Tile {col_letter}{} | 1.00 in = 1 sq", r + 1);
 
             let content_stream = format!(
                 "q {draw_w_pt:.2} 0 0 {draw_h_pt:.2} {margin_pt:.2} {y_pt:.2} cm /Im0 Do Q\n\

@@ -33,6 +33,7 @@ import {
   WORLD_THEMES,
 } from "@/engine/worldThemes";
 import { useDocumentStore } from "@/store/documentStore";
+import { SectionCurveEditorCard } from "@/ui/workspace/SectionCurveEditorCard";
 import type {
   WorldBiomePaintTarget,
   WorldCoastalEffect,
@@ -440,6 +441,15 @@ export const WorldStudioPanel: React.FC = () => {
             placeholder="River Name"
             onChange={(e) => st.updateWorldRiver(r.id, { name: e.target.value }, false)}
           />
+          <SectionCurveEditorCard
+            selection={selection}
+            points={r.points}
+            closed={false}
+            curved={r.curved}
+            segmentCurves={r.segmentCurves}
+            sectionNoun="Span"
+            wholeNoun="Whole River"
+          />
           <div className="dc-slider-row">
             <label>Spring Width</label>
             <input
@@ -493,13 +503,6 @@ export const WorldStudioPanel: React.FC = () => {
             </button>
             <button
               type="button"
-              style={pillBtnStyle(r.curved, "#38BDF8")}
-              onClick={() => st.updateWorldRiver(r.id, { curved: !r.curved }, true)}
-            >
-              Smooth Curve
-            </button>
-            <button
-              type="button"
               style={pillBtnStyle(false)}
               onClick={() => st.updateWorldRiver(r.id, { seed: Math.floor(Math.random() * 99999) }, true)}
             >
@@ -537,6 +540,15 @@ export const WorldStudioPanel: React.FC = () => {
             placeholder="Route Name"
             onChange={(e) => st.updateWorldTrail(t.id, { name: e.target.value }, false)}
           />
+          <SectionCurveEditorCard
+            selection={selection}
+            points={t.points}
+            closed={false}
+            curved={t.curved}
+            segmentCurves={t.segmentCurves}
+            sectionNoun="Segment"
+            wholeNoun="Whole Route"
+          />
           <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
             {TRAIL_STYLES.map((ts) => (
               <button
@@ -570,13 +582,6 @@ export const WorldStudioPanel: React.FC = () => {
                 onChange={(e) => st.updateWorldTrail(t.id, { colorHex: e.target.value }, false)}
               />
             </label>
-            <button
-              type="button"
-              style={pillBtnStyle(t.curved)}
-              onClick={() => st.updateWorldTrail(t.id, { curved: !t.curved }, true)}
-            >
-              Curved
-            </button>
           </div>
         </div>
       );
@@ -607,6 +612,15 @@ export const WorldStudioPanel: React.FC = () => {
             aria-label="Realm Name"
             value={reg.name}
             onChange={(e) => st.updateWorldRegion(reg.id, { name: e.target.value }, false)}
+          />
+          <SectionCurveEditorCard
+            selection={selection}
+            points={reg.polygon}
+            closed={true}
+            curved={Boolean(reg.curved)}
+            segmentCurves={reg.segmentCurves}
+            sectionNoun="Border"
+            wholeNoun="Whole Border"
           />
           <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
             <label style={{ fontSize: 11, color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: 5 }}>

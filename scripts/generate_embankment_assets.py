@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Dice Chaos Maps — Steep Embankment, Cliff & Directional Slope Asset Pack (CC0)
+Dice Chaos Compass — Steep Embankment, Cliff & Directional Slope Asset Pack (CC0)
 ==============================================================================
 Generates 12 high-craft, 2x-supersampled "Crisp Hand-Inked Tabletop" elevation
 assets (8 seamless horizontal embankment/cliff paths @ 512x256 + 4 seamless

@@ -1,5 +1,5 @@
 """
-Dice Chaos Maps — Comprehensive True Top-Down Painterly Lighting Fixture Suite
+Dice Chaos Compass — Comprehensive True Top-Down Painterly Lighting Fixture Suite
 
 Upgrades 5 legacy side-elevation lighting assets in-place to true top-down AND
 generates 85 brand-new unique top-down painterly lighting fixtures in
@@ -1461,7 +1461,7 @@ def gen_street_lamp(
 # MASTER CATALOG SPECIFICATION (5 LEGACY UPGRADES + 85 NEW HARMONY LIGHTING)
 # =============================================================================
 def build_all() -> None:
-    print("=== Dice Chaos Maps: Building 90 True Top-Down Lighting Assets ===")
+    print("=== Dice Chaos Compass: Building 90 True Top-Down Lighting Assets ===")
 
     # -------------------------------------------------------------------------
     # A. 5 LEGACY SIDE-ELEVATION ASSETS UPGRADED IN-PLACE TO TRUE TOP-DOWN

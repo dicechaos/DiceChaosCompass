@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Dice Chaos Maps — CC0 Alpine Funicular Ultra-Detail Starter Asset Generator
+Dice Chaos Compass — CC0 Alpine Funicular Ultra-Detail Starter Asset Generator
 Generates 60 rich, painterly, high-DPI top-down TTRPG battlemap assets
 optimized for a 55-inch 4K UHD tabletop TV (48x27 @ 1-inch scale),
 manifest.json, DiceChaos_Funicular_Starter.dcpack, and the app D20 icon.

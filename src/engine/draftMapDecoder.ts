@@ -2,7 +2,7 @@
  * Zero-dependency browser & Tauri decoder for native:
  *   - Wonderdraft (.wonderdraft_map — Godot GCPF FastLZ/Deflate/GZip + Binary Variant store_var, or extracted JSON)
  *   - Dungeondraft (.dungeondraft_map — UTF-8 JSON with Godot Vector2 / PoolVector2Array / Color strings)
- *   - Dice Chaos Maps (.dcmap — UTF-8 JSON)
+ *   - Dice Chaos Compass (.dcmap — UTF-8 JSON)
  *
  * Uses zero-copy Uint8Array subarray views for large embedded PoolByteArray images (e.g. 4546x3100
  * Wonderdraft mask & ground RGBA8 buffers) so multi-megabyte maps decode cleanly in-browser.

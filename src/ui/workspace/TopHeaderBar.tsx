@@ -142,7 +142,7 @@ export const TopHeaderBar: React.FC<TopHeaderBarProps> = React.memo(({ onOpenCon
       <div className="dc-header-left">
         <div className="dc-brand">
           <DiceLogo size={24} />
-          <span>DICE CHAOS MAPS</span>
+          <span>DICE CHAOS COMPASS</span>
         </div>
 
         <div className="dc-tabs dc-scroll" role="tablist" aria-label="Open Maps">

@@ -31,7 +31,7 @@ const SUITE_LINKS = [
   {
     name: "Beta Feedback & Issues",
     desc: "Report bugs or request features on GitHub",
-    href: "https://github.com/dicechaos/DiceChaosMaps/issues",
+    href: "https://github.com/dicechaos/DiceChaosCompass/issues",
     accent: "#F59E0B",
   },
 ];
@@ -41,13 +41,12 @@ const SHORTCUT_GROUPS = [
     title: "Tools",
     items: [
       ["V", "Select & Transform"],
-      ["B", "Terrain Splat Brush"],
-      ["K", "Smart Terrain Fill (Flood Rooms / Buildings)"],
-      ["R (in Terrain)", "Rectangle Area Terrain Fill"],
+      ["B", "Terrain Splat Brush (1–6 Modes · Alt+Click Eyedropper)"],
+      ["K / Shift+K", "Smart Terrain Fill / Replace Existing Terrain (R Rect · E Erase)"],
       ["H", "Cave & Dungeon Builder (1–5 Modes)"],
       ["Hold Alt / E (in Cave)", "Instant Eraser / Toggle Cave Brush ↔ Erase"],
       ["W", "Water & Chasm Region"],
-      ["L", "Smart Vector Wall"],
+      ["L", "Smart Vector Wall (1–6: Free / Box / Tower / Arc / Split / Corridor)"],
       ["D", "Snapping Door / Window Portal"],
       ["P", "Textured Spline Path"],
       ["O", "Roof Studio (1–4 Modes: Ridge / Box / Turret / Auto-Room)"],
@@ -67,11 +66,16 @@ const SHORTCUT_GROUPS = [
       ["Shift + Wheel (or Q / E)", "Rotate Stamp Preview / Selected Prop / Spotlight"],
       ["Scroll Wheel", "Cursor-Centered Zoom"],
       ["Enter / Double-Click", "Finish Drawing Active Wall, Line, Water or Scatter"],
-      ["C", "Toggle Curved vs Straight (Wall / Line / Selected)"],
-      ["Shift + Drag Cyan +", "Bend Any Placed Wall or Line Into Smooth Curve"],
-      ["Alt + Click Gold Dot", "Remove Vertex From Selected Wall or Line"],
+      ["C", "Toggle Curved vs Straight (Focused Section of Wall/Line/Roof/Water/World or Next Section)"],
+      ["Shift (in Wall / Line)", "45°/90° Lock (Free) · Square (Box) · 90°/180° Arch Snap"],
+      ["Shift + Drag / Double-Click +", "Curve or Straighten Any Single Section (Walls, Lines, Roofs, Water & World)"],
+      ["Alt + Click Gold Dot", "Remove Vertex (Preserves Curves on Remaining Sections)"],
       ["Shift + S (or Hold Alt)", "Toggle Grid Snapping ON / OFF (Alt = Free Hold)"],
       ["PageUp / PageDown", "Step Up / Down Building Floors & Basements"],
+      ["Shift + G", "Toggle Onion-Skin Ghost Blueprint of Adjacent Floor"],
+      ["Shift + I", "Toggle Solo Active Floor vs Stacked Floors View"],
+      ["Alt + ↑ / ↓", "Cycle Active Layer Up / Down on Current Floor"],
+      ["Alt + Click Layer Eye", "Solo Single Layer (Alt+Click Again to Restore)"],
       ["F2 / Double-Click Layer", "Rename Active or Clicked Layer Inline"],
       ["/", "Focus Bottom Asset Vault Search Immediately"],
       ["Right-Click", "Context-Aware Options Menu (Canvas / Wall / Layer)"],
@@ -170,7 +174,7 @@ export const ShortcutsModal: React.FC = () => {
             DICE CHAOS TABLETOP SUITE
           </span>
           <span style={{ fontSize: 10.5, fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>
-            Dice Chaos Maps v1.0.0-beta.1 (Public Beta) · GPL-3.0
+            Dice Chaos Compass v1.0.0-beta.1 (Public Beta) · GPL-3.0
           </span>
         </div>
         <div

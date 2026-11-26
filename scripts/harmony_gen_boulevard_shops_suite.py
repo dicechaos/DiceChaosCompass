@@ -1,5 +1,5 @@
 """
-Dice Chaos Maps — 28-Asset Painterly Boulevard Shops & Rowhouse Interiors Suite
+Dice Chaos Compass — 28-Asset Painterly Boulevard Shops & Rowhouse Interiors Suite
 
 Generates 28 bespoke clean-room CC0 Harmony assets in:
   `public/assets/modular-suite-cc0/props/boulevard_shops/`

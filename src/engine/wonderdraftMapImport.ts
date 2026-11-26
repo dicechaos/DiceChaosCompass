@@ -1,5 +1,5 @@
 /**
- * Wonderdraft (.wonderdraft_map) → Dice Chaos Maps World Atlas (.dcmap) Importer.
+ * Wonderdraft (.wonderdraft_map) → Dice Chaos Compass World Atlas (.dcmap) Importer.
  *
  * Converts decoded Wonderdraft Godot Variant dictionaries (or Wonderdraft Extract Map Data JSON)
  * into fully editable, infinite-zoom World Atlas DcMapDocuments:
@@ -852,7 +852,7 @@ export function importWonderdraftMapData(
     mode: "world",
     meta: {
       title: `${cleanTitle} (Imported)`,
-      author: "Wonderdraft Import · Dice Chaos Maps",
+      author: "Wonderdraft Import · Dice Chaos Compass",
       createdAt: now,
       updatedAt: now,
     },

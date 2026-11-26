@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Clean-Room CC0 World Atlas Asset Suite Builder (1,290 Assets) for Dice Chaos Maps v1.5.
+Clean-Room CC0 World Atlas Asset Suite Builder (1,290 Assets) for Dice Chaos Compass v1.5.
 
 Segments all 52 cohesive hand-inked vintage cartography sprite plates
 (14 2x2 hero plates + 38 3x3 collection & species plates = 398 unique hand-inked icons)

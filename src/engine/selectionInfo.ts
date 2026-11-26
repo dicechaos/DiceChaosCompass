@@ -1,3 +1,4 @@
+import { hasWallSegmentCurves } from "@/engine/geometry";
 import { getWaterPreset } from "@/engine/waterEngine";
 import type { SelectionRef } from "@/store/documentStore";
 import type { DcMapDocument, VaultAsset } from "@/types/map";
@@ -84,10 +85,15 @@ export function describeSelection(
     if (selection.kind === "world_trail") {
       const t = doc.world.trails.find((x) => x.id === selection.id);
       if (!t) return null;
+      const trailCurveLabel = hasWallSegmentCurves(t)
+        ? "Mixed Curves"
+        : t.curved
+          ? "Curved"
+          : "Straight";
       return {
         typeLabel: "Overland Trail",
         name: t.name || t.style.replace("_", " "),
-        subtitle: `${t.points.length} pts · ${t.style.replace("_", " ")} · ${t.curved ? "Curved" : "Straight"}`,
+        subtitle: `${t.points.length} pts · ${t.style.replace("_", " ")} · ${trailCurveLabel}`,
         layerName: "Trade Routes & Sea Lanes",
         floorCode: "MAP",
         accentHex: "#D97706",
@@ -146,10 +152,15 @@ export function describeSelection(
     const path = layer.paths?.find((p) => p.id === selection.id);
     if (!path) return null;
     const { label, thumbUrl } = resolveAssetLabelAndThumb(path.assetId, assetLookup);
+    const pathCurveLabel = hasWallSegmentCurves(path)
+      ? "Mixed Curves"
+      : path.curved !== false
+        ? "Curved"
+        : "Straight";
     return {
       typeLabel: "Path / Line",
       name: label,
-      subtitle: `${path.points.length} pts · ${path.widthCells.toFixed(1)} sq · ${path.curved !== false ? "Curved" : "Straight"}`,
+      subtitle: `${path.points.length} pts · ${path.widthCells.toFixed(1)} sq · ${pathCurveLabel}`,
       layerName,
       floorCode,
       assetId: path.assetId,

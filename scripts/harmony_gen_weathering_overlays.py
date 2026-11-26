@@ -1,5 +1,5 @@
 """
-Dice Chaos Maps — 28-Asset Painterly Grime, Weathering & Surface Aging Overlay Suite
+Dice Chaos Compass — 28-Asset Painterly Grime, Weathering & Surface Aging Overlay Suite
 
 Generates 28 clean-room CC0 feathered alpha overlays in:
   `public/assets/modular-suite-cc0/props/weathering_overlays/`

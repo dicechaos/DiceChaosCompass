@@ -1,5 +1,5 @@
 """
-Dice Chaos Maps — Unified Painterly Harmony Art Engine (CC0 Studio Standard)
+Dice Chaos Compass — Unified Painterly Harmony Art Engine (CC0 Studio Standard)
 
 Shared 2x-supersampled hand-inked painterly rendering primitives matching our
 gold-standard Berlin Dark-Magipunk / Storybook Gouache art direction:

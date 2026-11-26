@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Dice Chaos Maps — Berlin Magi-Punk City Funicular Asset Generator (CC0)
+Dice Chaos Compass — Berlin Magi-Punk City Funicular Asset Generator (CC0)
 Adds 44 dense urban Berlin Gründerzeit / Jugendstil Magi-Punk assets
 (Lower-Town working-class slums -> Elevated Prussian-Green Steel Viaduct
 -> Upper-Town Aristocratic Promenade & Glass-Domed Aether Terminal)

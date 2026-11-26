@@ -1,5 +1,5 @@
 """
-Dice Chaos Maps — 40-Asset Painterly Subterranean, Basement, Secret Vault & Cave Suite
+Dice Chaos Compass — 40-Asset Painterly Subterranean, Basement, Secret Vault & Cave Suite
 
 Generates 40 bespoke true top-down CC0 assets in:
   `public/assets/modular-suite-cc0/props/subterranean_caves/`
@@ -1442,7 +1442,7 @@ def gen_crypt_wall_candle_cairn(w: int, h: int, seed: int) -> Image.Image:
 # MASTER BUILDER FOR ALL 52 SUBTERRANEAN, BASEMENT & CAVE ASSETS
 # =============================================================================
 def build_all() -> None:
-    print("=== Dice Chaos Maps: Building 52 Subterranean, Basement & Cave Assets ===")
+    print("=== Dice Chaos Compass: Building 52 Subterranean, Basement & Cave Assets ===")
     specs: list[tuple[str, str, list[str], str, bool, Image.Image]] = []
 
     def add(stem: str, name: str, tags: list[str], im: Image.Image, draw_mode: str = "normal", shadow: bool = True) -> None:

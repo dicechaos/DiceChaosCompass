@@ -1,5 +1,5 @@
 /**
- * Dungeondraft (.dungeondraft_map) → Dice Chaos Maps Battlemap (.dcmap) Importer.
+ * Dungeondraft (.dungeondraft_map) → Dice Chaos Compass Battlemap (.dcmap) Importer.
  *
  * Converts multi-floor Dungeondraft JSON saves (with Godot Vector2, PoolVector2Array,
  * PoolByteArray, and AARRGGBB Color fields) into fully editable Battlemap DcMapDocuments:
@@ -1205,7 +1205,7 @@ export function importDungeondraftMapData(
     mode: "battlemap",
     meta: {
       title: `${cleanTitle} (Imported)`,
-      author: "Dungeondraft Import · Dice Chaos Maps",
+      author: "Dungeondraft Import · Dice Chaos Compass",
       createdAt: now,
       updatedAt: now,
     },

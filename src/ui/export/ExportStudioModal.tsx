@@ -50,7 +50,8 @@ const TV_PRESETS = [
   { label: '55" 8K UHD (7680×4320)', diag: 55, w: 7680, h: 4320 },
 ];
 
-const EXPORT_ORG_STORAGE_KEY = "dice-chaos-maps-export-org-v1";
+const EXPORT_ORG_STORAGE_KEY = "dice-chaos-compass-export-org-v1";
+const LEGACY_EXPORT_ORG_STORAGE_KEY = "dice-chaos-maps-export-org-v1";
 
 function loadSavedExportOrg(): {
   outputMode: ExportOutputMode;
@@ -59,7 +60,9 @@ function loadSavedExportOrg(): {
 } {
   const defaultMode: ExportOutputMode = supportsNativeDirectoryPicker() ? "folder" : "zip";
   try {
-    const raw = localStorage.getItem(EXPORT_ORG_STORAGE_KEY);
+    const raw =
+      localStorage.getItem(EXPORT_ORG_STORAGE_KEY) ??
+      localStorage.getItem(LEGACY_EXPORT_ORG_STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
       const outputMode: ExportOutputMode =

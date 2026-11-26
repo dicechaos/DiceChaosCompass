@@ -164,8 +164,16 @@ export const OBJECT_SUBGROUPS: ObjectSubGroupDef[] = [
       "pedestal",
       "sideboard",
       "worktable",
+      "workbench",
       "sofa",
       "booth",
+      "podium",
+      "cradle",
+      "rack",
+      "trough",
+      "locker",
+      "highchair",
+      "easel",
     ],
   },
   {
@@ -201,6 +209,30 @@ export const OBJECT_SUBGROUPS: ObjectSubGroupDef[] = [
       "laundry",
       "clothesline",
       "moving_box",
+      "housing",
+      "kitchenette",
+      "hostel",
+      "hostel_living",
+      "dormitory",
+      "bunk",
+      "locker",
+      "shared_living",
+      "crowded_family",
+      "crib",
+      "nursery",
+      "toys",
+      "pram",
+      "highchair",
+      "tricycle",
+      "renovation",
+      "renovation_shops",
+      "construction",
+      "drop_cloth",
+      "wallpaper",
+      "plaster",
+      "covered",
+      "toymaker",
+      "puppet",
     ],
   },
   {
@@ -355,6 +387,8 @@ export const OBJECT_SUBGROUPS: ObjectSubGroupDef[] = [
     label: "Streets, Parks & City",
     keywords: [
       "district_streets",
+      "city_streets",
+      "tram_rotunda",
       "aged_streetcar_line",
       "streetcar",
       "neighborhood_park",
@@ -425,6 +459,10 @@ export const OBJECT_SUBGROUPS: ObjectSubGroupDef[] = [
     label: "Office, Study & Arcane",
     keywords: [
       "post_office",
+      "post_housing",
+      "po_box",
+      "mailbox",
+      "mailbag",
       "bank",
       "study",
       "school",
@@ -432,6 +470,14 @@ export const OBJECT_SUBGROUPS: ObjectSubGroupDef[] = [
       "office",
       "library",
       "book",
+      "bookshop",
+      "bookshop_antiquariat",
+      "bookcase",
+      "bookbinder",
+      "antiquariat",
+      "folio",
+      "lithograph",
+      "portfolio",
       "ledger",
       "letter",
       "envelope",
@@ -659,11 +705,16 @@ export const CATEGORY_FACETS: Partial<Record<AssetCategory, CategoryFacetDef[]>>
         hay.includes("messy_apartment") ||
         hay.includes("neighborhood_park") ||
         hay.includes("district_streets") ||
+        hay.includes("city_streets") ||
+        hay.includes("tram_rotunda") ||
         hay.includes("aged_streetcar_line") ||
         hay.includes("weathering_overlays") ||
         hay.includes("watchtower_garrison") ||
         hay.includes("community_kid_theater") ||
         hay.includes("boulevard_shops") ||
+        hay.includes("post_housing") ||
+        hay.includes("hostel_living") ||
+        hay.includes("crowded_family") ||
         hay.includes("sovereign_temple"),
     },
     {
@@ -770,7 +821,10 @@ function getHarmonyPriority(asset: VaultAsset): number {
     id.includes("messy_apartment/") ||
     id.includes("neighborhood_park/") ||
     id.includes("district_streets/") ||
-    id.includes("sovereign_temple/")
+    id.includes("sovereign_temple/") ||
+    id.includes("tram_rotunda/") ||
+    id.includes("bookshop_antiquariat/") ||
+    id.includes("renovation_shops/")
   ) {
     return 4;
   }

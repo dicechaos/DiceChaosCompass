@@ -2,7 +2,7 @@
  * Semantic Smart Asset-Swap Engine for Wonderdraft & Dungeondraft Map Imports.
  *
  * Maps external Wonderdraft (`res://sprites/...`, `user://assets/...`) and Dungeondraft
- * (`res://textures/...`, `res://packs/...`) asset identifiers onto Dice Chaos Maps'
+ * (`res://textures/...`, `res://packs/...`) asset identifiers onto Dice Chaos Compass'
  * 8,784+ Vault assets with two selectable modes:
  *   1. "prefer_installed" — exact filename/stem match against installed user packs first,
  *      falling back cleanly to semantic CC0 matches when packs aren't installed.

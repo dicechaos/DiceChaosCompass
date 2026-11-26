@@ -49,7 +49,7 @@ const mkProp = (
 /**
  * Mirrorlake Shore & Floating Luxury Sky-Yacht "S.Y. Aurelia" (48x27 @ 55" 4K TV exact 1" scale).
  *
- * Showcases the full Dice Chaos Maps Water Studio + 128 CC0 Top-Down Water Scene Assets:
+ * Showcases the full Dice Chaos Compass Water Studio + 128 CC0 Top-Down Water Scene Assets:
  *  - Multi-layer Alpine Mirrorlake with procedural sun caustics, shallow turquoise depth feathering,
  *    wet-sand shoreline banks, lapping foam crests, a carved rocky islet cutout, and a flowing
  *    northern forest feeder creek crossed by an arched stone footbridge & river stepping stones.

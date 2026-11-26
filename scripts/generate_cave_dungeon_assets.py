@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Dice Chaos Maps — Cave & Dungeon Drawing Tool Asset Pack (CC0)
+Dice Chaos Compass — Cave & Dungeon Drawing Tool Asset Pack (CC0)
 ==============================================================
 Generates 14 original 2x-supersampled "Crisp Hand-Inked Tabletop" cave & dungeon
 wall ribbons (512x128) and seamless floor terrains (512x512) and registers them

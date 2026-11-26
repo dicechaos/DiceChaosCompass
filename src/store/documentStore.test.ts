@@ -680,4 +680,238 @@ describe("documentStore — Per-Tab Undo/Redo, Selection Delete, Checkpoint & Lo
     st.redo();
     expect(useDocumentStore.getState().getActiveDoc().world!.labels[0].x).toBeCloseTo(origX + 0.12, 4);
   });
+
+  it("enforces floor-band layer ordering, cross-floor moveLayerRelative, soloLayer, bulk floor toggles, and level metadata updates", () => {
+    const st = useDocumentStore.getState();
+    // Safe UX defaults
+    expect(st.filterLayersByFloor).toBe(true);
+    expect(st.lockLowerFloors).toBe(true);
+    expect(st.isolateActiveFloor).toBe(false);
+
+    // Add 2F so we have 1F, 2F, and ROOF
+    st.addLevelAbove("upper");
+    let doc = useDocumentStore.getState().getActiveDoc();
+    const level2f = doc.levels.find((lv) => lv.shortCode === "2F")!;
+    expect(level2f).toBeDefined();
+
+    // Switch back to 1F and add a new Props layer -> must insert INSIDE 1F band, NOT above 2F/ROOF!
+    st.selectLevel("lvl-ground");
+    st.addLayer("objects", "Extra Ground Props", false, "lvl-ground");
+    doc = useDocumentStore.getState().getActiveDoc();
+    const extraIdx = doc.layers.findIndex((l) => l.name === "Extra Ground Props");
+    const first2fIdx = doc.layers.findIndex((l) => l.levelId === level2f.id);
+    const roofIdx = doc.layers.findIndex((l) => l.levelId === "lvl-roofs");
+    expect(extraIdx).toBeGreaterThanOrEqual(0);
+    expect(extraIdx).toBeLessThan(first2fIdx);
+    expect(extraIdx).toBeLessThan(roofIdx);
+
+    // Floor-scoped reorderLayer: top layer of 1F must NOT cross into 2F on "up"
+    const groundLayers = doc.layers.filter((l) => l.levelId === "lvl-ground");
+    const topGroundId = groundLayers[groundLayers.length - 1].id;
+    const undoBeforeNoOp = useDocumentStore.getState().undoStack.length;
+    st.reorderLayer(topGroundId, "up");
+    expect(useDocumentStore.getState().undoStack.length).toBe(undoBeforeNoOp);
+    expect(
+      useDocumentStore.getState().getActiveDoc().layers.find((l) => l.id === topGroundId)?.levelId,
+    ).toBe("lvl-ground");
+
+    // Cross-floor moveLayerRelative updates levelId and restores cleanly on Undo
+    const first2fLayerId = doc.layers.find((l) => l.levelId === level2f.id)!.id;
+    const extraLayerId = doc.layers[extraIdx].id;
+    st.moveLayerRelative(extraLayerId, first2fLayerId, "above");
+    expect(
+      useDocumentStore.getState().getActiveDoc().layers.find((l) => l.id === extraLayerId)?.levelId,
+    ).toBe(level2f.id);
+    st.undo();
+    expect(
+      useDocumentStore.getState().getActiveDoc().layers.find((l) => l.id === extraLayerId)?.levelId,
+    ).toBe("lvl-ground");
+
+    // Solo Layer isolates single layer on its floor and restores original visibilities on 2nd call
+    doc = useDocumentStore.getState().getActiveDoc();
+    const gTerrain = doc.layers.find((l) => l.levelId === "lvl-ground" && l.kind === "terrain")!;
+    const gWalls = doc.layers.find((l) => l.levelId === "lvl-ground" && l.kind === "walls")!;
+    st.toggleLayerVisible(gWalls.id); // hide walls intentionally before solo
+    expect(
+      useDocumentStore.getState().getActiveDoc().layers.find((l) => l.id === gWalls.id)?.visible,
+    ).toBe(false);
+
+    st.soloLayer(gTerrain.id);
+    expect(useDocumentStore.getState().soloLayerId).toBe(gTerrain.id);
+    const soloedGround = useDocumentStore
+      .getState()
+      .getActiveDoc()
+      .layers.filter((l) => l.levelId === "lvl-ground");
+    expect(soloedGround.filter((l) => l.visible).map((l) => l.id)).toEqual([gTerrain.id]);
+
+    // Second soloLayer restores exact pre-solo visibilities (including gWalls staying hidden!)
+    st.soloLayer(gTerrain.id);
+    expect(useDocumentStore.getState().soloLayerId).toBeNull();
+    expect(
+      useDocumentStore.getState().getActiveDoc().layers.find((l) => l.id === gWalls.id)?.visible,
+    ).toBe(false);
+    expect(
+      useDocumentStore.getState().getActiveDoc().layers.find((l) => l.id === gTerrain.id)?.visible,
+    ).toBe(true);
+
+    // Bulk floor visibility & lock toggles
+    st.toggleLevelLayersVisible("lvl-ground"); // some hidden -> shows ALL
+    expect(
+      useDocumentStore
+        .getState()
+        .getActiveDoc()
+        .layers.filter((l) => l.levelId === "lvl-ground")
+        .every((l) => l.visible),
+    ).toBe(true);
+    st.toggleLevelLayersVisible("lvl-ground"); // all visible -> hides ALL
+    expect(
+      useDocumentStore
+        .getState()
+        .getActiveDoc()
+        .layers.filter((l) => l.levelId === "lvl-ground")
+        .every((l) => !l.visible),
+    ).toBe(true);
+
+    st.toggleLevelLayersLocked("lvl-ground");
+    expect(
+      useDocumentStore
+        .getState()
+        .getActiveDoc()
+        .layers.filter((l) => l.levelId === "lvl-ground")
+        .every((l) => l.locked),
+    ).toBe(true);
+    st.toggleLevelLayersLocked("lvl-ground");
+    expect(
+      useDocumentStore
+        .getState()
+        .getActiveDoc()
+        .layers.filter((l) => l.levelId === "lvl-ground")
+        .every((l) => !l.locked),
+    ).toBe(true);
+
+    // updateLevelMeta & stepActiveLayer
+    st.updateLevelMeta(level2f.id, { name: "Mezzanine Balcony", shortCode: "2M", elevationFt: 16 });
+    const updated2f = useDocumentStore.getState().getActiveDoc().levels.find((lv) => lv.id === level2f.id)!;
+    expect(updated2f.name).toBe("Mezzanine Balcony");
+    expect(updated2f.shortCode).toBe("2M");
+    expect(updated2f.elevationFt).toBe(16);
+
+    const gList = useDocumentStore
+      .getState()
+      .getActiveDoc()
+      .layers.filter((l) => l.levelId === "lvl-ground");
+    st.setActiveLayer(gList[0].id);
+    st.stepActiveLayer("up");
+    expect(useDocumentStore.getState().getActiveDoc().activeLayerId).toBe(gList[1].id);
+    st.stepActiveLayer("down");
+    expect(useDocumentStore.getState().getActiveDoc().activeLayerId).toBe(gList[0].id);
+  });
+
+  it("supports Wall Tool batch corridors, splitWallAt, breachWallAt, and copyWallsFromLevelBelow with Undo", () => {
+    const st = useDocumentStore.getState();
+    st.setBrushParams({ wallAutoFillClosed: true });
+
+    // Add a closed Box Room on 1F
+    st.addWall({
+      id: "w-room-1f",
+      assetId: "walls/grunderzeit_brick_wall.png",
+      points: [
+        { x: 4, y: 4 },
+        { x: 10, y: 4 },
+        { x: 10, y: 8 },
+        { x: 4, y: 8 },
+      ],
+      closed: true,
+      curved: false,
+      thicknessCells: 0.38,
+      blocksLight: true,
+    });
+    const wallLayer1f = useDocumentStore
+      .getState()
+      .getActiveDoc()
+      .layers.find((l) => l.levelId === "lvl-ground" && l.kind === "walls")!;
+    expect(wallLayer1f.walls?.length).toBe(1);
+
+    // Carve a 2.0 sq open breach on the north wall (arcLength = 3)
+    const breached = st.breachWallAt(wallLayer1f.id, "w-room-1f", 3, 2.0);
+    expect(breached).toBe(true);
+    let curWall = useDocumentStore
+      .getState()
+      .getActiveDoc()
+      .layers.find((l) => l.id === wallLayer1f.id)
+      ?.walls?.[0]!;
+    expect(curWall.closed).toBe(false);
+    expect(curWall.points[0]).toEqual({ x: 8, y: 4 });
+
+    // Split the open wall cleanly into 2 segments
+    const splitOk = st.splitWallAt(wallLayer1f.id, curWall.id, 6);
+    expect(splitOk).toBe(true);
+    expect(
+      useDocumentStore
+        .getState()
+        .getActiveDoc()
+        .layers.find((l) => l.id === wallLayer1f.id)?.walls?.length,
+    ).toBe(2);
+
+    // Undo restores the breached single wall; second Undo restores the closed room!
+    st.undo();
+    expect(
+      useDocumentStore
+        .getState()
+        .getActiveDoc()
+        .layers.find((l) => l.id === wallLayer1f.id)?.walls?.length,
+    ).toBe(1);
+    st.undo();
+    curWall = useDocumentStore
+      .getState()
+      .getActiveDoc()
+      .layers.find((l) => l.id === wallLayer1f.id)
+      ?.walls?.[0]!;
+    expect(curWall.closed).toBe(true);
+
+    // Add 2F and copy wall footprints from 1F in 1 click (idempotent on 2nd call!)
+    st.addLevelAbove("upper");
+    const copiedCount = st.copyWallsFromLevelBelow();
+    expect(copiedCount).toBe(1);
+    const copiedAgain = st.copyWallsFromLevelBelow();
+    expect(copiedAgain).toBe(0);
+
+    // Corridor atomic batch adds both side walls + auto floor fill in 1 Undo step
+    const undoBefore = useDocumentStore.getState().undoStack.length;
+    st.addWallsBatch(
+      [
+        {
+          id: "w-c1",
+          assetId: "walls/grunderzeit_brick_wall.png",
+          points: [
+            { x: 12, y: 4 },
+            { x: 18, y: 4 },
+          ],
+          closed: false,
+          curved: false,
+          thicknessCells: 0.38,
+          blocksLight: true,
+        },
+        {
+          id: "w-c2",
+          assetId: "walls/grunderzeit_brick_wall.png",
+          points: [
+            { x: 12, y: 6.5 },
+            { x: 18, y: 6.5 },
+          ],
+          closed: false,
+          curved: false,
+          thicknessCells: 0.38,
+          blocksLight: true,
+        },
+      ],
+      [
+        { x: 12, y: 4 },
+        { x: 18, y: 4 },
+        { x: 18, y: 6.5 },
+        { x: 12, y: 6.5 },
+      ],
+    );
+    expect(useDocumentStore.getState().undoStack.length).toBe(undoBefore + 1);
+  });
 });

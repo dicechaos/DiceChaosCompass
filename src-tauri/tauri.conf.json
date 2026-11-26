@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Dice Chaos Maps",
+  "productName": "Dice Chaos Compass",
   "version": "1.0.0-beta.1",
-  "identifier": "com.dicechaos.maps",
+  "identifier": "com.dicechaos.compass",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://127.0.0.1:1420",
@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Dice Chaos Maps",
+        "title": "Dice Chaos Compass",
         "width": 1600,
         "height": 960,
         "minWidth": 1120,

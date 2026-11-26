@@ -1,7 +1,7 @@
 import {
   distanceToSegment,
   pointInPolygon,
-  sampleCatmullRom,
+  sampleWallPoints,
 } from "@/engine/geometry";
 import { buildWallBarrierGrid, computeSmartFloodFill } from "@/engine/terrainFill";
 import type {
@@ -325,8 +325,15 @@ export function computeRoofGeometry(roof: RoofStructure): RoofGeometry {
   }
 
   // ── 2. SPINE-BASED ROOFS (Gable, Hip, Shed, Mansard) ──
-  const useCurve = Boolean(roof.curved) && roof.points.length >= 3;
-  const rawSpine = useCurve ? sampleCatmullRom(roof.points, 10, false) : roof.points;
+  const rawSpine = sampleWallPoints(
+    {
+      points: roof.points,
+      closed: false,
+      curved: Boolean(roof.curved),
+      segmentCurves: roof.segmentCurves,
+    },
+    10,
+  );
   const spine = dedupePolyline(rawSpine, 0.01);
   if (spine.length < 2) return empty;
 

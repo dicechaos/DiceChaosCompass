@@ -1,6 +1,6 @@
 /**
  * High-Resolution Clean-Room World Atlas Recreation of "Tro'fraderra"
- * built natively inside Dice Chaos Maps v1.5.
+ * built natively inside Dice Chaos Compass v1.5.
  *
  * Calibrated across 12 micro-sectors against the Wonderdraft original:
  * - High-definition 480x330 editable SDF heightfield + 6 carved freshwater lakes
@@ -1904,7 +1904,7 @@ export function createTrofraderraWorldMap(): DcMapDocument {
     mode: "world",
     meta: {
       title: "Tro'fraderra",
-      author: "Dice Chaos Maps (Clean-Room Atlas)",
+      author: "Dice Chaos Compass (Clean-Room Atlas)",
       createdAt: now,
       updatedAt: now,
     },

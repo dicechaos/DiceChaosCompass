@@ -4,6 +4,10 @@ import {
   ArrowUp,
   BrickWall,
   Check,
+  ChevronDown,
+  ChevronRight,
+  ChevronsDownUp,
+  ChevronsUpDown,
   Copy,
   Droplets,
   Eye,
@@ -19,6 +23,8 @@ import {
   Paintbrush,
   Pencil,
   Plus,
+  Search,
+  Shield,
   ShieldAlert,
   Sliders,
   Sparkles,
@@ -31,13 +37,19 @@ import {
 } from "lucide-react";
 import { cleanSourceRefLabel } from "@/engine/assetSwapEngine";
 import { CAVE_THEME_PRESETS } from "@/engine/caveEngine";
+import { getWallSegmentCount } from "@/engine/geometry";
+import { resolveAssetUrl } from "@/engine/sceneRenderer";
 import { findWorldSymbolFamilyVariants, pickNextWorldVariant } from "@/engine/worldEngine";
 import {
   describeLayerContents,
+  findPreferredLayerForKind,
   getLayerKindMeta,
   getNextDefaultLayerName,
+  getOnionSkinReferenceLevel,
   suggestLayerNameFromContents,
+  summarizeLevel,
 } from "@/engine/layerMeta";
+import { summarizeUsedTerrains } from "@/engine/terrainFill";
 import { describeSelection } from "@/engine/selectionInfo";
 import { sortLevelsTopDown, useDocumentStore } from "@/store/documentStore";
 import { useVaultStore } from "@/store/vaultStore";
@@ -45,6 +57,7 @@ import type { ContextMenuEntry } from "@/ui/common/ContextMenu";
 import { ColorStudioPanel } from "@/ui/workspace/ColorStudioPanel";
 import { RoofStudioPanel } from "@/ui/workspace/RoofStudioPanel";
 import { ScatterZonePanel } from "@/ui/workspace/ScatterZonePanel";
+import { SectionCurveEditorCard } from "@/ui/workspace/SectionCurveEditorCard";
 import { TemplatesPanel } from "@/ui/workspace/TemplatesPanel";
 import { WaterStudioPanel } from "@/ui/workspace/WaterStudioPanel";
 import { WorldStudioPanel } from "@/ui/workspace/WorldStudioPanel";
@@ -55,8 +68,13 @@ import {
   type LayerKind,
   type MapLayer,
   type StampRotateMode,
+  type TerrainEraseShape,
   type TerrainMode,
+  type TerrainReplaceScope,
   type VaultAsset,
+  type WallDrawMode,
+  type WallPolygonShape,
+  type WallSplitSubMode,
 } from "@/types/map";
 
 function renderLayerKindIcon(kind: LayerKind): React.ReactNode {
@@ -140,6 +158,23 @@ export const RightInspectorDock: React.FC<RightInspectorDockProps> = React.memo(
   const terrainFillSoftness = useDocumentStore((s) => s.terrainFillSoftness);
   const terrainRotationDeg = useDocumentStore((s) => s.terrainRotationDeg);
   const terrainSlopeShade = useDocumentStore((s) => s.terrainSlopeShade);
+  const terrainTextureScale = useDocumentStore((s) => s.terrainTextureScale);
+  const terrainPolygonCurved = useDocumentStore((s) => s.terrainPolygonCurved);
+  const terrainReplaceScope = useDocumentStore((s) => s.terrainReplaceScope);
+  const terrainReplaceApplyStyle = useDocumentStore((s) => s.terrainReplaceApplyStyle);
+  const terrainEraseShape = useDocumentStore((s) => s.terrainEraseShape);
+  const terrainFloodReplaceUnderneath = useDocumentStore((s) => s.terrainFloodReplaceUnderneath);
+  const terrainBarrierWalls = useDocumentStore((s) => s.terrainBarrierWalls);
+  const terrainBarrierCaves = useDocumentStore((s) => s.terrainBarrierCaves);
+  const terrainBarrierWater = useDocumentStore((s) => s.terrainBarrierWater);
+  const wallDrawMode = useDocumentStore((s) => s.wallDrawMode);
+  const wallPolygonShape = useDocumentStore((s) => s.wallPolygonShape);
+  const wallBoxRotationDeg = useDocumentStore((s) => s.wallBoxRotationDeg);
+  const wallSnapToWalls = useDocumentStore((s) => s.wallSnapToWalls);
+  const wallSplitSubMode = useDocumentStore((s) => s.wallSplitSubMode);
+  const wallBreachWidthCells = useDocumentStore((s) => s.wallBreachWidthCells);
+  const wallCorridorWidthCells = useDocumentStore((s) => s.wallCorridorWidthCells);
+  const wallCorridorCapEnds = useDocumentStore((s) => s.wallCorridorCapEnds);
   const wallThicknessCells = useDocumentStore((s) => s.wallThicknessCells);
   const wallCurved = useDocumentStore((s) => s.wallCurved);
   const wallBlocksLight = useDocumentStore((s) => s.wallBlocksLight);
@@ -178,17 +213,41 @@ export const RightInspectorDock: React.FC<RightInspectorDockProps> = React.memo(
   const activePathAssetId = useDocumentStore((s) => s.activePathAssetId);
   const activePortalAssetId = useDocumentStore((s) => s.activePortalAssetId);
   const activeTerrainAssetId = useDocumentStore((s) => s.activeTerrainAssetId);
+  const recentTerrainAssetIds = useDocumentStore((s) => s.recentTerrainAssetIds);
   const activePortalWidthCells = useDocumentStore((s) => s.activePortalWidthCells);
   const activePortalClosed = useDocumentStore((s) => s.activePortalClosed);
   const activePortalSwingInvert = useDocumentStore((s) => s.activePortalSwingInvert);
   const activePortalHingeFlip = useDocumentStore((s) => s.activePortalHingeFlip);
   const filterLayersByFloor = useDocumentStore((s) => s.filterLayersByFloor);
+  const soloLayerId = useDocumentStore((s) => s.soloLayerId);
+  const lockLowerFloors = useDocumentStore((s) => s.lockLowerFloors);
 
-  const sortedLevels = sortLevelsTopDown(doc.levels);
-  const levelById = new Map(doc.levels.map((lv) => [lv.id, lv]));
+  const sortedLevels = useMemo(() => sortLevelsTopDown(doc.levels), [doc.levels]);
+  const levelById = useMemo(() => new Map(doc.levels.map((lv) => [lv.id, lv])), [doc.levels]);
   const activeLevel = levelById.get(doc.activeLevelId) ?? sortedLevels[0];
 
   const [matSearch, setMatSearch] = useState("");
+  const [layerSearchOpen, setLayerSearchOpen] = useState(false);
+  const [layerSearch, setLayerSearch] = useState("");
+  const layerSearchInputRef = useRef<HTMLInputElement | null>(null);
+  const [openFloorIds, setOpenFloorIds] = useState<Record<string, boolean>>(() => ({
+    [doc.activeLevelId]: true,
+  }));
+  const [layersSplitPct, setLayersSplitPct] = useState<number>(() => {
+    try {
+      const saved = Number(localStorage.getItem("dc-right-dock-split"));
+      if (Number.isFinite(saved) && saved >= 22 && saved <= 78) return saved;
+    } catch {
+      // Ignore storage errors
+    }
+    return 46;
+  });
+  const dockRef = useRef<HTMLElement | null>(null);
+  const splitDragRef = useRef<{ active: boolean; latestPct: number }>({
+    active: false,
+    latestPct: 46,
+  });
+
   const renameInputBaseId = useId();
   const [editingLayerId, setEditingLayerId] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState("");
@@ -205,23 +264,27 @@ export const RightInspectorDock: React.FC<RightInspectorDockProps> = React.memo(
   } | null>(null);
   const [draggingLayerId, setDraggingLayerId] = useState<string | null>(null);
   const [dragGhost, setDragGhost] = useState<{ name: string; x: number; y: number } | null>(null);
-  const [layerDropTarget, setLayerDropTarget] = useState<{
-    targetLayerId: string;
-    placement: "above" | "below";
-  } | null>(null);
-  const layerDropTargetRef = useRef<{
-    targetLayerId: string;
-    placement: "above" | "below";
-  } | null>(null);
+  const [layerDropTarget, setLayerDropTarget] = useState<
+    | { kind: "layer"; targetLayerId: string; placement: "above" | "below" }
+    | { kind: "floor"; targetLevelId: string }
+    | null
+  >(null);
+  const layerDropTargetRef = useRef<
+    | { kind: "layer"; targetLayerId: string; placement: "above" | "below" }
+    | { kind: "floor"; targetLevelId: string }
+    | null
+  >(null);
+
+  useEffect(() => {
+    setOpenFloorIds((prev) =>
+      prev[doc.activeLevelId] ? prev : { ...prev, [doc.activeLevelId]: true },
+    );
+  }, [doc.activeLevelId]);
 
   useEffect(() => {
     const computeDropTarget = (clientY: number) => {
       const container = layerListRef.current;
       if (!container) return null;
-      const rows = Array.from(
-        container.querySelectorAll<HTMLElement>(".dc-layer-row[data-layer-id]"),
-      );
-      if (rows.length === 0) return null;
 
       // Auto-scroll smoothly when dragging near top or bottom of the layers list
       const cRect = container.getBoundingClientRect();
@@ -231,17 +294,37 @@ export const RightInspectorDock: React.FC<RightInspectorDockProps> = React.memo(
         container.scrollTop += 8;
       }
 
+      // Check floor accordion headers first so users can drop a layer directly onto a collapsed floor
+      const headers = Array.from(
+        container.querySelectorAll<HTMLElement>(".dc-floor-group-summary[data-floor-drop-id]"),
+      );
+      for (const hdr of headers) {
+        const lvlId = hdr.dataset.floorDropId;
+        if (!lvlId) continue;
+        const rect = hdr.getBoundingClientRect();
+        if (rect.height > 0 && clientY >= rect.top && clientY <= rect.bottom) {
+          return { kind: "floor" as const, targetLevelId: lvlId };
+        }
+      }
+
+      const rows = Array.from(
+        container.querySelectorAll<HTMLElement>(".dc-layer-row[data-layer-id]"),
+      ).filter((r) => r.getBoundingClientRect().height > 0);
+      if (rows.length === 0) return null;
+
       for (const row of rows) {
         const id = row.dataset.layerId;
         if (!id) continue;
         const rect = row.getBoundingClientRect();
         const midY = rect.top + rect.height / 2;
         if (clientY < midY) {
-          return { targetLayerId: id, placement: "above" as const };
+          return { kind: "layer" as const, targetLayerId: id, placement: "above" as const };
         }
       }
       const lastId = rows[rows.length - 1]?.dataset.layerId;
-      return lastId ? { targetLayerId: lastId, placement: "below" as const } : null;
+      return lastId
+        ? { kind: "layer" as const, targetLayerId: lastId, placement: "below" as const }
+        : null;
     };
 
     const clearDrag = () => {
@@ -267,12 +350,25 @@ export const RightInspectorDock: React.FC<RightInspectorDockProps> = React.memo(
       setDragGhost({ name: d.layerName, x: e.clientX, y: e.clientY });
       const nextTarget = computeDropTarget(e.clientY);
       layerDropTargetRef.current = nextTarget;
-      setLayerDropTarget((prev) =>
-        prev?.targetLayerId === nextTarget?.targetLayerId &&
-        prev?.placement === nextTarget?.placement
-          ? prev
-          : nextTarget,
-      );
+      setLayerDropTarget((prev) => {
+        if (prev === nextTarget) return prev;
+        if (
+          prev?.kind === "layer" &&
+          nextTarget?.kind === "layer" &&
+          prev.targetLayerId === nextTarget.targetLayerId &&
+          prev.placement === nextTarget.placement
+        ) {
+          return prev;
+        }
+        if (
+          prev?.kind === "floor" &&
+          nextTarget?.kind === "floor" &&
+          prev.targetLevelId === nextTarget.targetLevelId
+        ) {
+          return prev;
+        }
+        return nextTarget;
+      });
     };
 
     const onPointerUp = () => {
@@ -287,7 +383,9 @@ export const RightInspectorDock: React.FC<RightInspectorDockProps> = React.memo(
         window.setTimeout(() => {
           suppressLayerClickRef.current = false;
         }, 0);
-        if (target && target.targetLayerId !== sourceId) {
+        if (target?.kind === "floor") {
+          useDocumentStore.getState().setLayerLevel(sourceId, target.targetLevelId);
+        } else if (target?.kind === "layer" && target.targetLayerId !== sourceId) {
           useDocumentStore
             .getState()
             .moveLayerRelative(sourceId, target.targetLayerId, target.placement);
@@ -448,9 +546,46 @@ export const RightInspectorDock: React.FC<RightInspectorDockProps> = React.memo(
 
   const st = useDocumentStore.getState();
   const activeLayer = doc.layers.find((l) => l.id === doc.activeLayerId) ?? doc.layers[0];
-  const displayLayers = [...doc.layers]
-    .reverse()
-    .filter((l) => !filterLayersByFloor || l.levelId === doc.activeLevelId || l.kind === "dm_notes");
+  const normalizedLayerQuery = layerSearch.trim().toLowerCase();
+  const matchesLayerQuery = useCallback(
+    (l: MapLayer) => {
+      if (!normalizedLayerQuery) return true;
+      const meta = getLayerKindMeta(l.kind);
+      const lv = levelById.get(l.levelId);
+      return (
+        l.name.toLowerCase().includes(normalizedLayerQuery) ||
+        meta.label.toLowerCase().includes(normalizedLayerQuery) ||
+        meta.shortLabel.toLowerCase().includes(normalizedLayerQuery) ||
+        (lv?.shortCode.toLowerCase().includes(normalizedLayerQuery) ?? false) ||
+        (lv?.name.toLowerCase().includes(normalizedLayerQuery) ?? false)
+      );
+    },
+    [normalizedLayerQuery, levelById],
+  );
+  const activeFloorLayers = useMemo(
+    () => [...doc.layers].reverse().filter((l) => l.levelId === doc.activeLevelId),
+    [doc.layers, doc.activeLevelId],
+  );
+  const displayLayers = useMemo(() => {
+    const base =
+      doc.mode === "world" || !filterLayersByFloor || normalizedLayerQuery
+        ? [...doc.layers].reverse()
+        : activeFloorLayers;
+    return normalizedLayerQuery ? base.filter(matchesLayerQuery) : base;
+  }, [doc.mode, doc.layers, filterLayersByFloor, normalizedLayerQuery, activeFloorLayers, matchesLayerQuery]);
+
+  // Auto-scroll active layer row into view on floor/layer switches
+  useEffect(() => {
+    const container = layerListRef.current;
+    if (!container) return;
+    const raf = requestAnimationFrame(() => {
+      const row = container.querySelector<HTMLElement>(
+        `.dc-layer-row[data-layer-id="${doc.activeLayerId}"]`,
+      );
+      row?.scrollIntoView({ block: "nearest" });
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [doc.activeLayerId, doc.activeLevelId, filterLayersByFloor]);
 
   const beginLayerRename = useCallback((layer: MapLayer) => {
     renameDoneRef.current = false;
@@ -849,6 +984,14 @@ export const RightInspectorDock: React.FC<RightInspectorDockProps> = React.memo(
       },
       {
         type: "item",
+        id: "lyr-solo",
+        label: soloLayerId === layer.id ? "Exit Solo Layer" : "Solo This Layer",
+        shortcut: "Alt+Eye",
+        checked: soloLayerId === layer.id,
+        onSelect: () => st.soloLayer(layer.id),
+      },
+      {
+        type: "item",
         id: "lyr-lock",
         label: layer.locked ? "Unlock Layer" : "Lock Layer",
         checked: layer.locked,
@@ -864,7 +1007,7 @@ export const RightInspectorDock: React.FC<RightInspectorDockProps> = React.memo(
       {
         type: "submenu",
         id: "lyr-floor",
-        label: "Assign to Floor / Roof",
+        label: "Move Layer to Floor / Roof",
         items: sortedLevels.map((lv) => ({
           id: `flr-${lv.id}`,
           label: `${lv.shortCode} · ${lv.name} (${lv.elevationFt > 0 ? `+${lv.elevationFt}` : lv.elevationFt} ft)`,
@@ -876,13 +1019,13 @@ export const RightInspectorDock: React.FC<RightInspectorDockProps> = React.memo(
       {
         type: "item",
         id: "lyr-up",
-        label: "Move Layer Up",
+        label: "Move Layer Up (Within Floor)",
         onSelect: () => st.reorderLayer(layer.id, "up"),
       },
       {
         type: "item",
         id: "lyr-down",
-        label: "Move Layer Down",
+        label: "Move Layer Down (Within Floor)",
         onSelect: () => st.reorderLayer(layer.id, "down"),
       },
       {
@@ -924,43 +1067,400 @@ export const RightInspectorDock: React.FC<RightInspectorDockProps> = React.memo(
     ]);
   };
 
-  return (
-    <aside className="dc-right-dock" aria-label="Layers and Properties">
-      {/* Top Half: Photoshop-Style Hierarchical Layer Tree */}
-      <section className="dc-dock-section">
-        <div className="dc-section-head">
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-            <Layers size={13} />
-            Layers
+  const getFloorBadgeColors = (lv: { shortCode: string; kind: string } | undefined) => {
+    if (lv?.kind === "sky") return { text: lv.shortCode, col: "#38BDF8", bg: "rgba(56,189,248,0.20)" };
+    if (lv?.kind === "roof") return { text: lv.shortCode, col: "#C4B5FD", bg: "rgba(139,92,246,0.18)" };
+    if (lv?.kind === "upper") return { text: lv.shortCode, col: "#22D3EE", bg: "rgba(34,211,238,0.14)" };
+    if (lv?.kind === "underground") return { text: lv.shortCode, col: "#A5B4FC", bg: "rgba(99,102,241,0.20)" };
+    return { text: lv?.shortCode ?? "1F", col: "#E5A93C", bg: "rgba(229,169,60,0.14)" };
+  };
+
+  const openMoveLayerFloorMenu = (
+    x: number,
+    y: number,
+    layer: MapLayer,
+  ) => {
+    onOpenContextMenu(
+      x,
+      y,
+      `Move "${layer.name}" to Floor`,
+      sortedLevels.map((lv) => ({
+        type: "item" as const,
+        id: `move-flr-${lv.id}`,
+        label: `${lv.shortCode} · ${lv.name} (${lv.elevationFt > 0 ? `+${lv.elevationFt}` : lv.elevationFt}ft)`,
+        checked: layer.levelId === lv.id,
+        onSelect: () => st.setLayerLevel(layer.id, lv.id),
+      })),
+    );
+  };
+
+  const renderLayerRow = (layer: MapLayer, showFloorPill: boolean) => {
+    const isActive = layer.id === doc.activeLayerId;
+    const isDragging = draggingLayerId === layer.id;
+    const isSoloed = soloLayerId === layer.id;
+    const dropClass =
+      draggingLayerId &&
+      draggingLayerId !== layer.id &&
+      layerDropTarget?.kind === "layer" &&
+      layerDropTarget.targetLayerId === layer.id
+        ? layerDropTarget.placement === "above"
+          ? "drop-above"
+          : "drop-below"
+        : "";
+    const lv = levelById.get(layer.levelId);
+    const flrStyle = getFloorBadgeColors(lv);
+    const kindMeta = getLayerKindMeta(layer.kind);
+    const contentInfo = describeLayerContents(layer);
+    const isEditing = editingLayerId === layer.id;
+    const renameInputId = `${renameInputBaseId}-${layer.id}`;
+    return (
+      <div
+        key={layer.id}
+        data-layer-id={layer.id}
+        tabIndex={-1}
+        title={isEditing ? undefined : `${contentInfo.tooltip}\nDouble-click or F2 to rename · Alt+Click Eye to Solo`}
+        className={`dc-layer-row ${isActive ? "active" : ""} ${isEditing ? "editing" : ""} ${layer.dmOnly ? "dm-only" : ""} ${isDragging ? "dragging" : ""} ${dropClass}`}
+        onPointerDown={(e) => {
+          if (e.button !== 0 || isEditing) return;
+          if ((e.target as HTMLElement).closest("button, input, form")) return;
+          layerDragRef.current = {
+            layerId: layer.id,
+            layerName: layer.name,
+            startX: e.clientX,
+            startY: e.clientY,
+            active: false,
+          };
+        }}
+        onClick={() => {
+          if (suppressLayerClickRef.current || isEditing) return;
+          st.setActiveLayer(layer.id);
+        }}
+        onContextMenu={(e) => {
+          if (isEditing) return;
+          openLayerContextMenu(e, layer);
+        }}
+      >
+        {!isEditing && (
+          <span
+            className="dc-layer-grip"
+            title="Drag to reorder layer (or drop on any floor header to move floors)"
+            aria-hidden="true"
+          >
+            <GripVertical size={12} />
           </span>
-          <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+        )}
+        <button
+          type="button"
+          className="dc-mini-icon-btn"
+          title={
+            isSoloed
+              ? "Soloed — Click to toggle or Alt+Click to restore floor visibility"
+              : layer.visible
+                ? "Hide layer (Alt+Click to Solo)"
+                : "Show layer (Alt+Click to Solo)"
+          }
+          aria-label={`Toggle ${layer.name} visibility`}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (e.altKey) {
+              st.soloLayer(layer.id);
+            } else {
+              st.toggleLayerVisible(layer.id);
+            }
+          }}
+        >
+          {layer.visible ? <Eye size={13} /> : <EyeOff size={13} style={{ opacity: 0.4 }} />}
+        </button>
+        <span
+          className="dc-layer-kind-icon"
+          style={{
+            color: kindMeta.color,
+            background: `${kindMeta.color}18`,
+            borderColor: `${kindMeta.color}40`,
+            opacity: layer.visible ? 1 : 0.45,
+          }}
+          title={`${kindMeta.label} · ${contentInfo.summary}`}
+          aria-hidden="true"
+        >
+          {renderLayerKindIcon(layer.kind)}
+        </span>
+        {isEditing ? (
+          <form
+            className="dc-layer-rename-form"
+            onClick={(e) => e.stopPropagation()}
+            onSubmit={(e) => {
+              e.preventDefault();
+              commitLayerRename(true);
+            }}
+          >
+            <label htmlFor={renameInputId} className="visually-hidden">
+              Rename layer {layer.name}
+            </label>
+            <input
+              id={renameInputId}
+              ref={renameInputRef}
+              type="text"
+              className="dc-layer-rename-input"
+              value={renameDraft}
+              maxLength={64}
+              onChange={(e) => setRenameDraft(e.target.value)}
+              onKeyDown={(e) => {
+                e.stopPropagation();
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  if (e.nativeEvent.isComposing || e.keyCode === 229) {
+                    return;
+                  }
+                  commitLayerRename(true);
+                } else if (e.key === "Escape") {
+                  e.preventDefault();
+                  cancelLayerRename(true);
+                }
+              }}
+              onBlur={(e) => {
+                if (renameDoneRef.current) {
+                  return;
+                }
+                if (
+                  e.relatedTarget &&
+                  e.currentTarget.form?.contains(e.relatedTarget as Node)
+                ) {
+                  return;
+                }
+                commitLayerRename(false);
+              }}
+            />
+            <button
+              type="submit"
+              className="dc-layer-rename-action confirm"
+              title="Save layer name (Enter)"
+              aria-label={`Save name for ${layer.name}`}
+              onPointerDown={(e) => e.preventDefault()}
+            >
+              <Check size={12} />
+            </button>
             <button
               type="button"
-              title={
-                filterLayersByFloor
-                  ? `Showing only ${activeLevel?.shortCode ?? "current"} layers — Click to show all floors`
-                  : "Showing layers from all floors — Click to filter to current floor only"
-              }
-              onClick={() => st.setFilterLayersByFloor(!filterLayersByFloor)}
-              style={{
-                height: 20,
-                padding: "0 6px",
-                borderRadius: 4,
-                fontSize: 9,
-                fontWeight: 700,
-                fontFamily: "var(--font-mono)",
-                cursor: "pointer",
-                border: `1px solid ${filterLayersByFloor ? "rgba(34,211,238,0.55)" : "var(--border-subtle)"}`,
-                background: filterLayersByFloor ? "rgba(34,211,238,0.14)" : "var(--bg-panel)",
-                color: filterLayersByFloor ? "#22D3EE" : "var(--text-secondary)",
+              className="dc-layer-rename-action cancel"
+              title="Cancel rename (Esc)"
+              aria-label={`Cancel renaming ${layer.name}`}
+              onPointerDown={(e) => {
+                e.preventDefault();
+                cancelLayerRename(true);
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                cancelLayerRename(true);
               }}
             >
-              {filterLayersByFloor ? activeLevel?.shortCode ?? "FLOOR" : "ALL"}
+              <X size={12} />
+            </button>
+          </form>
+        ) : (
+          <>
+            <div className="dc-layer-name-wrap">
+              <span
+                className="dc-layer-name"
+                style={{ opacity: layer.visible ? 1 : 0.45 }}
+                onDoubleClick={(e) => {
+                  e.stopPropagation();
+                  beginLayerRename(layer);
+                }}
+              >
+                <span className="dc-layer-name-text">{layer.name}</span>
+              </span>
+              <button
+                type="button"
+                className="dc-layer-rename-btn"
+                data-rename-trigger={layer.id}
+                title="Rename layer (Double-click or F2)"
+                aria-label={`Rename ${layer.name}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  beginLayerRename(layer);
+                }}
+              >
+                <Pencil size={11} />
+              </button>
+            </div>
+            {isSoloed && (
+              <button
+                type="button"
+                className="dc-layer-solo-pill"
+                title="Layer Soloed — Click to restore floor visibility"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  st.soloLayer(layer.id);
+                }}
+              >
+                SOLO
+              </button>
+            )}
+            {layer.dmOnly && (
+              <span
+                className="dc-layer-dm-pill"
+                title="DM-Only Layer (Auto-stripped on Player & VTT exports)"
+              >
+                <ShieldAlert size={10} />
+                DM
+              </span>
+            )}
+            {showFloorPill && doc.mode !== "world" && (
+              <button
+                type="button"
+                title={`Assigned to ${lv?.name ?? "1F"} — Click to move to another floor`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  openMoveLayerFloorMenu(rect.left - 160, rect.bottom + 4, layer);
+                }}
+                className="dc-floor-code-pill"
+                style={{
+                  borderColor: `${flrStyle.col}55`,
+                  background: flrStyle.bg,
+                  color: flrStyle.col,
+                }}
+              >
+                {flrStyle.text}
+              </button>
+            )}
+            <span
+              className={`dc-layer-count-pill ${contentInfo.totalCount === 0 ? "empty" : ""}`}
+              title={contentInfo.summary}
+            >
+              {contentInfo.totalCount}
+            </span>
+            <button
+              type="button"
+              className="dc-mini-icon-btn"
+              title={layer.locked ? "Unlock layer" : "Lock layer"}
+              aria-label={`Toggle ${layer.name} lock`}
+              onClick={(e) => {
+                e.stopPropagation();
+                st.toggleLayerLocked(layer.id);
+              }}
+            >
+              {layer.locked ? <Lock size={12} /> : <Unlock size={12} style={{ opacity: 0.35 }} />}
+            </button>
+          </>
+        )}
+      </div>
+    );
+  };
+
+  const activeLayerMeta = getLayerKindMeta(activeLayer.kind);
+  const activeLayerLevel = levelById.get(activeLayer.levelId);
+  const activeLayerFloorColors = getFloorBadgeColors(activeLayerLevel);
+  const allFloorsExpanded = sortedLevels.every((lv) => Boolean(openFloorIds[lv.id]));
+
+  const toggleAllAccordions = () => {
+    const nextOpen = !allFloorsExpanded;
+    const map: Record<string, boolean> = {};
+    for (const lv of sortedLevels) {
+      map[lv.id] = nextOpen || lv.id === doc.activeLevelId;
+    }
+    setOpenFloorIds(map);
+  };
+
+  const handleResizerPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0 || !dockRef.current) return;
+    e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    splitDragRef.current = { active: true, latestPct: layersSplitPct };
+  };
+
+  const handleResizerPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!splitDragRef.current.active || !dockRef.current) return;
+    const rect = dockRef.current.getBoundingClientRect();
+    if (rect.height <= 0) return;
+    const pct = Math.max(22, Math.min(78, ((e.clientY - rect.top) / rect.height) * 100));
+    const rounded = Math.round(pct * 10) / 10;
+    splitDragRef.current.latestPct = rounded;
+    setLayersSplitPct(rounded);
+  };
+
+  const handleResizerPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!splitDragRef.current.active) return;
+    splitDragRef.current.active = false;
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {
+      // Ignore if not captured
+    }
+    try {
+      localStorage.setItem("dc-right-dock-split", String(splitDragRef.current.latestPct));
+    } catch {
+      // Ignore storage errors
+    }
+  };
+
+  return (
+    <aside
+      ref={dockRef}
+      className="dc-right-dock"
+      aria-label="Layers and Properties"
+      style={{
+        gridTemplateRows: `minmax(156px, ${layersSplitPct}%) 6px minmax(160px, 1fr)`,
+      }}
+    >
+      {/* Top Half: Scoped & Collapsible Floor-Aware Layer Stack */}
+      <section className="dc-dock-section">
+        <div className="dc-section-head">
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+            <Layers size={13} style={{ flexShrink: 0 }} />
+            <span>Layers</span>
+            <span className="dc-section-count-badge">
+              {doc.mode !== "world" && filterLayersByFloor && !normalizedLayerQuery
+                ? activeFloorLayers.length
+                : displayLayers.length}
+            </span>
+          </span>
+          <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+            {doc.mode !== "world" && (
+              <button
+                type="button"
+                className={`dc-mini-icon-btn ${lockLowerFloors ? "accent-cyan" : ""}`}
+                title={
+                  lockLowerFloors
+                    ? "Lower Floors Protected — Only active floor items can be clicked on canvas. Click to allow cross-floor picking."
+                    : "Cross-Floor Picking Enabled — Clicking empty space may select visible items on lower floors. Click to lock lower floors."
+                }
+                aria-label="Toggle Lower Floor Click Protection"
+                aria-pressed={lockLowerFloors}
+                onClick={() => {
+                  const next = !lockLowerFloors;
+                  st.setLockLowerFloors(next);
+                  st.pushToast(
+                    next
+                      ? "Lower floors protected from accidental clicks"
+                      : "Lower floors unlocked for cross-floor selection",
+                  );
+                }}
+              >
+                <Shield size={12} />
+              </button>
+            )}
+            <button
+              type="button"
+              className={`dc-mini-icon-btn ${layerSearchOpen || normalizedLayerQuery ? "accent-gold" : ""}`}
+              title="Filter layers by name, type, or floor"
+              aria-label="Filter Layers"
+              aria-pressed={layerSearchOpen}
+              onClick={() => {
+                setLayerSearchOpen((prev) => {
+                  const next = !prev;
+                  if (!next) setLayerSearch("");
+                  else requestAnimationFrame(() => layerSearchInputRef.current?.focus());
+                  return next;
+                });
+              }}
+            >
+              <Search size={12} />
             </button>
             <button
               type="button"
               className="dc-mini-icon-btn"
-              title="Move Active Layer Up"
+              title="Move Active Layer Up (Within Current Floor)"
               aria-label="Move Layer Up"
               onClick={() => st.reorderLayer(activeLayer.id, "up")}
             >
@@ -969,7 +1469,7 @@ export const RightInspectorDock: React.FC<RightInspectorDockProps> = React.memo(
             <button
               type="button"
               className="dc-mini-icon-btn"
-              title="Move Active Layer Down"
+              title="Move Active Layer Down (Within Current Floor)"
               aria-label="Move Layer Down"
               onClick={() => st.reorderLayer(activeLayer.id, "down")}
             >
@@ -1087,23 +1587,133 @@ export const RightInspectorDock: React.FC<RightInspectorDockProps> = React.memo(
           </div>
         </div>
 
-        {/* Blend Mode, Opacity & Dynamic Floor/Roof Assignment Row for Active Layer */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 6,
-            padding: "7px 10px",
-            borderBottom: "1px solid var(--border-subtle)",
-            background: "var(--bg-panel)",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        {/* Segmented Floor Scope Switcher (Battlemap mode only) */}
+        {doc.mode !== "world" && (
+          <div className="dc-layer-scope-bar">
+            <div className="dc-layer-scope-seg" role="tablist" aria-label="Layer Floor Scope">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={filterLayersByFloor}
+                className={`dc-layer-scope-btn ${filterLayersByFloor ? "active" : ""}`}
+                onClick={() => st.setFilterLayersByFloor(true)}
+                title={`Show only layers on active floor (${activeLevel?.shortCode ?? "1F"})`}
+              >
+                {activeLevel?.shortCode ?? "1F"} Only ({activeFloorLayers.length})
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={!filterLayersByFloor}
+                className={`dc-layer-scope-btn ${!filterLayersByFloor ? "active" : ""}`}
+                onClick={() => st.setFilterLayersByFloor(false)}
+                title="Browse all floors grouped in collapsible elevation sections"
+              >
+                All Floors ({doc.levels.length})
+              </button>
+            </div>
+            {!filterLayersByFloor && (
+              <button
+                type="button"
+                className="dc-mini-icon-btn"
+                title={allFloorsExpanded ? "Collapse other floors" : "Expand all floors"}
+                aria-label={allFloorsExpanded ? "Collapse other floors" : "Expand all floors"}
+                onClick={toggleAllAccordions}
+              >
+                {allFloorsExpanded ? <ChevronsDownUp size={12} /> : <ChevronsUpDown size={12} />}
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Optional Layer Search Filter */}
+        {(layerSearchOpen || normalizedLayerQuery.length > 0) && (
+          <div className="dc-layer-search-bar">
+            <input
+              ref={layerSearchInputRef}
+              type="search"
+              className="dc-input dc-layer-search-input"
+              placeholder="Filter layers by name, type, or floor…"
+              aria-label="Filter layers"
+              value={layerSearch}
+              onChange={(e) => setLayerSearch(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  setLayerSearch("");
+                  setLayerSearchOpen(false);
+                }
+              }}
+            />
+            {layerSearch && (
+              <button
+                type="button"
+                className="dc-mini-icon-btn"
+                title="Clear layer filter"
+                aria-label="Clear layer filter"
+                onClick={() => setLayerSearch("")}
+              >
+                <X size={12} />
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Active Layer Context & Compositing Strip */}
+        <div className="dc-active-layer-strip">
+          <div className="dc-active-layer-identity">
+            <span
+              className="dc-layer-kind-icon"
+              style={{
+                width: 18,
+                height: 18,
+                color: activeLayerMeta.color,
+                background: `${activeLayerMeta.color}1A`,
+                borderColor: `${activeLayerMeta.color}44`,
+              }}
+              aria-hidden="true"
+            >
+              {renderLayerKindIcon(activeLayer.kind)}
+            </span>
+            <span className="dc-active-layer-title" title={activeLayer.name}>
+              {activeLayer.name}
+            </span>
+            {soloLayerId === activeLayer.id && (
+              <button
+                type="button"
+                className="dc-layer-solo-pill"
+                title="Soloed — Click to restore floor visibility"
+                onClick={() => st.soloLayer(activeLayer.id)}
+              >
+                SOLO
+              </button>
+            )}
+            {doc.mode !== "world" && (
+              <button
+                type="button"
+                className="dc-active-floor-btn"
+                style={{
+                  borderColor: `${activeLayerFloorColors.col}60`,
+                  background: activeLayerFloorColors.bg,
+                  color: activeLayerFloorColors.col,
+                }}
+                title={`Active layer is on ${activeLayerLevel?.shortCode ?? "1F"} (${activeLayerLevel?.name ?? "Ground"}) · Click to move layer to another floor`}
+                aria-label={`Move ${activeLayer.name} to another floor`}
+                onClick={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  openMoveLayerFloorMenu(rect.left - 140, rect.bottom + 4, activeLayer);
+                }}
+              >
+                <span>{activeLayerFloorColors.text}</span>
+                <ChevronDown size={10} />
+              </button>
+            )}
+          </div>
+
+          <div className="dc-active-layer-compositing">
             <select
-              className="dc-select"
+              className="dc-select dc-blend-select"
               aria-label="Layer Blend Mode"
               value={activeLayer.blendMode}
-              style={{ flex: 1, minWidth: 0 }}
               onChange={(e) =>
                 st.setLayerBlendMode(activeLayer.id, e.target.value as BlendModeName)
               }
@@ -1115,7 +1725,7 @@ export const RightInspectorDock: React.FC<RightInspectorDockProps> = React.memo(
               <option value="add">Add (Glow)</option>
               <option value="darken">Darken</option>
             </select>
-            <span className="dc-field-label" style={{ whiteSpace: "nowrap" }}>
+            <span className="dc-field-label dc-opacity-readout">
               {Math.round(activeLayer.opacity * 100)}%
             </span>
             <input
@@ -1130,270 +1740,177 @@ export const RightInspectorDock: React.FC<RightInspectorDockProps> = React.memo(
               onChange={(e) => st.setLayerOpacity(activeLayer.id, Number(e.target.value))}
             />
           </div>
-
-          {doc.mode !== "world" && (
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <span
-                className="dc-field-label"
-                style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.04em", whiteSpace: "nowrap" }}
-              >
-                Floor
-              </span>
-              <select
-                className="dc-select"
-                aria-label="Assign Active Layer Floor"
-                value={activeLayer.levelId}
-                style={{ flex: 1, minWidth: 0, height: 24, fontSize: 11 }}
-                onChange={(e) => st.setLayerLevel(activeLayer.id, e.target.value)}
-              >
-                {sortedLevels.map((lv) => (
-                  <option key={lv.id} value={lv.id}>
-                    {lv.shortCode} · {lv.name} ({lv.elevationFt > 0 ? `+${lv.elevationFt}` : lv.elevationFt}ft)
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
         </div>
 
         <div ref={layerListRef} className="dc-section-body dc-scroll">
-          {displayLayers.map((layer) => {
-            const isActive = layer.id === doc.activeLayerId;
-            const isDragging = draggingLayerId === layer.id;
-            const dropClass =
-              draggingLayerId &&
-              draggingLayerId !== layer.id &&
-              layerDropTarget?.targetLayerId === layer.id
-                ? layerDropTarget.placement === "above"
-                  ? "drop-above"
-                  : "drop-below"
-                : "";
-            const lv = levelById.get(layer.levelId);
-            const curIdx = sortedLevels.findIndex((x) => x.id === layer.levelId);
-            const nextLv = sortedLevels[(curIdx + 1) % Math.max(1, sortedLevels.length)];
-            const flrStyle =
-              lv?.kind === "sky"
-                ? { text: lv.shortCode, col: "#38BDF8", bg: "rgba(56,189,248,0.20)" }
-                : lv?.kind === "roof"
-                  ? { text: lv.shortCode, col: "#C4B5FD", bg: "rgba(139,92,246,0.18)" }
-                  : lv?.kind === "upper"
-                    ? { text: lv.shortCode, col: "#22D3EE", bg: "rgba(34,211,238,0.14)" }
-                    : lv?.kind === "underground"
-                      ? { text: lv.shortCode, col: "#A5B4FC", bg: "rgba(99,102,241,0.20)" }
-                      : { text: lv?.shortCode ?? "1F", col: "#9AA5BC", bg: "rgba(148,163,184,0.12)" };
-            const kindMeta = getLayerKindMeta(layer.kind);
-            const contentInfo = describeLayerContents(layer);
-            const isEditing = editingLayerId === layer.id;
-            const renameInputId = `${renameInputBaseId}-${layer.id}`;
-            return (
-              <div
-                key={layer.id}
-                data-layer-id={layer.id}
-                tabIndex={-1}
-                title={isEditing ? undefined : `${contentInfo.tooltip}\nDouble-click or press F2 to rename`}
-                className={`dc-layer-row ${isActive ? "active" : ""} ${isEditing ? "editing" : ""} ${layer.dmOnly ? "dm-only" : ""} ${isDragging ? "dragging" : ""} ${dropClass}`}
-                onPointerDown={(e) => {
-                  if (e.button !== 0 || isEditing) return;
-                  if ((e.target as HTMLElement).closest("button, input, form")) return;
-                  layerDragRef.current = {
-                    layerId: layer.id,
-                    layerName: layer.name,
-                    startX: e.clientX,
-                    startY: e.clientY,
-                    active: false,
-                  };
-                }}
-                onClick={() => {
-                  if (suppressLayerClickRef.current || isEditing) return;
-                  st.setActiveLayer(layer.id);
-                }}
-                onContextMenu={(e) => {
-                  if (isEditing) return;
-                  openLayerContextMenu(e, layer);
-                }}
-              >
-                {!isEditing && (
-                  <span
-                    className="dc-layer-grip"
-                    title="Drag to reorder layer"
-                    aria-hidden="true"
-                  >
-                    <GripVertical size={12} />
-                  </span>
-                )}
+          {doc.mode === "world" || (filterLayersByFloor && !normalizedLayerQuery) ? (
+            displayLayers.length > 0 ? (
+              displayLayers.map((layer) => renderLayerRow(layer, false))
+            ) : (
+              <div className="dc-layer-empty-state">
+                <span>No layers on {activeLevel?.shortCode ?? "this floor"} yet.</span>
                 <button
                   type="button"
-                  className="dc-mini-icon-btn"
-                  title={layer.visible ? "Hide layer" : "Show layer"}
-                  aria-label={`Toggle ${layer.name} visibility`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    st.toggleLayerVisible(layer.id);
-                  }}
+                  className="dc-btn"
+                  style={{ height: 24, fontSize: 11, padding: "0 10px" }}
+                  onClick={() =>
+                    st.addLayer(
+                      "objects",
+                      getNextDefaultLayerName(doc, "objects", activeLevel?.id ?? "lvl-ground"),
+                      false,
+                      activeLevel?.id,
+                    )
+                  }
                 >
-                  {layer.visible ? <Eye size={13} /> : <EyeOff size={13} style={{ opacity: 0.4 }} />}
+                  <Plus size={11} /> Add Props Layer
                 </button>
-                <span
-                  className="dc-layer-kind-icon"
-                  style={{
-                    color: kindMeta.color,
-                    background: `${kindMeta.color}18`,
-                    borderColor: `${kindMeta.color}40`,
-                    opacity: layer.visible ? 1 : 0.45,
+              </div>
+            )
+          ) : (
+            sortedLevels.map((lv) => {
+              const allOnFloor = [...doc.layers].reverse().filter((l) => l.levelId === lv.id);
+              const floorRows = normalizedLayerQuery
+                ? allOnFloor.filter(matchesLayerQuery)
+                : allOnFloor;
+              if (normalizedLayerQuery && floorRows.length === 0) return null;
+              const isCurrentFloor = lv.id === doc.activeLevelId;
+              const isOpen = normalizedLayerQuery ? true : Boolean(openFloorIds[lv.id]);
+              const isFloorDrop =
+                Boolean(draggingLayerId) &&
+                layerDropTarget?.kind === "floor" &&
+                layerDropTarget.targetLevelId === lv.id;
+              const sum = summarizeLevel(doc, lv.id);
+              const colors = getFloorBadgeColors(lv);
+              const elevLabel = lv.elevationFt > 0 ? `+${lv.elevationFt}ft` : `${lv.elevationFt}ft`;
+
+              return (
+                <details
+                  key={lv.id}
+                  className={`dc-floor-group ${isCurrentFloor ? "current-floor" : ""}`}
+                  open={isOpen}
+                  onToggle={(e) => {
+                    if (normalizedLayerQuery) return;
+                    const nextOpen = (e.currentTarget as HTMLDetailsElement).open;
+                    setOpenFloorIds((prev) =>
+                      prev[lv.id] === nextOpen ? prev : { ...prev, [lv.id]: nextOpen },
+                    );
                   }}
-                  title={`${kindMeta.label} · ${contentInfo.summary}`}
-                  aria-hidden="true"
                 >
-                  {renderLayerKindIcon(layer.kind)}
-                </span>
-                {isEditing ? (
-                  <form
-                    className="dc-layer-rename-form"
-                    onClick={(e) => e.stopPropagation()}
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      commitLayerRename(true);
-                    }}
+                  <summary
+                    className={`dc-floor-group-summary ${isFloorDrop ? "drop-floor" : ""}`}
+                    data-floor-drop-id={lv.id}
                   >
-                    <label htmlFor={renameInputId} className="visually-hidden">
-                      Rename layer {layer.name}
-                    </label>
-                    <input
-                      id={renameInputId}
-                      ref={renameInputRef}
-                      type="text"
-                      className="dc-layer-rename-input"
-                      value={renameDraft}
-                      maxLength={64}
-                      onChange={(e) => setRenameDraft(e.target.value)}
-                      onKeyDown={(e) => {
-                        e.stopPropagation();
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          if (e.nativeEvent.isComposing || e.keyCode === 229) {
-                            return;
-                          }
-                          commitLayerRename(true);
-                        } else if (e.key === "Escape") {
-                          e.preventDefault();
-                          cancelLayerRename(true);
-                        }
-                      }}
-                      onBlur={(e) => {
-                        if (renameDoneRef.current) {
-                          return;
-                        }
-                        if (
-                          e.relatedTarget &&
-                          e.currentTarget.form?.contains(e.relatedTarget as Node)
-                        ) {
-                          return;
-                        }
-                        commitLayerRename(false);
-                      }}
-                    />
-                    <button
-                      type="submit"
-                      className="dc-layer-rename-action confirm"
-                      title="Save layer name (Enter)"
-                      aria-label={`Save name for ${layer.name}`}
-                      onPointerDown={(e) => e.preventDefault()}
-                    >
-                      <Check size={12} />
-                    </button>
+                    <ChevronRight size={12} className="dc-floor-chevron" aria-hidden="true" />
                     <button
                       type="button"
-                      className="dc-layer-rename-action cancel"
-                      title="Cancel rename (Esc)"
-                      aria-label={`Cancel renaming ${layer.name}`}
-                      onPointerDown={(e) => {
-                        e.preventDefault();
-                        cancelLayerRename(true);
-                      }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        cancelLayerRename(true);
-                      }}
-                    >
-                      <X size={12} />
-                    </button>
-                  </form>
-                ) : (
-                  <>
-                    <div className="dc-layer-name-wrap">
-                      <span
-                        className="dc-layer-name"
-                        style={{ opacity: layer.visible ? 1 : 0.45 }}
-                        onDoubleClick={(e) => {
-                          e.stopPropagation();
-                          beginLayerRename(layer);
-                        }}
-                      >
-                        <span className="dc-layer-name-text">{layer.name}</span>
-                      </span>
-                      <button
-                        type="button"
-                        className="dc-layer-rename-btn"
-                        data-rename-trigger={layer.id}
-                        title="Rename layer (Double-click or F2)"
-                        aria-label={`Rename ${layer.name}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          beginLayerRename(layer);
-                        }}
-                      >
-                        <Pencil size={11} />
-                      </button>
-                    </div>
-                    <button
-                      type="button"
-                      title={`Assigned to ${lv?.name ?? "1F"} — Click to cycle floor assignment, or Right-click layer to pick any floor`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (nextLv) st.setLayerLevel(layer.id, nextLv.id);
-                      }}
+                      className="dc-floor-code-pill"
                       style={{
-                        padding: "1px 5px",
-                        borderRadius: 4,
-                        border: `1px solid ${flrStyle.col}55`,
-                        background: flrStyle.bg,
-                        color: flrStyle.col,
-                        fontFamily: "var(--font-mono)",
-                        fontSize: 9,
-                        fontWeight: 700,
-                        cursor: "pointer",
-                        flexShrink: 0,
+                        borderColor: `${colors.col}66`,
+                        background: colors.bg,
+                        color: colors.col,
+                      }}
+                      title={`Switch active floor to ${lv.shortCode} · ${lv.name} (${elevLabel})`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        st.selectLevel(lv.id);
                       }}
                     >
-                      {flrStyle.text}
+                      {lv.shortCode}
                     </button>
-                    {layer.dmOnly && (
-                      <span
-                        className="dc-mini-icon-btn warn"
-                        title="DM-Only Layer (Auto-stripped on Player & VTT exports)"
-                      >
-                        <ShieldAlert size={13} />
-                      </span>
-                    )}
+                    <span
+                      className="dc-floor-group-name"
+                      title={`${lv.name} (${elevLabel}) · ${sum.layerCount} layers · ${sum.totalEntities} items`}
+                    >
+                      {lv.name}
+                    </span>
+                    <span
+                      className="dc-floor-group-meta"
+                      title={`${sum.layerCount} layers · ${sum.totalEntities} items`}
+                    >
+                      {sum.totalEntities}
+                    </span>
                     <button
                       type="button"
                       className="dc-mini-icon-btn"
-                      title={layer.locked ? "Unlock layer" : "Lock layer"}
-                      aria-label={`Toggle ${layer.name} lock`}
+                      style={{ width: 20, height: 20 }}
+                      title={
+                        sum.allVisible
+                          ? `Hide all ${lv.shortCode} layers`
+                          : `Show all ${lv.shortCode} layers`
+                      }
+                      aria-label={`Toggle all ${lv.shortCode} layers visibility`}
                       onClick={(e) => {
+                        e.preventDefault();
                         e.stopPropagation();
-                        st.toggleLayerLocked(layer.id);
+                        st.toggleLevelLayersVisible(lv.id);
                       }}
                     >
-                      {layer.locked ? <Lock size={12} /> : <Unlock size={12} style={{ opacity: 0.35 }} />}
+                      {sum.visibleLayerCount > 0 ? (
+                        <Eye size={12} style={{ opacity: sum.allVisible ? 1 : 0.6 }} />
+                      ) : (
+                        <EyeOff size={12} style={{ opacity: 0.38 }} />
+                      )}
                     </button>
-                  </>
-                )}
-              </div>
-            );
-          })}
+                    <button
+                      type="button"
+                      className="dc-mini-icon-btn"
+                      style={{ width: 20, height: 20 }}
+                      title={
+                        sum.allLocked
+                          ? `Unlock all ${lv.shortCode} layers`
+                          : `Lock all ${lv.shortCode} layers`
+                      }
+                      aria-label={`Toggle all ${lv.shortCode} layers lock`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        st.toggleLevelLayersLocked(lv.id);
+                      }}
+                    >
+                      {sum.allLocked ? (
+                        <Lock size={11} />
+                      ) : (
+                        <Unlock size={11} style={{ opacity: 0.35 }} />
+                      )}
+                    </button>
+                  </summary>
+                  <div className="dc-floor-group-body">
+                    {floorRows.length > 0 ? (
+                      floorRows.map((layer) => renderLayerRow(layer, false))
+                    ) : (
+                      <div className="dc-floor-group-empty">No layers on {lv.shortCode}</div>
+                    )}
+                  </div>
+                </details>
+              );
+            })
+          )}
         </div>
       </section>
+
+      {/* Draggable Horizontal Split Handle between Layers and Properties */}
+      <div
+        className="dc-dock-resizer"
+        role="separator"
+        aria-orientation="horizontal"
+        aria-label="Resize Layers and Properties panels"
+        title="Drag to resize Layers & Properties · Double-click to reset"
+        onPointerDown={handleResizerPointerDown}
+        onPointerMove={handleResizerPointerMove}
+        onPointerUp={handleResizerPointerUp}
+        onPointerCancel={handleResizerPointerUp}
+        onDoubleClick={() => {
+          setLayersSplitPct(46);
+          try {
+            localStorage.setItem("dc-right-dock-split", "46");
+          } catch {
+            // Ignore storage errors
+          }
+        }}
+      >
+        <span className="dc-dock-resizer-grip" aria-hidden="true" />
+      </div>
 
       {/* Bottom Half: Context-Sensitive Properties & Atmosphere Inspector */}
       <section className="dc-dock-section">
@@ -2127,46 +2644,151 @@ export const RightInspectorDock: React.FC<RightInspectorDockProps> = React.memo(
           )}
 
           {/* Selected Placed Wall Inspector */}
-          {selectedWall && selection && (
+          {selectedWall && selection && (() => {
+            const segCount = getWallSegmentCount(selectedWall.points, selectedWall.closed);
+            const recentFloors = recentTerrainAssetIds
+              .map((id) => ({
+                id,
+                asset: vaultById.get(id),
+                url: resolveAssetUrl(id, vaultById),
+                name:
+                  vaultById.get(id)?.displayName ??
+                  id.split("/").pop()?.replace(/\.[^.]+$/, "").replace(/_/g, " ") ??
+                  "Floor",
+              }))
+              .slice(0, 3);
+
+            return (
             <div>
               <div
                 style={{
-                  fontSize: 11,
+                  fontSize: 10.5,
                   color: "var(--text-secondary)",
                   background: "var(--bg-panel)",
                   border: "1px solid var(--border-subtle)",
                   borderRadius: 6,
                   padding: "6px 8px",
                   marginBottom: 8,
+                  lineHeight: 1.4,
                 }}
               >
                 <strong style={{ color: "var(--accent-gold)" }}>
-                  {selectedWall.points.length} vertices
+                  {selectedWall.points.length} corners · {segCount} section{segCount === 1 ? "" : "s"}
                 </strong>{" "}
-                · Drag gold dots · <strong>Shift+Drag cyan +</strong> to bend into a curve ·{" "}
-                <strong>Alt+Click</strong> dot to remove.
+                · Click any wall face or <strong>Shift+Drag / Double-Click +</strong> to curve 1 section ·{" "}
+                <strong>Drag +</strong> to add corner · <strong>Alt+Click</strong> dot to remove.
               </div>
-              <div className="dc-field-row">
-                <span className="dc-field-label">Wall Shape (C)</span>
-                <div style={{ display: "inline-flex", gap: 4 }}>
-                  <button
-                    type="button"
-                    className={`dc-chip ${!selectedWall.curved ? "active" : ""}`}
-                    onClick={() =>
-                      st.updateWall(selection.layerId, selection.id, { curved: false }, true)
-                    }
+
+              {/* Per-Section Straight <-> Curved Editor Card */}
+              <div style={{ marginBottom: 8 }}>
+                <SectionCurveEditorCard
+                  selection={selection}
+                  points={selectedWall.points}
+                  closed={selectedWall.closed}
+                  curved={selectedWall.curved}
+                  segmentCurves={selectedWall.segmentCurves}
+                  sectionNoun="Section"
+                  wholeNoun="Whole Wall"
+                />
+              </div>
+
+              {/* Room Interior Fill + Last 3 Floors Used — surfaced ABOVE the 169-style material grid for instant 1-click access! */}
+              {selectedWall.points.length >= 3 && (
+                <div
+                  style={{
+                    padding: "6px 7px",
+                    borderRadius: 6,
+                    background: "var(--bg-panel)",
+                    border: "1px solid var(--border-subtle)",
+                    marginBottom: 8,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 9.5,
+                      fontWeight: 700,
+                      letterSpacing: "0.05em",
+                      textTransform: "uppercase",
+                      color: "var(--accent-gold)",
+                      marginBottom: 5,
+                    }}
                   >
-                    Straight
-                  </button>
-                  <button
-                    type="button"
-                    className={`dc-chip ${selectedWall.curved ? "active" : ""}`}
-                    onClick={() => st.bendSelectedIntoCurve()}
-                  >
-                    Curved
-                  </button>
+                    Room Floor Fill · Last 3 Used
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                    {recentFloors.map((rf) => {
+                      const isAct = rf.id === activeTerrainAssetId;
+                      return (
+                        <button
+                          key={rf.id}
+                          type="button"
+                          className={`dc-chip ${isAct ? "active" : ""}`}
+                          style={{
+                            width: "100%",
+                            height: 25,
+                            padding: "0 7px",
+                            gap: 7,
+                            justifyContent: "space-between",
+                            fontSize: 10.5,
+                            overflow: "hidden",
+                          }}
+                          title={`Fill room interior with ${rf.name}`}
+                          onClick={() => {
+                            const ok = st.fillWallInterior(selection.layerId, selection.id, rf.id);
+                            if (ok) {
+                              st.pushToast(`Filled room interior with ${rf.name}`, "success");
+                            }
+                          }}
+                        >
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 7,
+                              minWidth: 0,
+                              flex: 1,
+                              overflow: "hidden",
+                            }}
+                          >
+                            <img
+                              src={rf.url}
+                              alt=""
+                              style={{
+                                width: 16,
+                                height: 16,
+                                borderRadius: 3,
+                                objectFit: "cover",
+                                border: "1px solid rgba(255,255,255,0.22)",
+                                flexShrink: 0,
+                              }}
+                            />
+                            <span
+                              style={{
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              {rf.name}
+                            </span>
+                          </span>
+                          <span
+                            style={{
+                              fontSize: 9,
+                              fontWeight: 700,
+                              opacity: isAct ? 0.95 : 0.65,
+                              flexShrink: 0,
+                            }}
+                          >
+                            {isAct ? "FILL" : "Use"}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
+              )}
+
               {renderMaterialPicker("Change Wall Material", wallAssets, selectedWall.assetId, (id) =>
                 st.updateWall(selection.layerId, selection.id, { assetId: id }, true),
               )}
@@ -2186,23 +2808,6 @@ export const RightInspectorDock: React.FC<RightInspectorDockProps> = React.memo(
                     st.updateWall(selection.layerId, selection.id, {
                       thicknessCells: Number(e.target.value),
                     })
-                  }
-                />
-              </div>
-              <div className="dc-field-row">
-                <span className="dc-field-label">Curved Spline Wall</span>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={selectedWall.curved}
-                  className="dc-switch"
-                  onClick={() =>
-                    st.updateWall(
-                      selection.layerId,
-                      selection.id,
-                      { curved: !selectedWall.curved },
-                      true,
-                    )
                   }
                 />
               </div>
@@ -2240,23 +2845,6 @@ export const RightInspectorDock: React.FC<RightInspectorDockProps> = React.memo(
                   }
                 />
               </div>
-              {selectedWall.points.length >= 3 && (
-                <button
-                  type="button"
-                  className="dc-btn dc-btn-primary"
-                  style={{ width: "100%", marginTop: 6, marginBottom: 4 }}
-                  onClick={() => {
-                    const ok = st.fillWallInterior(selection.layerId, selection.id);
-                    if (ok) {
-                      const label =
-                        vaultById.get(activeTerrainAssetId)?.displayName ?? "Active Terrain";
-                      st.pushToast(`Filled room interior with ${label}`, "success");
-                    }
-                  }}
-                >
-                  Fill Room with {vaultById.get(activeTerrainAssetId)?.displayName ?? "Active Floor"}
-                </button>
-              )}
               <div style={{ marginTop: 6 }}>
                 <ColorStudioPanel
                   recolor={selectedWall.recolor ?? DEFAULT_RECOLOR}
@@ -2288,48 +2876,41 @@ export const RightInspectorDock: React.FC<RightInspectorDockProps> = React.memo(
                 </button>
               </div>
             </div>
-          )}
+            );
+          })()}
 
           {/* Selected Placed Line / Spline Path Inspector */}
           {selectedPath && selection && (
             <div>
               <div
                 style={{
-                  fontSize: 11,
+                  fontSize: 10.5,
                   color: "var(--text-secondary)",
                   background: "var(--bg-panel)",
                   border: "1px solid var(--border-subtle)",
                   borderRadius: 6,
                   padding: "6px 8px",
                   marginBottom: 8,
+                  lineHeight: 1.4,
                 }}
               >
                 <strong style={{ color: "var(--accent-gold)" }}>
-                  {selectedPath.points.length} control points
+                  {selectedPath.points.length} points · {Math.max(0, selectedPath.points.length - 1)} section
+                  {selectedPath.points.length - 1 === 1 ? "" : "s"}
                 </strong>{" "}
-                · Drag gold dots · <strong>Shift+Drag cyan +</strong> to bend ·{" "}
-                <strong>Alt+Click</strong> dot to remove.
+                · Click any span or <strong>Shift+Drag / Double-Click +</strong> to curve 1 section ·{" "}
+                <strong>Drag +</strong> to add point · <strong>Alt+Click</strong> dot to remove.
               </div>
-              <div className="dc-field-row">
-                <span className="dc-field-label">Line Shape (C)</span>
-                <div style={{ display: "inline-flex", gap: 4 }}>
-                  <button
-                    type="button"
-                    className={`dc-chip ${selectedPath.curved === false ? "active" : ""}`}
-                    onClick={() =>
-                      st.updatePath(selection.layerId, selection.id, { curved: false }, true)
-                    }
-                  >
-                    Straight
-                  </button>
-                  <button
-                    type="button"
-                    className={`dc-chip ${selectedPath.curved !== false ? "active" : ""}`}
-                    onClick={() => st.bendSelectedIntoCurve()}
-                  >
-                    Curved
-                  </button>
-                </div>
+              <div style={{ marginBottom: 8 }}>
+                <SectionCurveEditorCard
+                  selection={selection}
+                  points={selectedPath.points}
+                  closed={false}
+                  curved={selectedPath.curved !== false}
+                  segmentCurves={selectedPath.segmentCurves}
+                  sectionNoun="Section"
+                  wholeNoun="Whole Line"
+                />
               </div>
               {renderMaterialPicker("Change Line / Path Style", pathAssets, selectedPath.assetId, (id) =>
                 st.updatePath(selection.layerId, selection.id, { assetId: id }, true),
@@ -3383,8 +3964,77 @@ export const RightInspectorDock: React.FC<RightInspectorDockProps> = React.memo(
                 </div>
               )}
 
-              {activeTool === "terrain" && (
+              {activeTool === "terrain" && (() => {
+                const targetTerrainLayer = findPreferredLayerForKind(doc, "terrain");
+                const targetStrokeCount = targetTerrainLayer?.terrainStrokes?.filter((s) => !s.erase).length ?? 0;
+                const floorCode = activeLevel?.shortCode ?? "1F";
+                const usedOnFloor = summarizeUsedTerrains(doc, doc.activeLevelId);
+                const isErase = terrainMode === "erase";
+                const isBrushLike = terrainMode === "brush" || (isErase && terrainEraseShape === "brush");
+                const activeTerrainName =
+                  vaultById.get(activeTerrainAssetId)?.displayName ??
+                  activeTerrainAssetId.split("/").pop()?.replace(/\.[^.]+$/, "").replace(/_/g, " ") ??
+                  "Terrain";
+
+                return (
                 <>
+                  {/* Target Floor & Layer Clarity Pill */}
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 6,
+                      padding: "5px 8px",
+                      borderRadius: 6,
+                      background: "rgba(74, 222, 128, 0.08)",
+                      border: "1px solid rgba(74, 222, 128, 0.3)",
+                      marginBottom: 8,
+                      fontSize: 10.5,
+                    }}
+                  >
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 5,
+                        minWidth: 0,
+                        overflow: "hidden",
+                      }}
+                    >
+                      <span
+                        style={{
+                          padding: "1px 5px",
+                          borderRadius: 4,
+                          fontFamily: "var(--font-mono)",
+                          fontSize: 9.5,
+                          fontWeight: 700,
+                          background: "rgba(74, 222, 128, 0.18)",
+                          color: "#86EFAC",
+                          flexShrink: 0,
+                        }}
+                      >
+                        {floorCode}
+                      </span>
+                      <span
+                        style={{
+                          color: "var(--text-primary)",
+                          fontWeight: 600,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                        title={targetTerrainLayer ? `Target layer: ${targetTerrainLayer.name}` : "Auto-creates terrain layer on active floor"}
+                      >
+                        {targetTerrainLayer ? targetTerrainLayer.name : `${floorCode} Ground Terrain`}
+                      </span>
+                    </span>
+                    <span style={{ fontSize: 9.5, color: "var(--text-muted)", flexShrink: 0 }}>
+                      {targetStrokeCount} patch{targetStrokeCount === 1 ? "" : "es"}
+                    </span>
+                  </div>
+
+                  {/* 6-Mode Terrain & Fill Mode Switcher */}
                   <div style={{ marginBottom: 8 }}>
                     <div
                       style={{
@@ -3396,7 +4046,7 @@ export const RightInspectorDock: React.FC<RightInspectorDockProps> = React.memo(
                         marginBottom: 5,
                       }}
                     >
-                      Terrain Mode
+                      Terrain &amp; Fill Mode (1–6)
                     </div>
                     <div
                       style={{
@@ -3407,17 +4057,36 @@ export const RightInspectorDock: React.FC<RightInspectorDockProps> = React.memo(
                     >
                       {(
                         [
-                          { id: "brush" as TerrainMode, label: "Brush (B)" },
-                          { id: "flood" as TerrainMode, label: "Smart Fill (K)" },
-                          { id: "rect" as TerrainMode, label: "Rectangle (R)" },
-                          { id: "polygon" as TerrainMode, label: "Polygon" },
+                          { id: "brush" as TerrainMode, label: "1 · Brush (B)" },
+                          { id: "flood" as TerrainMode, label: "2 · Smart Fill (K)" },
+                          { id: "replace" as TerrainMode, label: "3 · Replace" },
+                          { id: "rect" as TerrainMode, label: "4 · Rect (R)" },
+                          { id: "polygon" as TerrainMode, label: "5 · Polygon" },
+                          { id: "erase" as TerrainMode, label: "6 · Erase (E)" },
                         ]
                       ).map((m) => (
                         <button
                           key={m.id}
                           type="button"
                           className={`dc-chip ${terrainMode === m.id ? "active" : ""}`}
-                          style={{ justifyContent: "center", height: 26, fontSize: 11 }}
+                          style={{
+                            justifyContent: "center",
+                            height: 25,
+                            fontSize: 10.5,
+                            ...(m.id === "erase" && terrainMode === "erase"
+                              ? {
+                                  borderColor: "rgba(248, 113, 113, 0.72)",
+                                  background: "rgba(248, 113, 113, 0.18)",
+                                  color: "#FCA5A5",
+                                }
+                              : m.id === "replace" && terrainMode === "replace"
+                                ? {
+                                    borderColor: "rgba(52, 211, 153, 0.72)",
+                                    background: "rgba(52, 211, 153, 0.16)",
+                                    color: "#6EE7B7",
+                                  }
+                                : {}),
+                          }}
                           onClick={() => st.setBrushParams({ terrainMode: m.id })}
                         >
                           {m.label}
@@ -3429,24 +4098,596 @@ export const RightInspectorDock: React.FC<RightInspectorDockProps> = React.memo(
                         marginTop: 5,
                         fontSize: 10,
                         color: "var(--text-muted)",
-                        lineHeight: 1.35,
+                        lineHeight: 1.38,
                       }}
                     >
                       {terrainMode === "flood"
-                        ? "Click inside any walled building, curved room, or open yard to auto-fill cleanly to the walls."
-                        : terrainMode === "rect"
-                          ? "Click & drag corner-to-corner for instant rectangular building floors or plazas."
-                          : terrainMode === "polygon"
-                            ? "Click corners for L-shaped rooms or courtyards; click the start dot or press Enter to fill."
-                            : "Freehand fluid splat brush — merges seamlessly with adjacent strokes of the same terrain."}
+                        ? "Click inside any room, curved arch, or yard to fill cleanly to walls/caves/water · Alt+Click samples floor."
+                        : terrainMode === "replace"
+                          ? "Click any existing floor patch or map base to swap its texture in place without stacking · Alt+Click samples."
+                          : terrainMode === "erase"
+                            ? `Non-destructive layer cutout on ${floorCode} — punch stairwell openings or trim bleed without touching floors below.`
+                            : terrainMode === "rect"
+                              ? "Drag corner-to-corner for crisp rectangular floors (Shift = Square) · Alt+Click samples floor."
+                              : terrainMode === "polygon"
+                                ? "Click corners to trace custom floors · Press C mid-shape to bow next edge into a circular arc · Enter closes."
+                                : "Freehand seamless splat brush · Alt+Click samples existing floor texture."}
                     </div>
                   </div>
-                  {renderMaterialPicker("Terrain Texture", terrainAssets, activeTerrainAssetId, (id) =>
-                    st.setBrushParams({ activeTerrainAssetId: id }),
+
+                  {/* Mode-Specific Controls */}
+                  {terrainMode === "flood" && (
+                    <div
+                      style={{
+                        padding: "6px 8px",
+                        borderRadius: 6,
+                        background: "rgba(34, 211, 238, 0.06)",
+                        border: "1px solid rgba(34, 211, 238, 0.28)",
+                        marginBottom: 8,
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: 9.5,
+                          fontWeight: 700,
+                          letterSpacing: "0.05em",
+                          textTransform: "uppercase",
+                          color: "#67E8F9",
+                          marginBottom: 5,
+                        }}
+                      >
+                        Stop Fill At Barriers
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 4, marginBottom: 6 }}>
+                        <button
+                          type="button"
+                          className={`dc-chip ${terrainBarrierWalls ? "active" : ""}`}
+                          style={{ justifyContent: "center", height: 22, fontSize: 10 }}
+                          onClick={() => st.setBrushParams({ terrainBarrierWalls: !terrainBarrierWalls })}
+                        >
+                          Walls
+                        </button>
+                        <button
+                          type="button"
+                          className={`dc-chip ${terrainBarrierCaves ? "active" : ""}`}
+                          style={{ justifyContent: "center", height: 22, fontSize: 10 }}
+                          onClick={() => st.setBrushParams({ terrainBarrierCaves: !terrainBarrierCaves })}
+                        >
+                          Caves
+                        </button>
+                        <button
+                          type="button"
+                          className={`dc-chip ${terrainBarrierWater ? "active" : ""}`}
+                          style={{ justifyContent: "center", height: 22, fontSize: 10 }}
+                          onClick={() => st.setBrushParams({ terrainBarrierWater: !terrainBarrierWater })}
+                        >
+                          Water
+                        </button>
+                      </div>
+                      <div className="dc-field-row" style={{ marginBottom: 0 }}>
+                        <span
+                          className="dc-field-label"
+                          title="Automatically removes older buried floor fills inside this room so textures never stack or leak"
+                        >
+                          Clean Replace Inside Room
+                        </span>
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={terrainFloodReplaceUnderneath}
+                          className="dc-switch"
+                          onClick={() =>
+                            st.setBrushParams({
+                              terrainFloodReplaceUnderneath: !terrainFloodReplaceUnderneath,
+                            })
+                          }
+                        />
+                      </div>
+                    </div>
                   )}
-                  {terrainMode === "brush" && (
+
+                  {terrainMode === "replace" && (
+                    <div
+                      style={{
+                        padding: "6px 8px",
+                        borderRadius: 6,
+                        background: "rgba(52, 211, 153, 0.06)",
+                        border: "1px solid rgba(52, 211, 153, 0.3)",
+                        marginBottom: 8,
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: 9.5,
+                          fontWeight: 700,
+                          letterSpacing: "0.05em",
+                          textTransform: "uppercase",
+                          color: "#6EE7B7",
+                          marginBottom: 5,
+                        }}
+                      >
+                        Replace Target Scope
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 3, marginBottom: 6 }}>
+                        {(
+                          [
+                            { id: "patch" as TerrainReplaceScope, label: "Patch", tip: "Swap ONLY the single floor patch or room you click" },
+                            { id: "layer" as TerrainReplaceScope, label: "Layer", tip: "Swap all matching textures on the clicked layer" },
+                            { id: "floor" as TerrainReplaceScope, label: floorCode, tip: `Swap all matching textures on ${floorCode}` },
+                            { id: "map" as TerrainReplaceScope, label: "Map", tip: "Swap all matching textures across every floor + map base" },
+                          ]
+                        ).map((sc) => (
+                          <button
+                            key={sc.id}
+                            type="button"
+                            className={`dc-chip ${terrainReplaceScope === sc.id ? "active" : ""}`}
+                            style={{ justifyContent: "center", height: 22, fontSize: 10, padding: 0 }}
+                            title={sc.tip}
+                            onClick={() => st.setBrushParams({ terrainReplaceScope: sc.id })}
+                          >
+                            {sc.label}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="dc-field-row" style={{ marginBottom: 0 }}>
+                        <span
+                          className="dc-field-label"
+                          title="OFF preserves each patch's existing angle, scale, opacity & slope shade; ON overwrites them with your current brush settings"
+                        >
+                          Also Apply Brush Style
+                        </span>
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={terrainReplaceApplyStyle}
+                          className="dc-switch"
+                          onClick={() =>
+                            st.setBrushParams({
+                              terrainReplaceApplyStyle: !terrainReplaceApplyStyle,
+                            })
+                          }
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {isErase && (
+                    <div
+                      style={{
+                        padding: "6px 8px",
+                        borderRadius: 6,
+                        background: "rgba(248, 113, 113, 0.08)",
+                        border: "1px solid rgba(248, 113, 113, 0.34)",
+                        marginBottom: 8,
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: 9.5,
+                          fontWeight: 700,
+                          letterSpacing: "0.05em",
+                          textTransform: "uppercase",
+                          color: "#FCA5A5",
+                          marginBottom: 5,
+                        }}
+                      >
+                        Erase Cutout Shape
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 3 }}>
+                        {(
+                          [
+                            { id: "brush" as TerrainEraseShape, label: "Brush" },
+                            { id: "room" as TerrainEraseShape, label: "Room" },
+                            { id: "rect" as TerrainEraseShape, label: "Rect" },
+                            { id: "polygon" as TerrainEraseShape, label: "Poly" },
+                          ]
+                        ).map((sh) => (
+                          <button
+                            key={sh.id}
+                            type="button"
+                            className={`dc-chip ${terrainEraseShape === sh.id ? "active" : ""}`}
+                            style={{ justifyContent: "center", height: 22, fontSize: 10, padding: 0 }}
+                            onClick={() => st.setBrushParams({ terrainEraseShape: sh.id })}
+                          >
+                            {sh.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {terrainMode === "polygon" && (
+                    <div className="dc-field-row" style={{ marginBottom: 8 }}>
+                      <span className="dc-field-label">Next Edge (C)</span>
+                      <div style={{ display: "inline-flex", gap: 4 }}>
+                        <button
+                          type="button"
+                          className={`dc-chip ${!terrainPolygonCurved ? "active" : ""}`}
+                          onClick={() => st.setBrushParams({ terrainPolygonCurved: false })}
+                        >
+                          Straight
+                        </button>
+                        <button
+                          type="button"
+                          className={`dc-chip ${terrainPolygonCurved ? "active" : ""}`}
+                          onClick={() => st.setBrushParams({ terrainPolygonCurved: true })}
+                        >
+                          Curved
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Last 3 Floors Used Quick-Pick */}
+                  {!isErase && recentTerrainAssetIds.length > 0 && (
+                    <div
+                      style={{
+                        padding: "6px 7px",
+                        borderRadius: 6,
+                        background: "var(--bg-panel)",
+                        border: "1px solid var(--border-subtle)",
+                        marginBottom: 8,
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: 9.5,
+                          fontWeight: 700,
+                          letterSpacing: "0.05em",
+                          textTransform: "uppercase",
+                          color: "var(--accent-gold)",
+                          marginBottom: 4,
+                        }}
+                      >
+                        Last 3 Floors Used
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                        {recentTerrainAssetIds.slice(0, 3).map((tid) => {
+                          const tAsset = vaultById.get(tid);
+                          const tName =
+                            tAsset?.displayName ??
+                            tid.split("/").pop()?.replace(/\.[^.]+$/, "").replace(/_/g, " ") ??
+                            "Floor";
+                          const isAct = tid === activeTerrainAssetId;
+                          return (
+                            <button
+                              key={tid}
+                              type="button"
+                              className={`dc-chip ${isAct ? "active" : ""}`}
+                              style={{
+                                width: "100%",
+                                height: 23,
+                                padding: "0 6px",
+                                gap: 6,
+                                justifyContent: "space-between",
+                                fontSize: 10,
+                                overflow: "hidden",
+                              }}
+                              onClick={() => st.setBrushParams({ activeTerrainAssetId: tid })}
+                            >
+                              <span
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 6,
+                                  minWidth: 0,
+                                  flex: 1,
+                                  overflow: "hidden",
+                                }}
+                              >
+                                <img
+                                  src={resolveAssetUrl(tid, vaultById)}
+                                  alt=""
+                                  style={{
+                                    width: 15,
+                                    height: 15,
+                                    borderRadius: 3,
+                                    objectFit: "cover",
+                                    border: "1px solid rgba(255,255,255,0.22)",
+                                    flexShrink: 0,
+                                  }}
+                                />
+                                <span
+                                  style={{
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    whiteSpace: "nowrap",
+                                  }}
+                                >
+                                  {tName}
+                                </span>
+                              </span>
+                              {isAct && (
+                                <span style={{ fontSize: 8.5, fontWeight: 700, flexShrink: 0 }}>
+                                  ACTIVE
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Textures Currently Used on This Floor (Instant 1-Click Use / Swap!) */}
+                  {usedOnFloor.length > 0 && (
+                    <div
+                      style={{
+                        padding: "6px 7px",
+                        borderRadius: 6,
+                        background: "var(--bg-panel)",
+                        border: "1px solid var(--border-subtle)",
+                        marginBottom: 8,
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: 9.5,
+                          fontWeight: 700,
+                          letterSpacing: "0.05em",
+                          textTransform: "uppercase",
+                          color: "#6EE7B7",
+                          marginBottom: 4,
+                        }}
+                      >
+                        Used on {floorCode} ({usedOnFloor.length})
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                        {usedOnFloor.slice(0, 6).map((u) => {
+                          const uName =
+                            vaultById.get(u.assetId)?.displayName ??
+                            u.assetId.split("/").pop()?.replace(/\.[^.]+$/, "").replace(/_/g, " ") ??
+                            "Floor";
+                          const isSame = u.assetId === activeTerrainAssetId;
+                          return (
+                            <div
+                              key={u.assetId}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                gap: 5,
+                                padding: "2px 5px",
+                                borderRadius: 5,
+                                background: "rgba(255,255,255,0.03)",
+                                border: "1px solid rgba(255,255,255,0.06)",
+                              }}
+                            >
+                              <button
+                                type="button"
+                                title={`Sample "${uName}" as active terrain`}
+                                onClick={() => st.setBrushParams({ activeTerrainAssetId: u.assetId })}
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 5,
+                                  minWidth: 0,
+                                  flex: 1,
+                                  background: "transparent",
+                                  border: "none",
+                                  color: "var(--text-primary)",
+                                  fontSize: 10,
+                                  cursor: "pointer",
+                                  padding: 0,
+                                  textAlign: "left",
+                                }}
+                              >
+                                <img
+                                  src={resolveAssetUrl(u.assetId, vaultById)}
+                                  alt=""
+                                  style={{
+                                    width: 15,
+                                    height: 15,
+                                    borderRadius: 3,
+                                    objectFit: "cover",
+                                    border: "1px solid rgba(255,255,255,0.22)",
+                                    flexShrink: 0,
+                                  }}
+                                />
+                                <span
+                                  style={{
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    whiteSpace: "nowrap",
+                                  }}
+                                >
+                                  {uName}
+                                </span>
+                                <span style={{ fontSize: 9, color: "var(--text-muted)", flexShrink: 0 }}>
+                                  {u.isBase && u.count === 0 ? "BASE" : u.isBase ? `${u.count}+B` : `×${u.count}`}
+                                </span>
+                              </button>
+                              <button
+                                type="button"
+                                className="dc-chip"
+                                disabled={isSame}
+                                style={{
+                                  height: 19,
+                                  fontSize: 9,
+                                  padding: "0 6px",
+                                  opacity: isSame ? 0.45 : 1,
+                                  flexShrink: 0,
+                                }}
+                                title={
+                                  isSame
+                                    ? "Already using active texture"
+                                    : `Replace all "${uName}" on ${floorCode} with "${activeTerrainName}"`
+                                }
+                                onClick={() => {
+                                  const n = st.replaceTerrainMaterial(
+                                    u.assetId,
+                                    activeTerrainAssetId,
+                                    "floor",
+                                    terrainReplaceApplyStyle,
+                                  );
+                                  if (n > 0) {
+                                    st.pushToast(
+                                      `Replaced ${uName} → ${activeTerrainName} on ${floorCode} (${n} updated)`,
+                                      "success",
+                                    );
+                                  }
+                                }}
+                              >
+                                Swap
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Floor, Layer & Map Base Bulk Actions */}
+                  <div
+                    style={{
+                      padding: "6px 7px",
+                      borderRadius: 6,
+                      background: "var(--bg-panel)",
+                      border: "1px solid var(--border-subtle)",
+                      marginBottom: 8,
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: 9.5,
+                        fontWeight: 700,
+                        letterSpacing: "0.05em",
+                        textTransform: "uppercase",
+                        color: "var(--accent-gold)",
+                        marginBottom: 5,
+                      }}
+                    >
+                      Layer, Floor &amp; Base Fill Actions
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4, marginBottom: 4 }}>
+                      <button
+                        type="button"
+                        className="dc-btn"
+                        style={{ height: 24, fontSize: 10, padding: "0 6px", justifyContent: "center" }}
+                        title={`Re-skin all existing painted/filled rooms on ${targetTerrainLayer?.name ?? "active layer"} with ${activeTerrainName} (keeps exact room shapes!)`}
+                        onClick={() => {
+                          const n = st.replaceAllTerrainOnScope(
+                            activeTerrainAssetId,
+                            "layer",
+                            terrainReplaceApplyStyle,
+                          );
+                          if (n > 0) {
+                            st.pushToast(
+                              `Replaced ${n} patch${n === 1 ? "" : "es"} on active layer with ${activeTerrainName}`,
+                              "success",
+                            );
+                          } else {
+                            st.pushToast("No painted terrain on active layer yet — use Fill Whole Layer instead", "info");
+                          }
+                        }}
+                      >
+                        Replace Layer
+                      </button>
+                      <button
+                        type="button"
+                        className="dc-btn"
+                        style={{ height: 24, fontSize: 10, padding: "0 6px", justifyContent: "center" }}
+                        title={`Fill the entire canvas on ${targetTerrainLayer?.name ?? "active layer"} with ${activeTerrainName}`}
+                        onClick={() => {
+                          st.fillWholeLayerTerrain(activeTerrainAssetId);
+                          st.pushToast(`Filled entire active layer with ${activeTerrainName}`, "success");
+                        }}
+                      >
+                        Fill Whole Layer
+                      </button>
+                      <button
+                        type="button"
+                        className="dc-btn"
+                        style={{ height: 24, fontSize: 10, padding: "0 6px", justifyContent: "center" }}
+                        title={`Re-skin all existing terrain across ${floorCode} with ${activeTerrainName}`}
+                        onClick={() => {
+                          const n = st.replaceAllTerrainOnScope(
+                            activeTerrainAssetId,
+                            "floor",
+                            terrainReplaceApplyStyle,
+                          );
+                          if (n > 0) {
+                            st.pushToast(
+                              `Replaced ${floorCode} terrain (${n} updated) with ${activeTerrainName}`,
+                              "success",
+                            );
+                          } else {
+                            st.pushToast(`No painted terrain on ${floorCode} yet`, "info");
+                          }
+                        }}
+                      >
+                        Replace {floorCode} All
+                      </button>
+                      <button
+                        type="button"
+                        className="dc-btn"
+                        style={{
+                          height: 24,
+                          fontSize: 10,
+                          padding: "0 6px",
+                          justifyContent: "center",
+                          color: "#FCA5A5",
+                          borderColor: "rgba(239, 68, 68, 0.42)",
+                        }}
+                        title="Clear all painted & filled strokes from the active terrain layer (Ctrl+Z undoable)"
+                        onClick={() => {
+                          const n = st.clearTerrainLayer();
+                          if (n > 0) {
+                            st.pushToast(`Cleared ${n} terrain stroke${n === 1 ? "" : "s"} from active layer`, "info");
+                          } else {
+                            st.pushToast("Active terrain layer is already clear", "info");
+                          }
+                        }}
+                      >
+                        Clear Layer
+                      </button>
+                    </div>
+                    <div style={{ display: "flex", gap: 4 }}>
+                      <button
+                        type="button"
+                        className="dc-btn"
+                        style={{ flex: 1, height: 24, fontSize: 10, padding: "0 6px", justifyContent: "center" }}
+                        title="Set the 1F underlying map base canvas texture"
+                        onClick={() => {
+                          const id = activeTerrainAssetId || "terrain/berlin_wet_cobble.png";
+                          st.setBaseTerrainAsset(id);
+                          const label = vaultById.get(id)?.displayName ?? "Selected Terrain";
+                          st.pushToast(`Replaced 1F Map Base with ${label}`, "success");
+                        }}
+                      >
+                        Replace 1F Map Base
+                      </button>
+                      <button
+                        type="button"
+                        className={`dc-chip ${doc.canvas.baseTerrainTransparent ? "active" : ""}`}
+                        style={{ height: 24, fontSize: 10, padding: "0 8px", flexShrink: 0 }}
+                        title="Toggle Transparent Void background on 1F (ideal for ships, airships, floating islands & transparent VTT exports)"
+                        onClick={() => {
+                          const next = !doc.canvas.baseTerrainTransparent;
+                          st.setBaseTerrainTransparent(next);
+                          st.pushToast(
+                            next
+                              ? "1F Map Base set to Transparent Void (pure alpha on export)"
+                              : "Restored solid 1F Map Base texture",
+                            "success",
+                          );
+                        }}
+                      >
+                        {doc.canvas.baseTerrainTransparent ? "Void: ON" : "Void"}
+                      </button>
+                    </div>
+                  </div>
+
+                  {!isErase &&
+                    renderMaterialPicker("Terrain Texture", terrainAssets, activeTerrainAssetId, (id) =>
+                      st.setBrushParams({ activeTerrainAssetId: id }),
+                    )}
+
+                  {isBrushLike && (
                     <div className="dc-field-row">
-                      <span className="dc-field-label">Brush Radius ({brushRadiusCells.toFixed(1)} sq)</span>
+                      <span className="dc-field-label">
+                        {isErase ? "Eraser" : "Brush"} Radius ({brushRadiusCells.toFixed(1)} sq)
+                      </span>
                       <input
                         type="range"
                         className="dc-range"
@@ -3459,9 +4700,28 @@ export const RightInspectorDock: React.FC<RightInspectorDockProps> = React.memo(
                       />
                     </div>
                   )}
+
+                  {!isErase && (
+                    <div className="dc-field-row">
+                      <span className="dc-field-label">
+                        Tile Scale ({terrainTextureScale.toFixed(2)}×)
+                      </span>
+                      <input
+                        type="range"
+                        className="dc-range"
+                        style={{ width: 118 }}
+                        min={0.4}
+                        max={2.5}
+                        step={0.05}
+                        value={terrainTextureScale}
+                        onChange={(e) => st.setBrushParams({ terrainTextureScale: Number(e.target.value) })}
+                      />
+                    </div>
+                  )}
+
                   <div className="dc-field-row">
                     <span className="dc-field-label">
-                      {terrainMode === "brush" ? "Brush" : "Fill"} Opacity ({Math.round(brushOpacity * 100)}%)
+                      {isErase ? "Erase Strength" : terrainMode === "brush" ? "Brush Opacity" : "Fill Opacity"} ({Math.round(brushOpacity * 100)}%)
                     </span>
                     <input
                       type="range"
@@ -3474,7 +4734,8 @@ export const RightInspectorDock: React.FC<RightInspectorDockProps> = React.memo(
                       onChange={(e) => st.setBrushParams({ brushOpacity: Number(e.target.value) })}
                     />
                   </div>
-                  {terrainMode === "brush" ? (
+
+                  {isBrushLike ? (
                     <div className="dc-field-row">
                       <span className="dc-field-label">Edge Softness ({Math.round(brushSoftness * 100)}%)</span>
                       <input
@@ -3491,7 +4752,7 @@ export const RightInspectorDock: React.FC<RightInspectorDockProps> = React.memo(
                   ) : (
                     <div className="dc-field-row">
                       <span className="dc-field-label">
-                        Fill Edge Softness ({terrainFillSoftness === 0 ? "Crisp" : `${Math.round(terrainFillSoftness * 100)}%`})
+                        {isErase ? "Cutout" : "Fill"} Edge Softness ({terrainFillSoftness === 0 ? "Crisp" : `${Math.round(terrainFillSoftness * 100)}%`})
                       </span>
                       <input
                         type="range"
@@ -3506,196 +4767,603 @@ export const RightInspectorDock: React.FC<RightInspectorDockProps> = React.memo(
                     </div>
                   )}
 
-                  {/* Directional Slope / Texture Angle & Downhill Depth Shading */}
-                  <div
-                    style={{
-                      padding: "7px 8px",
-                      borderRadius: 6,
-                      background: "var(--bg-panel)",
-                      border: "1px solid var(--border-subtle)",
-                      marginTop: 4,
-                      marginBottom: 6,
-                    }}
-                  >
+                  {!isErase && (
+                    <>
+                      {/* Directional Slope / Texture Angle & Downhill Depth Shading */}
+                      <div
+                        style={{
+                          padding: "7px 8px",
+                          borderRadius: 6,
+                          background: "var(--bg-panel)",
+                          border: "1px solid var(--border-subtle)",
+                          marginTop: 4,
+                          marginBottom: 6,
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            fontSize: 10,
+                            fontWeight: 700,
+                            letterSpacing: "0.05em",
+                            textTransform: "uppercase",
+                            color: "var(--accent-gold)",
+                            marginBottom: 5,
+                          }}
+                        >
+                          <span>Slope / Texture Direction</span>
+                          <span style={{ fontFamily: "var(--font-mono)", color: "var(--text-primary)" }}>
+                            {Math.round(terrainRotationDeg)}°
+                          </span>
+                        </div>
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 3, marginBottom: 6 }}>
+                          {[
+                            { deg: 0, label: "→ E" },
+                            { deg: 90, label: "↓ S" },
+                            { deg: 180, label: "← W" },
+                            { deg: 270, label: "↑ N" },
+                          ].map((dir) => (
+                            <button
+                              key={dir.deg}
+                              type="button"
+                              className={`dc-chip ${Math.round(terrainRotationDeg) % 360 === dir.deg ? "active" : ""}`}
+                              style={{ justifyContent: "center", height: 21, fontSize: 10, padding: 0 }}
+                              title={`Aim downhill slope / texture toward ${dir.label} (${dir.deg}°)`}
+                              onClick={() => st.setBrushParams({ terrainRotationDeg: dir.deg })}
+                            >
+                              {dir.label}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="dc-field-row" style={{ marginBottom: 5 }}>
+                          <span className="dc-field-label">Custom Angle</span>
+                          <input
+                            type="range"
+                            className="dc-range"
+                            style={{ width: 112 }}
+                            min={0}
+                            max={355}
+                            step={5}
+                            value={terrainRotationDeg}
+                            onChange={(e) => st.setBrushParams({ terrainRotationDeg: Number(e.target.value) })}
+                          />
+                        </div>
+                        <div className="dc-field-row" style={{ marginBottom: 0 }}>
+                          <span
+                            className="dc-field-label"
+                            title="Adds automatic uphill highlight to downhill shadow depth across filled slope regions"
+                          >
+                            Steep Slope Shade ({terrainSlopeShade === 0 ? "Off" : `${Math.round(terrainSlopeShade * 100)}%`})
+                          </span>
+                          <input
+                            type="range"
+                            className="dc-range"
+                            style={{ width: 100 }}
+                            min={0}
+                            max={0.85}
+                            step={0.05}
+                            value={terrainSlopeShade}
+                            onChange={(e) => st.setBrushParams({ terrainSlopeShade: Number(e.target.value) })}
+                          />
+                        </div>
+                      </div>
+                      <div style={{ marginTop: 6, marginBottom: 8 }}>
+                        <ColorStudioPanel
+                          recolor={toolRecolors.terrain}
+                          asset={vaultById.get(activeTerrainAssetId)}
+                          eyedropperTarget="terrain"
+                          title="Colorize Terrain"
+                          compact
+                          onChange={(next) => st.setToolRecolor("terrain", next)}
+                        />
+                      </div>
+                    </>
+                  )}
+                </>
+                );
+              })()}
+
+              {activeTool === "wall" && (() => {
+                const refFloor = doc.mode !== "world" ? getOnionSkinReferenceLevel(doc) : null;
+                const refWallCount = refFloor
+                  ? doc.layers
+                      .filter((l) => l.levelId === refFloor.id)
+                      .reduce((acc, l) => acc + (l.walls?.length ?? 0), 0)
+                  : 0;
+                return (
+                <>
+                  <div style={{ marginBottom: 8 }}>
                     <div
                       style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
                         fontSize: 10,
                         fontWeight: 700,
-                        letterSpacing: "0.05em",
+                        letterSpacing: "0.06em",
                         textTransform: "uppercase",
                         color: "var(--accent-gold)",
                         marginBottom: 5,
                       }}
                     >
-                      <span>Slope / Texture Direction</span>
-                      <span style={{ fontFamily: "var(--font-mono)", color: "var(--text-primary)" }}>
-                        {Math.round(terrainRotationDeg)}°
-                      </span>
+                      Wall Build Mode (1–6)
                     </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 3, marginBottom: 6 }}>
-                      {[
-                        { deg: 0, label: "→ E" },
-                        { deg: 90, label: "↓ S" },
-                        { deg: 180, label: "← W" },
-                        { deg: 270, label: "↑ N" },
-                      ].map((dir) => (
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr 1fr",
+                        gap: 4,
+                      }}
+                    >
+                      {(
+                        [
+                          { id: "free" as WallDrawMode, label: "1 · Free Wall" },
+                          { id: "box" as WallDrawMode, label: "2 · Box Room" },
+                          { id: "circle" as WallDrawMode, label: "3 · Circle / Tower" },
+                          { id: "arc" as WallDrawMode, label: "4 · 3-Pt Arc" },
+                          { id: "split" as WallDrawMode, label: "5 · Split / Breach" },
+                          { id: "corridor" as WallDrawMode, label: "6 · Corridor" },
+                        ]
+                      ).map((m) => (
                         <button
-                          key={dir.deg}
+                          key={m.id}
                           type="button"
-                          className={`dc-chip ${Math.round(terrainRotationDeg) % 360 === dir.deg ? "active" : ""}`}
-                          style={{ justifyContent: "center", height: 21, fontSize: 10, padding: 0 }}
-                          title={`Aim downhill slope / texture toward ${dir.label} (${dir.deg}°)`}
-                          onClick={() => st.setBrushParams({ terrainRotationDeg: dir.deg })}
+                          className={`dc-chip ${wallDrawMode === m.id ? "active" : ""}`}
+                          style={{ justifyContent: "center", height: 25, fontSize: 10.5 }}
+                          onClick={() => st.setBrushParams({ wallDrawMode: m.id })}
                         >
-                          {dir.label}
+                          {m.label}
                         </button>
                       ))}
                     </div>
-                    <div className="dc-field-row" style={{ marginBottom: 5 }}>
-                      <span className="dc-field-label">Custom Angle</span>
-                      <input
-                        type="range"
-                        className="dc-range"
-                        style={{ width: 112 }}
-                        min={0}
-                        max={355}
-                        step={5}
-                        value={terrainRotationDeg}
-                        onChange={(e) => st.setBrushParams({ terrainRotationDeg: Number(e.target.value) })}
-                      />
-                    </div>
-                    <div className="dc-field-row" style={{ marginBottom: 0 }}>
-                      <span
-                        className="dc-field-label"
-                        title="Adds automatic uphill highlight to downhill shadow depth across filled slope regions"
-                      >
-                        Steep Slope Shade ({terrainSlopeShade === 0 ? "Off" : `${Math.round(terrainSlopeShade * 100)}%`})
-                      </span>
-                      <input
-                        type="range"
-                        className="dc-range"
-                        style={{ width: 100 }}
-                        min={0}
-                        max={0.85}
-                        step={0.05}
-                        value={terrainSlopeShade}
-                        onChange={(e) => st.setBrushParams({ terrainSlopeShade: Number(e.target.value) })}
-                      />
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    className="dc-btn"
-                    style={{ width: "100%", marginTop: 4, marginBottom: 6, fontSize: 11 }}
-                    onClick={() => {
-                      const id = activeTerrainAssetId || "terrain/berlin_wet_cobble.png";
-                      st.setBaseTerrainAsset(id);
-                      const label = vaultById.get(id)?.displayName ?? "Selected Terrain";
-                      st.pushToast(`Filled entire map base with ${label}`, "success");
-                    }}
-                  >
-                    Fill Entire Map Base with Texture
-                  </button>
-                  <div style={{ marginTop: 6, marginBottom: 8 }}>
-                    <ColorStudioPanel
-                      recolor={toolRecolors.terrain}
-                      asset={vaultById.get(activeTerrainAssetId)}
-                      eyedropperTarget="terrain"
-                      title="Colorize Terrain"
-                      compact
-                      onChange={(next) => st.setToolRecolor("terrain", next)}
-                    />
-                  </div>
-                </>
-              )}
-
-              {activeTool === "wall" && (
-                <>
-                  <div className="dc-field-row">
-                    <span className="dc-field-label">Draw Mode (C)</span>
-                    <div style={{ display: "inline-flex", gap: 4 }}>
-                      <button
-                        type="button"
-                        className={`dc-chip ${!wallCurved ? "active" : ""}`}
-                        onClick={() => st.setBrushParams({ wallCurved: false })}
-                      >
-                        Straight
-                      </button>
-                      <button
-                        type="button"
-                        className={`dc-chip ${wallCurved ? "active" : ""}`}
-                        onClick={() => st.setBrushParams({ wallCurved: true })}
-                      >
-                        Curved
-                      </button>
-                    </div>
-                  </div>
-                  {renderMaterialPicker("Wall Material Style", wallAssets, activeWallAssetId, (id) =>
-                    st.setBrushParams({ activeWallAssetId: id }),
-                  )}
-                  <div className="dc-field-row">
-                    <span className="dc-field-label">Thickness ({wallThicknessCells.toFixed(2)})</span>
-                    <input
-                      type="range"
-                      className="dc-range"
-                      style={{ width: 118 }}
-                      min={0.18}
-                      max={0.8}
-                      step={0.04}
-                      value={wallThicknessCells}
-                      onChange={(e) => st.setBrushParams({ wallThicknessCells: Number(e.target.value) })}
-                    />
-                  </div>
-                  <div className="dc-field-row">
-                    <span className="dc-field-label">Curved Spline Wall</span>
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={wallCurved}
-                      className="dc-switch"
-                      onClick={() => st.setBrushParams({ wallCurved: !wallCurved })}
-                    />
-                  </div>
-                  <div className="dc-field-row">
-                    <span className="dc-field-label">Blocks Light &amp; VTT Sight</span>
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={wallBlocksLight}
-                      className="dc-switch"
-                      onClick={() => st.setBrushParams({ wallBlocksLight: !wallBlocksLight })}
-                    />
-                  </div>
-                  <div className="dc-field-row">
-                    <span
-                      className="dc-field-label"
-                      title="Automatically lay down your active floor terrain whenever you close a room loop with the Wall tool"
+                    <div
+                      style={{
+                        marginTop: 5,
+                        fontSize: 10,
+                        color: "var(--text-muted)",
+                        lineHeight: 1.35,
+                      }}
                     >
-                      Auto-Fill Closed Rooms
-                    </span>
+                      {wallDrawMode === "box"
+                        ? "Drag corner-to-corner for a closed room · Hold Shift for square, Ctrl for center-out · Q/E rotates for angled streets."
+                        : wallDrawMode === "circle"
+                          ? "Click center & drag outward for round towers, ovals, or regular hex/octagon bastions · Q/E rotates."
+                          : wallDrawMode === "arc"
+                            ? "Click Start → Click End → Pull bow for exact circular bays, apses & curved facades · Hold Shift for 90°/180°."
+                            : wallDrawMode === "split"
+                              ? "Click any active-floor wall to carve an open archway/breach or split a perimeter seam cleanly."
+                              : wallDrawMode === "corridor"
+                                ? "Click hallway centerline points (Double-click / Enter to finish) to build parallel corridor walls."
+                                : "Click wall vertices (Double-click / Enter to finish, click start dot to close) · Hold Shift for 45°/90° lock · C curves."}
+                    </div>
+                  </div>
+
+                  {/* Mode-Specific Controls */}
+                  {wallDrawMode === "free" && (
+                    <div
+                      style={{
+                        padding: "6px 8px",
+                        borderRadius: 6,
+                        background: "var(--bg-panel)",
+                        border: "1px solid var(--border-subtle)",
+                        marginBottom: 8,
+                      }}
+                    >
+                      <div className="dc-field-row" style={{ marginBottom: 4 }}>
+                        <span className="dc-field-label">Next Section (C)</span>
+                        <div style={{ display: "inline-flex", gap: 4 }}>
+                          <button
+                            type="button"
+                            className={`dc-chip ${!wallCurved ? "active" : ""}`}
+                            onClick={() => st.setBrushParams({ wallCurved: false })}
+                          >
+                            Straight
+                          </button>
+                          <button
+                            type="button"
+                            className={`dc-chip ${wallCurved ? "active" : ""}`}
+                            onClick={() => st.setBrushParams({ wallCurved: true })}
+                          >
+                            Curved
+                          </button>
+                        </div>
+                      </div>
+                      <div style={{ fontSize: 9.5, color: "var(--text-muted)", lineHeight: 1.35 }}>
+                        {wallCurved
+                          ? "Click the section's end corner, pull the curve bow, then click to lock (Shift = 90°/180°). Press C anytime for straight."
+                          : "Press C mid-wall to bow just the next section into a curve while keeping other walls straight."}
+                      </div>
+                    </div>
+                  )}
+
+                  {wallDrawMode === "box" && (
+                    <div
+                      style={{
+                        padding: "7px 8px",
+                        borderRadius: 6,
+                        background: "var(--bg-panel)",
+                        border: "1px solid var(--border-subtle)",
+                        marginBottom: 8,
+                      }}
+                    >
+                      <div className="dc-field-row" style={{ marginBottom: 5 }}>
+                        <span className="dc-field-label">Box Angle (Q / E)</span>
+                        <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--accent-gold)" }}>
+                          {Math.round(wallBoxRotationDeg)}°
+                        </span>
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 3, marginBottom: 5 }}>
+                        {[0, 30, 45, 60].map((deg) => (
+                          <button
+                            key={deg}
+                            type="button"
+                            className={`dc-chip ${Math.round(wallBoxRotationDeg) % 180 === deg ? "active" : ""}`}
+                            style={{ justifyContent: "center", height: 21, fontSize: 10, padding: 0 }}
+                            onClick={() => st.setBrushParams({ wallBoxRotationDeg: deg })}
+                          >
+                            {deg}°
+                          </button>
+                        ))}
+                      </div>
+                      <input
+                        type="range"
+                        className="dc-range"
+                        min={0}
+                        max={165}
+                        step={15}
+                        aria-label="Box Wall Angle"
+                        value={wallBoxRotationDeg % 180}
+                        onChange={(e) => st.setBrushParams({ wallBoxRotationDeg: Number(e.target.value) })}
+                      />
+                    </div>
+                  )}
+
+                  {wallDrawMode === "circle" && (
+                    <div
+                      style={{
+                        padding: "7px 8px",
+                        borderRadius: 6,
+                        background: "var(--bg-panel)",
+                        border: "1px solid var(--border-subtle)",
+                        marginBottom: 8,
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 700,
+                          letterSpacing: "0.05em",
+                          textTransform: "uppercase",
+                          color: "var(--accent-gold)",
+                          marginBottom: 5,
+                        }}
+                      >
+                        Tower / Polygon Shape
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 3, marginBottom: 6 }}>
+                        {(
+                          [
+                            { id: "round" as WallPolygonShape, label: "Round" },
+                            { id: "oval" as WallPolygonShape, label: "Oval" },
+                            { id: "hex" as WallPolygonShape, label: "6" },
+                            { id: "octagon" as WallPolygonShape, label: "8" },
+                            { id: "dodecagon" as WallPolygonShape, label: "12" },
+                          ]
+                        ).map((s) => (
+                          <button
+                            key={s.id}
+                            type="button"
+                            className={`dc-chip ${wallPolygonShape === s.id ? "active" : ""}`}
+                            style={{ justifyContent: "center", height: 22, fontSize: 10, padding: 0 }}
+                            onClick={() => st.setBrushParams({ wallPolygonShape: s.id })}
+                          >
+                            {s.label}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="dc-field-row" style={{ marginBottom: 0 }}>
+                        <span className="dc-field-label">Orientation ({Math.round(wallBoxRotationDeg)}°)</span>
+                        <input
+                          type="range"
+                          className="dc-range"
+                          style={{ width: 110 }}
+                          min={0}
+                          max={345}
+                          step={15}
+                          value={wallBoxRotationDeg}
+                          onChange={(e) => st.setBrushParams({ wallBoxRotationDeg: Number(e.target.value) })}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {wallDrawMode === "split" && (
+                    <div
+                      style={{
+                        padding: "7px 8px",
+                        borderRadius: 6,
+                        background: "var(--bg-panel)",
+                        border: "1px solid var(--border-subtle)",
+                        marginBottom: 8,
+                      }}
+                    >
+                      <div className="dc-field-row" style={{ marginBottom: 6 }}>
+                        <span className="dc-field-label">Cut Action</span>
+                        <div style={{ display: "inline-flex", gap: 4 }}>
+                          {(
+                            [
+                              { id: "breach" as WallSplitSubMode, label: "Carve Breach" },
+                              { id: "split" as WallSplitSubMode, label: "Split Seam" },
+                            ]
+                          ).map((sub) => (
+                            <button
+                              key={sub.id}
+                              type="button"
+                              className={`dc-chip ${wallSplitSubMode === sub.id ? "active" : ""}`}
+                              style={{ height: 22, fontSize: 10 }}
+                              onClick={() => st.setBrushParams({ wallSplitSubMode: sub.id })}
+                            >
+                              {sub.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      {wallSplitSubMode === "breach" && (
+                        <div className="dc-field-row" style={{ marginBottom: 0 }}>
+                          <span className="dc-field-label">Breach Width ({wallBreachWidthCells.toFixed(1)} sq)</span>
+                          <input
+                            type="range"
+                            className="dc-range"
+                            style={{ width: 108 }}
+                            min={0.6}
+                            max={6.0}
+                            step={0.2}
+                            value={wallBreachWidthCells}
+                            onChange={(e) =>
+                              st.setBrushParams({ wallBreachWidthCells: Number(e.target.value) })
+                            }
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {wallDrawMode === "corridor" && (
+                    <div
+                      style={{
+                        padding: "7px 8px",
+                        borderRadius: 6,
+                        background: "var(--bg-panel)",
+                        border: "1px solid var(--border-subtle)",
+                        marginBottom: 8,
+                      }}
+                    >
+                      <div className="dc-field-row" style={{ marginBottom: 6 }}>
+                        <span className="dc-field-label">Hallway Width ({wallCorridorWidthCells.toFixed(1)} sq)</span>
+                        <input
+                          type="range"
+                          className="dc-range"
+                          style={{ width: 108 }}
+                          min={1.0}
+                          max={6.0}
+                          step={0.25}
+                          value={wallCorridorWidthCells}
+                          onChange={(e) =>
+                            st.setBrushParams({ wallCorridorWidthCells: Number(e.target.value) })
+                          }
+                        />
+                      </div>
+                      <div className="dc-field-row" style={{ marginBottom: 5 }}>
+                        <span className="dc-field-label">Seal Corridor End Caps</span>
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={wallCorridorCapEnds}
+                          className="dc-switch"
+                          onClick={() => st.setBrushParams({ wallCorridorCapEnds: !wallCorridorCapEnds })}
+                        />
+                      </div>
+                      <div className="dc-field-row" style={{ marginBottom: 0 }}>
+                        <span className="dc-field-label">Curved Corridor (C)</span>
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={wallCurved}
+                          className="dc-switch"
+                          onClick={() => st.setBrushParams({ wallCurved: !wallCurved })}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {wallDrawMode !== "split" && (
+                    <>
+                      <div className="dc-field-row" style={{ marginBottom: wallAutoFillClosed ? 5 : 8 }}>
+                        <span
+                          className="dc-field-label"
+                          title="Automatically lay down your active floor terrain whenever you build a Box, Tower, Corridor, or closed room loop"
+                        >
+                          Auto-Fill Closed Rooms
+                        </span>
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={wallAutoFillClosed}
+                          className="dc-switch"
+                          onClick={() => st.setBrushParams({ wallAutoFillClosed: !wallAutoFillClosed })}
+                        />
+                      </div>
+                      {wallAutoFillClosed && recentTerrainAssetIds.length > 0 && (
+                        <div
+                          style={{
+                            padding: "6px 7px",
+                            borderRadius: 6,
+                            background: "var(--bg-panel)",
+                            border: "1px solid var(--border-subtle)",
+                            marginBottom: 8,
+                          }}
+                        >
+                          <div
+                            style={{
+                              fontSize: 9.5,
+                              fontWeight: 700,
+                              letterSpacing: "0.05em",
+                              textTransform: "uppercase",
+                              color: "var(--accent-gold)",
+                              marginBottom: 4,
+                            }}
+                          >
+                            Auto-Fill Floor · Last 3 Used
+                          </div>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                            {recentTerrainAssetIds.slice(0, 3).map((tid) => {
+                              const tAsset = vaultById.get(tid);
+                              const tName =
+                                tAsset?.displayName ??
+                                tid.split("/").pop()?.replace(/\.[^.]+$/, "").replace(/_/g, " ") ??
+                                "Floor";
+                              const isAct = tid === activeTerrainAssetId;
+                              return (
+                                <button
+                                  key={tid}
+                                  type="button"
+                                  className={`dc-chip ${isAct ? "active" : ""}`}
+                                  style={{
+                                    width: "100%",
+                                    height: 24,
+                                    padding: "0 7px",
+                                    gap: 7,
+                                    justifyContent: "space-between",
+                                    fontSize: 10.5,
+                                    overflow: "hidden",
+                                  }}
+                                  title={`Auto-fill new closed rooms with ${tName}`}
+                                  onClick={() => st.setBrushParams({ activeTerrainAssetId: tid })}
+                                >
+                                  <span
+                                    style={{
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: 7,
+                                      minWidth: 0,
+                                      flex: 1,
+                                      overflow: "hidden",
+                                    }}
+                                  >
+                                    <img
+                                      src={resolveAssetUrl(tid, vaultById)}
+                                      alt=""
+                                      style={{
+                                        width: 15,
+                                        height: 15,
+                                        borderRadius: 3,
+                                        objectFit: "cover",
+                                        border: "1px solid rgba(255,255,255,0.22)",
+                                        flexShrink: 0,
+                                      }}
+                                    />
+                                    <span
+                                      style={{
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis",
+                                        whiteSpace: "nowrap",
+                                      }}
+                                    >
+                                      {tName}
+                                    </span>
+                                  </span>
+                                  {isAct && (
+                                    <span style={{ fontSize: 9, fontWeight: 700, flexShrink: 0 }}>
+                                      ACTIVE
+                                    </span>
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                      {renderMaterialPicker("Wall Material Style", wallAssets, activeWallAssetId, (id) =>
+                        st.setBrushParams({ activeWallAssetId: id }),
+                      )}
+                      <div className="dc-field-row">
+                        <span className="dc-field-label">Thickness ({wallThicknessCells.toFixed(2)})</span>
+                        <input
+                          type="range"
+                          className="dc-range"
+                          style={{ width: 118 }}
+                          min={0.18}
+                          max={0.8}
+                          step={0.04}
+                          value={wallThicknessCells}
+                          onChange={(e) => st.setBrushParams({ wallThicknessCells: Number(e.target.value) })}
+                        />
+                      </div>
+                      <div className="dc-field-row">
+                        <span
+                          className="dc-field-label"
+                          title="Magnetically snaps wall starts & corners onto existing wall corners and edges for airtight T-junctions"
+                        >
+                          Magnetic Wall Snap
+                        </span>
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={wallSnapToWalls}
+                          className="dc-switch"
+                          onClick={() => st.setBrushParams({ wallSnapToWalls: !wallSnapToWalls })}
+                        />
+                      </div>
+                      <div className="dc-field-row">
+                        <span className="dc-field-label">Blocks Light &amp; VTT Sight</span>
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={wallBlocksLight}
+                          className="dc-switch"
+                          onClick={() => st.setBrushParams({ wallBlocksLight: !wallBlocksLight })}
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {refFloor && refWallCount > 0 && (
                     <button
                       type="button"
-                      role="switch"
-                      aria-checked={wallAutoFillClosed}
-                      className="dc-switch"
-                      onClick={() => st.setBrushParams({ wallAutoFillClosed: !wallAutoFillClosed })}
-                    />
-                  </div>
-                  <div style={{ marginTop: 6, marginBottom: 8 }}>
-                    <ColorStudioPanel
-                      recolor={toolRecolors.wall}
-                      asset={vaultById.get(activeWallAssetId)}
-                      eyedropperTarget="wall"
-                      title="Colorize New Walls"
-                      compact
-                      onChange={(next) => st.setToolRecolor("wall", next)}
-                    />
-                  </div>
+                      className="dc-btn"
+                      style={{
+                        width: "100%",
+                        height: 27,
+                        marginTop: 4,
+                        marginBottom: 6,
+                        fontSize: 11,
+                        borderColor: "rgba(34, 211, 238, 0.45)",
+                        color: "#67E8F9",
+                      }}
+                      title={`Duplicate ${refWallCount} wall footprint(s) from ${refFloor.shortCode} onto ${activeLevel?.shortCode ?? "this floor"} (Ctrl+Z supported)`}
+                      onClick={() => st.copyWallsFromLevelBelow()}
+                    >
+                      <Copy size={12} />
+                      <span>
+                        Copy Walls from {refFloor.shortCode} ({refWallCount})
+                      </span>
+                    </button>
+                  )}
+
+                  {wallDrawMode !== "split" && (
+                    <div style={{ marginTop: 6, marginBottom: 8 }}>
+                      <ColorStudioPanel
+                        recolor={toolRecolors.wall}
+                        asset={vaultById.get(activeWallAssetId)}
+                        eyedropperTarget="wall"
+                        title="Colorize New Walls"
+                        compact
+                        onChange={(next) => st.setToolRecolor("wall", next)}
+                      />
+                    </div>
+                  )}
                 </>
-              )}
+                );
+              })()}
 
               {activeTool === "portal" && (
                 <>
@@ -3779,7 +5447,7 @@ export const RightInspectorDock: React.FC<RightInspectorDockProps> = React.memo(
               {activeTool === "path" && (
                 <>
                   <div className="dc-field-row">
-                    <span className="dc-field-label">Line Mode (C)</span>
+                    <span className="dc-field-label">Next Section (C)</span>
                     <div style={{ display: "inline-flex", gap: 4 }}>
                       <button
                         type="button"
@@ -3796,6 +5464,28 @@ export const RightInspectorDock: React.FC<RightInspectorDockProps> = React.memo(
                         Curved
                       </button>
                     </div>
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 10,
+                      color: "var(--text-secondary)",
+                      background: "var(--bg-panel)",
+                      border: "1px solid var(--border-subtle)",
+                      borderRadius: 6,
+                      padding: "5px 7px",
+                      marginBottom: 6,
+                      lineHeight: 1.38,
+                    }}
+                  >
+                    {pathCurved ? (
+                      <>
+                        <strong style={{ color: "#C084FC" }}>Curved Next Section:</strong> Click end point, then move mouse to pull live arc bow &amp; click to lock (Shift snaps 90°/180°). Press <strong>C</strong> mid-line to switch back to Straight!
+                      </>
+                    ) : (
+                      <>
+                        Click points for crisp straight runs · Press <strong>C</strong> mid-line to bow just the next section into a smooth circular curve · <strong>Shift</strong> locks 45°/90°.
+                      </>
+                    )}
                   </div>
                   {renderMaterialPicker("Line / Spline Path Style", pathAssets, activePathAssetId, (id) =>
                     st.setBrushParams({ activePathAssetId: id }),

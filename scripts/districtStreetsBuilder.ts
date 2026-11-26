@@ -168,134 +168,133 @@ export function buildDistrictStreetsAndVigilStairs(f1: IceCreamBuildBundle): voi
   //     Curb Storm Drains & Weathering Overlays are built in streetcarLineBuilder.ts!)
   // =========================================================================
 
-  // Mourners' Wooden Candle & Flower Seller's Cart parked cleanly on the open boulevard curb across from the Candle Stairs!
-  obj("modular-suite/props/district_streets/str_flower_candle_cart.png", 19.95, 34.45, 2.35, 1.56, Q, { z: 68 });
-  obj("modular-suite/props/district_streets/str_flower_bucket_roses.png", 19.25, 33.75, 0.52, 0.52, 0.25, { z: 66 });
-  obj("modular-suite/props/market_tailor/mkt_sidewalk_chalkboard.png", 18.75, 33.15, 0.72, 0.72, Q + 0.15, { z: 64 });
-  obj("modular-suite/props/tavern_clutter/tav_round_bar_stool.png", 21.05, 35.35, 0.56, 0.56, 0.2, { z: 64 });
+  // Mourners' Wooden Candle & Flower Seller's Cart parked cleanly on the NE boulevard curb across from the Candle Stairs!
+  obj("modular-suite/props/district_streets/str_flower_candle_cart.png", 20.42, 35.38, 2.35, 1.56, Q, { z: 68 });
+  obj("modular-suite/props/district_streets/str_flower_bucket_roses.png", 19.65, 34.55, 0.52, 0.52, 0.25, { z: 66 });
+  obj("modular-suite/props/market_tailor/mkt_sidewalk_chalkboard.png", 19.25, 33.85, 0.72, 0.72, Q + 0.15, { z: 64 });
+  obj("modular-suite/props/tavern_clutter/tav_round_bar_stool.png", 21.55, 36.25, 0.56, 0.56, 0.2, { z: 64 });
 
-  // Protective cast-iron curb bollards guarding the Cathedral Vigil Stairs & curb corners (100% clear of rails!)
+  // Paired cast-iron bollards & draped curb chains framing the Cathedral Vigil Stairs + corner bollards (100% clear of rails!)
+  obj("modular-suite/props/city_streets/st_iron_bollard_chain_pair.png", 15.55, 33.05, 1.68, 0.60, Q, { z: 66 });
+  obj("modular-suite/props/city_streets/st_iron_bollard_chain_pair.png", 20.15, 37.55, 1.68, 0.60, Q, { z: 66 });
   for (const [bx, by] of [
-    [15.25, 32.85], [16.35, 33.75], [19.55, 36.85], [20.55, 37.85],
     [11.95, 24.45], [25.35, 10.45],
   ] as Array<[number, number]>) {
     obj("modular-suite/props/sewers_alleys/sew_iron_bollard.png", bx, by, 0.44, 0.44, 0, { z: 66 });
   }
 
-  // Prussian-blue Berlin postboxes & crimson cast-iron fire hydrants cleanly along open sidewalk curbs
+  // Prussian-blue Berlin postboxes & crimson cast-iron fire hydrants strictly on sidewalk curbs
   obj("modular-suite/props/district_streets/str_berlin_postbox.png", 11.45, 19.35, 0.76, 0.76, 0.25, { z: 66 });
-  obj("modular-suite/props/district_streets/str_berlin_postbox.png", 21.75, 36.45, 0.76, 0.76, Q, { z: 66 });
+  obj("modular-suite/props/district_streets/str_berlin_postbox.png", 22.65, 35.15, 0.76, 0.76, Q, { z: 66 });
   obj("modular-suite/props/district_streets/str_berlin_postbox.png", 29.85, 6.25, 0.76, 0.76, -Q, { z: 66 });
 
-  obj("modular-suite/props/district_streets/str_iron_fire_hydrant.png", 5.35, 21.85, 0.62, 0.62, 0.2, { z: 65 });
-  obj("modular-suite/props/district_streets/str_iron_fire_hydrant.png", 15.15, 31.65, 0.62, 0.62, Q, { z: 65 });
-  obj("modular-suite/props/district_streets/str_iron_fire_hydrant.png", 27.05, 9.25, 0.62, 0.62, -Q, { z: 65 });
-  obj("modular-suite/props/district_streets/str_iron_fire_hydrant.png", 33.05, 45.25, 0.62, 0.62, Q, { z: 65 });
+  obj("modular-suite/props/district_streets/str_iron_fire_hydrant.png", 4.15, 23.35, 0.62, 0.62, 0.2, { z: 65 });
+  obj("modular-suite/props/district_streets/str_iron_fire_hydrant.png", 14.55, 32.05, 0.62, 0.62, Q, { z: 65 });
+  obj("modular-suite/props/district_streets/str_iron_fire_hydrant.png", 28.35, 8.85, 0.62, 0.62, -Q, { z: 65 });
+  obj("modular-suite/props/district_streets/str_iron_fire_hydrant.png", 34.65, 44.85, 0.62, 0.62, Q, { z: 65 });
 
-  // Berlin Litfass community poster kiosks & sidewalk flower planters (100% clear of BOTH 1F walls & ROOF eaves!)
-  obj("objects/berlin_litfass_kiosk.png", 3.95, 25.35, 1.05, 1.05, 0.2, { z: 72 });
-  obj("objects/berlin_litfass_kiosk.png", 33.25, 48.35, 1.05, 1.05, -0.3, { z: 72 });
-  obj("objects/city_planter_box.png", 16.45, 30.85, 1.02, 0.68, Q, { z: 62 });
-  obj("objects/city_planter_box.png", 23.05, 37.55, 1.02, 0.68, Q, { z: 62 });
-  obj("objects/city_planter_box.png", 29.25, 43.95, 1.02, 0.68, Q, { z: 62 });
-  obj("objects/city_planter_box.png", 36.15, 50.65, 1.02, 0.68, Q, { z: 62 });
+  // Verdigris-domed Berlin Litfaßsäule poster columns & carved limestone shrub planters STRICTLY on wide sidewalks!
+  obj("modular-suite/props/city_streets/st_berlin_litfass_column.png", 3.25, 25.25, 1.06, 1.06, 0.2, { z: 72 });
+  obj("modular-suite/props/city_streets/st_berlin_litfass_column.png", 32.15, 48.45, 1.06, 1.06, -0.3, { z: 72 });
+  obj("modular-suite/props/city_streets/st_stone_boulevard_planter.png", 16.95, 29.75, 1.10, 0.70, Q, { z: 62 });
+  obj("modular-suite/props/city_streets/st_stone_boulevard_planter.png", 23.15, 42.15, 1.10, 0.70, Q, { z: 62 });
+  obj("modular-suite/props/city_streets/st_stone_boulevard_planter.png", 30.35, 47.35, 1.10, 0.70, 0.56, { z: 62 });
+  obj("modular-suite/props/city_streets/st_stone_boulevard_planter.png", 36.95, 51.35, 1.10, 0.70, 0.60, { z: 62 });
 
-  // Curbside delivery handcarts & parked commuter bicycles (100% on open streets/curbs!)
-  obj("core-fantasy/hero/hero_supply_handcart.png", 24.15, 38.85, 1.72, 1.12, Q + 0.08, { z: 65 });
-  obj("objects/luggage_hand_cart.png", 25.15, 3.75, 1.35, 0.92, -Q, { z: 65 });
+  // Curbside delivery handcarts, brass luggage trolley & sidewalk-parked commuter bicycles (ZERO mid-road clutter!)
+  obj("core-fantasy/hero/hero_supply_handcart.png", 24.75, 37.95, 1.72, 1.12, Q + 0.04, { z: 65 });
+  obj("modular-suite/props/city_streets/st_brass_porter_luggage_cart.png", 25.15, 3.75, 1.46, 0.90, -Q, { z: 65 });
   obj("modular-suite/props/district_streets/str_vintage_bicycle.png", 17.95, 17.25, 1.16, 0.72, -Q + 0.1, { z: 64 });
-  obj("modular-suite/props/district_streets/str_vintage_bicycle.png", 25.65, 40.35, 1.16, 0.72, Q - 0.12, { z: 64 });
+  obj("modular-suite/props/district_streets/str_vintage_bicycle.png", 30.15, 41.35, 1.16, 0.72, Q - 0.06, { z: 64 });
   obj("modular-suite/props/district_streets/str_vintage_bicycle.png", 30.85, 11.55, 1.16, 0.72, 0.15, { z: 64 });
-  obj("modular-suite/props/district_streets/str_vintage_bicycle.png", 33.55, 46.85, 1.16, 0.72, Q + 0.08, { z: 64 });
+  obj("modular-suite/props/district_streets/str_vintage_bicycle.png", 33.45, 49.15, 1.16, 0.72, 0.58, { z: 64 });
 
-  // Sidewalk cellar storm doors cleanly on exposed sidewalk aprons (zero wall/roof collisions!)
-  obj("modular-suite/props/district_streets/str_cellar_storm_doors.png", 3.35, 16.05, 1.05, 0.92, 0.56, { z: 48, shadow: false });
-  obj("modular-suite/props/district_streets/str_cellar_storm_doors.png", 26.85, 41.35, 1.12, 0.98, Q, { z: 48, shadow: false });
-  obj("modular-suite/props/district_streets/str_cellar_storm_doors.png", 35.05, 48.25, 1.12, 0.98, Q, { z: 48, shadow: false });
-  obj("modular-suite/props/district_streets/str_cellar_storm_doors.png", 20.65, 48.25, 1.12, 0.98, -Q, { z: 48, shadow: false });
+  // Stone-framed flush sidewalk cellar flap doors strictly on building sidewalk aprons (ZERO mid-road cellar hatches!)
+  // Moved north to the bookshop service apron (1.98, 18.35) so Antiquariat Silberblatt's center awning & doorway are 100% unobstructed!
+  obj("modular-suite/props/city_streets/st_sidewalk_cellar_hatch_flush.png", 1.98, 18.35, 0.94, 0.77, 0.32, { z: 48, shadow: false });
+  obj("modular-suite/props/city_streets/st_sidewalk_cellar_hatch_flush.png", 26.15, 37.45, 1.10, 0.90, Q, { z: 48, shadow: false });
+  obj("modular-suite/props/city_streets/st_sidewalk_cellar_hatch_flush.png", 37.25, 46.25, 1.10, 0.90, 0.62, { z: 48, shadow: false });
+  obj("modular-suite/props/city_streets/st_sidewalk_cellar_hatch_flush.png", 19.65, 46.85, 1.10, 0.90, -Q, { z: 48, shadow: false });
 
-  // Natural gutter puddles & oil slicks along outer boulevards (transparent autumn leaf drifts live in streetcarLineBuilder.ts!)
+  // Natural gutter puddles & oil slicks tucked strictly inside curb gutters (NEVER straddling walls or mid-road!)
   for (const [px, py, pw, ph, rot, asset] of [
-    [5.35, 22.85, 1.48, 1.05, 0.3, "modular-suite/props/sewers_alleys/sew_mossy_puddle.png"],
-    [16.8, 30.8, 1.45, 1.05, -0.4, "modular-suite/props/sewers_alleys/sew_oil_slick_puddle.png"],
-    [23.5, 38.2, 1.50, 1.05, 0.5, "modular-suite/props/sewers_alleys/sew_mossy_puddle.png"],
-    [31.0, 45.8, 1.45, 1.02, -0.2, "modular-suite/props/sewers_alleys/sew_oil_slick_puddle.png"],
-    [37.8, 51.4, 1.65, 1.12, 0.4, "modular-suite/props/sewers_alleys/sew_mossy_puddle.png"],
-    [20.6, 50.4, 1.48, 1.02, 0.2, "modular-suite/props/sewers_alleys/sew_mossy_puddle.png"],
+    [5.35, 23.55, 1.32, 0.92, 0.25, "modular-suite/props/sewers_alleys/sew_mossy_puddle.png"],
+    [23.35, 40.75, 1.32, 0.94, Q, "modular-suite/props/sewers_alleys/sew_mossy_puddle.png"],
+    [32.25, 44.65, 1.34, 0.94, 0.58, "modular-suite/props/sewers_alleys/sew_oil_slick_puddle.png"],
+    [31.55, 45.95, 1.18, 0.84, 0.55, "modular-suite/props/sewers_alleys/sew_mossy_puddle.png"],
+    [37.35, 49.85, 1.44, 0.98, 0.56, "modular-suite/props/sewers_alleys/sew_mossy_puddle.png"],
+    [20.42, 50.52, 1.06, 0.74, -Q, "modular-suite/props/sewers_alleys/sew_mossy_puddle.png"],
   ] as Array<[number, number, number, number, number, string]>) {
     obj(asset, px, py, pw, ph, rot, { z: 46, shadow: false, opacity: 0.82 });
   }
 
   // =========================================================================
-  // 3. NARROW ALLEYS (DEAD-CENTERED ALONG EXACT ALLEY RIBBONS!)
+  // 3. NARROW ALLEYS (100% INSIDE PAVED ALLEY RIBBONS & CLEAR OF WALKWAYS!)
   // =========================================================================
 
-  // East Winding Narrow Alley (between dd-wall-1-12 north & dd-wall-1-10 south + East stub dd-wall-1-11)
-  obj("modular-suite/props/sewers_alleys/sew_storm_drain_grate.png", 33.45, 21.85, 0.66, 0.46, -0.15, { z: 45, shadow: false });
-  obj("modular-suite/props/sewers_alleys/sew_storm_drain_grate.png", 43.85, 19.75, 0.66, 0.46, -0.25, { z: 45, shadow: false });
-  obj("modular-suite/props/sewers_alleys/sew_oil_slick_puddle.png", 31.65, 21.85, 1.12, 0.78, 0.15, { z: 46, shadow: false });
-  obj("modular-suite/props/sewers_alleys/sew_mossy_puddle.png", 39.45, 20.55, 1.12, 0.78, -0.25, { z: 46, shadow: false });
-  obj("modular-suite/props/sewers_alleys/sew_oil_slick_puddle.png", 46.35, 24.35, 1.18, 0.84, 0.35, { z: 46, shadow: false });
-  obj("modular-suite/props/district_streets/str_alley_bin_cluster.png", 36.15, 21.35, 1.05, 0.78, -0.25, { z: 62 });
-  obj("modular-suite/props/district_streets/str_alley_bin_cluster.png", 45.75, 26.75, 1.18, 0.88, 1.45, { z: 62 });
-  obj("objects/alley_steam_vent.png", 41.35, 20.25, 0.78, 0.78, -0.2, { z: 54 });
-  obj("modular-suite/props/sewers_alleys/sew_scattered_bottles.png", 32.85, 21.75, 0.62, 0.62, 0.4, { z: 56, shadow: false });
-  obj("modular-suite/props/sewers_alleys/sew_wooden_handbarrow.png", 45.95, 21.95, 0.96, 0.68, 1.5, { z: 62 });
-  obj("modular-suite/props/district_streets/str_vintage_bicycle.png", 46.35, 25.45, 1.08, 0.66, 1.45, { z: 64 });
-  // Overhead alley laundry banner lines bridging cleanly across the narrow East alley!
-  path("paths/laundry_banner_line.png", [[38.1, 20.2], [39.5, 21.2]], 0.24, { curved: false, fadeEnds: false });
-  path("paths/laundry_banner_line.png", [[42.8, 19.2], [44.2, 20.4]], 0.24, { curved: false, fadeEnds: false });
+  // Area 3 (Watchtower South Alley) & Area 4 (East Winding Canal Alley) — zero blocked throats, zero out-of-place bunting!
+  obj("modular-suite/props/sewers_alleys/sew_storm_drain_grate.png", 33.45, 22.18, 0.66, 0.46, -0.05, { z: 45, shadow: false });
+  obj("modular-suite/props/sewers_alleys/sew_storm_drain_grate.png", 43.85, 19.32, 0.66, 0.46, -0.24, { z: 45, shadow: false });
+  obj("modular-suite/props/sewers_alleys/sew_oil_slick_puddle.png", 31.85, 22.12, 1.04, 0.72, 0.08, { z: 46, shadow: false });
+  obj("modular-suite/props/sewers_alleys/sew_mossy_puddle.png", 38.95, 21.08, 1.02, 0.72, -0.14, { z: 46, shadow: false });
+  obj("modular-suite/props/sewers_alleys/sew_oil_slick_puddle.png", 46.72, 24.45, 0.98, 0.70, 1.40, { z: 46, shadow: false });
+  obj("modular-suite/props/district_streets/str_alley_bin_cluster.png", 30.45, 21.35, 1.02, 0.76, 0.0, { z: 62 });
+  obj("modular-suite/props/district_streets/str_alley_bin_cluster.png", 45.35, 27.65, 1.08, 0.80, -0.62, { z: 62 });
+  obj("modular-suite/props/city_streets/st_cast_iron_alley_steam_vent.png", 41.65, 20.22, 0.72, 0.72, -0.22, { z: 54, shadow: false });
+  obj("modular-suite/props/sewers_alleys/sew_scattered_bottles.png", 32.75, 22.18, 0.58, 0.58, 0.4, { z: 56, shadow: false });
+  obj("modular-suite/props/sewers_alleys/sew_wooden_handbarrow.png", 46.55, 26.25, 0.96, 0.68, 2.05, { z: 62 });
+  obj("modular-suite/props/district_streets/str_vintage_bicycle.png", 45.85, 25.35, 1.08, 0.66, 1.65, { z: 64 });
 
-  // North Service Alley (centered cleanly at y ≈ 11.9–12.1 between Tenement y=11.0 & dd-wall-1-13 y=13.0)
-  obj("modular-suite/props/sewers_alleys/sew_storm_drain_grate.png", 33.45, 12.05, 0.66, 0.46, 0.08, { z: 45, shadow: false });
-  obj("modular-suite/props/sewers_alleys/sew_storm_drain_grate.png", 42.15, 12.05, 0.66, 0.46, -0.08, { z: 45, shadow: false });
-  obj("modular-suite/props/district_streets/str_alley_bin_cluster.png", 37.35, 12.05, 1.18, 0.88, 0.05, { z: 62 });
-  obj("modular-suite/props/sewers_alleys/sew_brick_pallet.png", 40.25, 12.15, 1.02, 0.74, -0.05, { z: 60 });
+  // Area 2: North Service Alley (ACTUAL paved alley curve y=13.5..14.7 + East Rear Service Lane y=11.1..12.9!)
+  obj("modular-suite/props/sewers_alleys/sew_storm_drain_grate.png", 32.55, 14.75, 0.66, 0.46, -0.22, { z: 45, shadow: false });
+  obj("modular-suite/props/sewers_alleys/sew_storm_drain_grate.png", 42.15, 12.15, 0.66, 0.46, -0.05, { z: 45, shadow: false });
+  obj("modular-suite/props/district_streets/str_alley_bin_cluster.png", 37.65, 11.45, 1.10, 0.82, 0.0, { z: 62 });
+  obj("modular-suite/props/sewers_alleys/sew_brick_pallet.png", 40.25, 12.55, 0.96, 0.70, 0.0, { z: 60 });
   obj("modular-suite/props/sewers_alleys/sew_coal_chute_hatch.png", 35.85, 11.42, 0.72, 0.58, 0, { z: 48, shadow: false });
   obj("modular-suite/props/sewers_alleys/sew_coal_chute_hatch.png", 42.55, 11.42, 0.72, 0.58, 0, { z: 48, shadow: false });
-  obj("objects/alley_steam_vent.png", 32.85, 12.15, 0.82, 0.82, 0.25, { z: 54 });
-  obj("modular-suite/props/sewers_alleys/sew_mossy_puddle.png", 31.35, 11.95, 1.12, 0.78, -0.15, { z: 46, shadow: false });
-  obj("modular-suite/props/sewers_alleys/sew_mossy_puddle.png", 45.35, 11.95, 1.18, 0.84, 0.2, { z: 46, shadow: false });
+  obj("modular-suite/props/city_streets/st_cast_iron_alley_steam_vent.png", 30.45, 13.48, 0.72, 0.72, 0.76, { z: 54, shadow: false });
+  obj("modular-suite/props/sewers_alleys/sew_mossy_puddle.png", 31.45, 14.65, 1.06, 0.74, -0.15, { z: 46, shadow: false });
+  obj("modular-suite/props/sewers_alleys/sew_mossy_puddle.png", 45.35, 12.25, 1.12, 0.78, 0.12, { z: 46, shadow: false });
   obj("modular-suite/props/bedroom_home/home_sleeping_tabby_cat.png", 44.05, 11.55, 0.56, 0.56, -0.4, { z: 64 });
 
-  // NW & SW Side-Alley Clutter + SE Sidewalk Curb Barrels (cleanly outside building walls!)
-  obj("modular-suite/props/district_streets/str_alley_bin_cluster.png", 2.35, 13.15, 1.18, 0.88, 0.55, { z: 62 });
-  obj("modular-suite/props/district_streets/str_alley_bin_cluster.png", 17.25, 52.35, 1.18, 0.88, -0.65, { z: 62 });
-  obj("modular-suite/props/sewers_alleys/sew_alley_trash_barrel.png", 23.65, 38.15, 0.72, 0.72, 0.2, { z: 62 });
-  obj("modular-suite/props/sewers_alleys/sew_mossy_puddle.png", 31.55, 46.45, 1.12, 0.78, -0.4, { z: 46, shadow: false });
-  obj("modular-suite/props/sewers_alleys/sew_burlap_trash_sack.png", 38.65, 46.85, 0.68, 0.68, 0.3, { z: 60 });
+  // Area 1, Area 5 & Area 6 Sidewalk Curb Bins & Barrels (tucked neatly against curbs/walls, zero road blockages!)
+  obj("modular-suite/props/district_streets/str_alley_bin_cluster.png", 2.65, 13.15, 1.08, 0.80, 1.04, { z: 62 });
+  obj("modular-suite/props/district_streets/str_alley_bin_cluster.png", 16.65, 52.45, 1.08, 0.80, 0.0, { z: 62 });
+  obj("modular-suite/props/sewers_alleys/sew_alley_trash_barrel.png", 23.75, 35.95, 0.72, 0.72, 0.2, { z: 62 });
+  obj("modular-suite/props/sewers_alleys/sew_burlap_trash_sack.png", 38.15, 46.85, 0.68, 0.68, 0.3, { z: 60 });
 
   // =========================================================================
-  // 4. DISTRICT-WIDE STREETLIGHT NETWORK (20 Location-Matched Street, Alley, Courtyard & Precinct Lamps!)
+  // 4. DISTRICT-WIDE STREETLIGHT NETWORK (20 Sidewalk-Curb & Wall-Mounted Lamps!)
   // =========================================================================
-  const lamps: Array<[string, string, number, number, number, string, number, boolean]> = [
+  const lamps: Array<[string, string, number, number, number, string, number, boolean, number?]> = [
     // Tram Avenue (Eisenbahnstraße) — Grand Berlin Double-Globe & Single Gaslamps + Magipunk Aether Lamp (100% clear of steel rails!)
     ["modular-suite/props/harmony_lighting/lgt_street_berlin_double_globe.png", "Tram Ave SW Gaslamp", 3.55, 26.45, 7.2, "#FFBE6B", 0.90, true],
     ["modular-suite/props/harmony_lighting/lgt_street_berlin_double_globe.png", "Grand Crossroads NW Lamp", 9.45, 20.45, 8.2, "#FFD078", 0.95, true],
-    ["modular-suite/props/harmony_lighting/lgt_street_berlin_double_globe.png", "Grand Crossroads SE Lamp", 13.25, 28.15, 7.4, "#FFC470", 0.90, true],
+    ["modular-suite/props/harmony_lighting/lgt_street_berlin_double_globe.png", "Grand Crossroads SE Lamp", 14.05, 27.65, 7.4, "#FFC470", 0.90, true],
     ["modular-suite/props/harmony_lighting/lgt_street_berlin_double_globe.png", "Tram Ave Mid-NW Lamp", 17.75, 12.25, 7.6, "#FFBE6B", 0.90, true],
     ["modular-suite/props/harmony_lighting/lgt_street_aether_cyan_post.png", "Tram Ave Magipunk Aether Lamp", 22.45, 14.05, 6.6, "#5ED4F5", 0.74, false],
     ["modular-suite/props/harmony_lighting/lgt_street_berlin_double_globe.png", "Tram Stop Haltestelle Lamp", 29.45, 6.35, 7.8, "#FFC675", 0.92, true],
     ["modular-suite/props/harmony_lighting/lgt_street_berlin_single_gas.png", "Tram Ave North Entry Lamp", 25.45, 2.25, 6.8, "#FFBE6B", 0.86, true],
-    // Grand Boulevard (Souverän-Allee)
-    ["modular-suite/props/harmony_lighting/lgt_street_berlin_double_globe.png", "NW Boulevard Entry Lamp", 3.45, 15.65, 7.0, "#FFBE6B", 0.88, true],
-    ["modular-suite/props/harmony_lighting/lgt_street_berlin_double_globe.png", "Cathedral Crossing Flower-Cart Lamp", 18.45, 32.15, 7.6, "#FFC472", 0.94, true],
-    ["modular-suite/props/harmony_lighting/lgt_street_berlin_double_globe.png", "SE Boulevard Mid Gaslamp", 27.45, 40.65, 7.6, "#FFBE6B", 0.90, true],
-    ["modular-suite/props/harmony_lighting/lgt_street_berlin_double_globe.png", "SE Boulevard South Corner Lamp", 34.45, 47.65, 7.6, "#FFBE6B", 0.90, true],
-    ["modular-suite/props/harmony_lighting/lgt_street_berlin_single_gas.png", "SE Boulevard Far Corner Lamp", 41.85, 52.85, 6.8, "#FFB85C", 0.86, true],
-    // Narrow Alleys & Side Streets — Classic Single Gaslamps & Aether Post
-    ["modular-suite/props/harmony_lighting/lgt_street_gothic_iron_post.png", "SW Cathedral Side-Street Lamp", 18.45, 49.45, 6.5, "#FFA94D", 0.84, true],
-    ["modular-suite/props/harmony_lighting/lgt_street_berlin_single_gas.png", "North Service Alley Gaslamp", 36.55, 12.05, 5.8, "#FFB054", 0.82, true],
-    ["modular-suite/props/harmony_lighting/lgt_street_berlin_single_gas.png", "East Winding Alley Gaslamp", 39.85, 20.55, 6.0, "#FFB85C", 0.84, true],
-    ["modular-suite/props/harmony_lighting/lgt_street_aether_cyan_post.png", "East Alley Aether Lamp", 45.85, 22.85, 5.8, "#5ED4F5", 0.72, false],
+    // West Avenue & Grand Boulevard (Souverän-Allee) — STRICTLY ON SIDEWALK CURBS (ZERO MID-ROAD LAMPS!)
+    ["modular-suite/props/harmony_lighting/lgt_street_berlin_double_globe.png", "NW Boulevard Entry Lamp", 2.65, 20.85, 7.4, "#FFBE6B", 0.90, true],
+    ["modular-suite/props/harmony_lighting/lgt_street_berlin_double_globe.png", "Cathedral Crossing Flower-Cart Lamp", 18.65, 31.35, 7.8, "#FFC472", 0.94, true],
+    ["modular-suite/props/harmony_lighting/lgt_street_berlin_double_globe.png", "SE Boulevard Mid Gaslamp", 28.75, 40.55, 7.8, "#FFBE6B", 0.92, true],
+    ["modular-suite/props/harmony_lighting/lgt_street_berlin_double_globe.png", "SE Boulevard South Corner Lamp", 34.55, 49.65, 7.8, "#FFBE6B", 0.92, true],
+    ["modular-suite/props/harmony_lighting/lgt_street_berlin_single_gas.png", "SE Boulevard Far Corner Lamp", 43.45, 50.45, 7.0, "#FFB85C", 0.88, true],
+    // Narrow Alleys & Side Streets — Curbside Posts & Wall-Mounted Alley Lantern Brackets (ZERO lane obstructions!)
+    ["modular-suite/props/harmony_lighting/lgt_street_gothic_iron_post.png", "SW Cathedral Side-Street Lamp", 19.55, 49.75, 6.5, "#FFA94D", 0.84, true],
+    ["modular-suite/props/city_streets/st_alley_wall_lantern_bracket.png", "North Service Alley Wall Lantern", 35.55, 12.82, 6.2, "#FFB054", 0.86, true, Math.PI / 2],
+    ["modular-suite/props/city_streets/st_alley_wall_lantern_bracket.png", "Watchtower South Alley Wall Lantern", 39.75, 19.92, 6.4, "#FFB85C", 0.86, true, Math.PI / 2 - 0.22],
+    ["modular-suite/props/harmony_lighting/lgt_street_aether_cyan_post.png", "East Alley Aether Lamp", 44.75, 22.95, 6.2, "#5ED4F5", 0.76, false],
     // Courtyards, Hinterhof Yards & Cathedral Grounds — Sandstone Pillar Lanterns, Garden Lantern & Gothic Iron Post!
     ["modular-suite/props/harmony_lighting/lgt_street_courtyard_pillar_lantern.png", "Kid Theater NE Courtyard Lantern", 26.85, 19.55, 7.2, "#FFC878", 0.90, true],
     ["modular-suite/props/harmony_lighting/lgt_street_courtyard_pillar_lantern.png", "SE Hinterhof North Yard Lantern", 36.15, 30.85, 6.8, "#FFBE6B", 0.88, true],
     ["modular-suite/props/harmony_lighting/lgt_street_garden_stone_lantern.png", "SE Hinterhof East Garden Lantern", 44.55, 38.05, 6.6, "#FFB85C", 0.86, true],
     ["modular-suite/props/harmony_lighting/lgt_street_gothic_iron_post.png", "Cathedral NW Grounds Lantern", 4.25, 33.85, 5.8, "#FFBA60", 0.84, true],
   ];
-  for (const [asset, name, lx, ly, rad, col, inten, flk] of lamps) {
-    obj(asset, lx, ly, 0.88, 0.88, 0, { z: 78 });
+  for (const [asset, name, lx, ly, rad, col, inten, flk, lrot] of lamps) {
+    const sz = asset.includes("wall_lantern") ? 0.72 : 0.88;
+    obj(asset, lx, ly, sz, sz, lrot ?? 0, { z: 78 });
     light(name, lx, ly, rad, col, inten, flk);
   }
 

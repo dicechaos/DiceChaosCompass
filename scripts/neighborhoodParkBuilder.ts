@@ -236,7 +236,7 @@ export function buildNeighborhoodPark(f1: IceCreamBuildBundle): void {
   obj("modular-suite/props/bedroom_home/home_sleeping_tabby_cat.png", 4.52, 3.62, 0.58, 0.58, 0.35, { z: 66 });
   obj("modular-suite/props/messy_apartment/apt_scattered_newspapers.png", 8.4, 4.72, 0.72, 0.62, 0.25, { z: 66, shadow: false });
   obj("modular-suite/props/sewers_alleys/sew_alley_trash_barrel.png", 12.15, 5.25, 0.72, 0.72, 0.2, { z: 62 });
-  obj("objects/berlin_litfass_kiosk.png", 14.18, 4.95, 1.02, 1.02, 0.3, { z: 72 });
+  obj("modular-suite/props/city_streets/st_berlin_litfass_column.png", 14.18, 4.95, 1.04, 1.04, 0.3, { z: 72 });
   // Cheerful neighborhood paper bunting strung high between the north oak & apple orchard trees above the duck pond!
   obj("modular-suite/props/music_theater_tea/mus_festival_bunting.png", 7.72, 0.82, 3.15, 0.62, -0.02, {
     z: 88,

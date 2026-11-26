@@ -1,5 +1,5 @@
 """
-Dice Chaos Maps — 15-Asset Aged Streetcar Line & Municipal Street Utility Suite
+Dice Chaos Compass — 15-Asset Aged Streetcar Line & Municipal Street Utility Suite
 
 Generates 15 bespoke painterly Harmony CC0 assets:
   - 3 Seamless Horizontal Streetcar Paths (`paths/streetcar/`):

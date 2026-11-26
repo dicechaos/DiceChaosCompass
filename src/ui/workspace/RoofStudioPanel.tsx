@@ -18,6 +18,7 @@ import { ROOF_MATERIAL_PRESETS } from "@/engine/roofEngine";
 import { useDocumentStore } from "@/store/documentStore";
 import { useVaultStore } from "@/store/vaultStore";
 import { ColorStudioPanel } from "@/ui/workspace/ColorStudioPanel";
+import { SectionCurveEditorCard } from "@/ui/workspace/SectionCurveEditorCard";
 import {
   DEFAULT_RECOLOR,
   type RoofDrawMode,
@@ -329,6 +330,21 @@ export const RoofStudioPanel: React.FC<RoofStudioPanelProps> = ({ selectedRoof }
               <span>Draw New</span>
             </button>
           </div>
+          {rf && rf.style !== "cone" && (
+            <SectionCurveEditorCard
+              selection={{ kind: "roof", layerId: selectedRoof.layerId, id: rf.id }}
+              points={rf.points}
+              closed={false}
+              curved={Boolean(rf.curved)}
+              segmentCurves={rf.segmentCurves}
+              sectionNoun="Ridge"
+              wholeNoun="Whole Ridge"
+              onWholeStraight={() =>
+                patchRoof({ curved: false, segmentCurves: undefined }, { roofCurved: false }, true)
+              }
+              onWholeSmooth={() => st.bendSelectedIntoCurve()}
+            />
+          )}
         </div>
       )}
 
@@ -751,7 +767,7 @@ export const RoofStudioPanel: React.FC<RoofStudioPanelProps> = ({ selectedRoof }
           </div>
         )}
 
-        {curStyle !== "cone" && (
+        {!selectedRoof && curStyle !== "cone" && (
           <div className="dc-field-row" style={{ marginBottom: 0 }}>
             <span className="dc-field-label">Curved Ridge (C)</span>
             <button
